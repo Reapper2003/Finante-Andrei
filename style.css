@@ -140,6 +140,7 @@ body.noscroll .fab { visibility: hidden; }
 .stats3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .stats2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .card.stats3 { margin-top: 0; }
+.card.stats3 > * + * { margin-top: 0; }
 .stat { display: flex; flex-direction: column; min-width: 0; }
 .stat strong { font-size: 16px; font-weight: 650; overflow-wrap: anywhere; }
 .diff { font-size: 14px; }
@@ -472,10 +473,11 @@ body.noscroll .toast { bottom: calc(var(--safe-b) + 96px); }
 .confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 70; pointer-events: none; }
 
 /* ---------- Comutator mic în card ---------- */
-.card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.card-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; margin-top: 4px; }
+.card-foot .seg-sm { margin-left: auto; }
 .card-foot-left .lg-more { padding: 0 4px; text-align: left; }
 .seg.seg-sm { width: auto; padding: 3px; }
-.seg.seg-sm button { flex: none; min-height: 38px; padding: 0 14px; }
+.seg.seg-sm button { flex: none; min-height: 38px; padding: 0 12px; }
 .lg-more { align-self: stretch; min-height: 40px; border: 0; background: none; color: var(--accent); font-weight: 600; font-size: 14px; }
 
 /* Sumele din cele trei coloane se micșorează ușor pe ecrane înguste, ca moneda să rămână pe același rând. */

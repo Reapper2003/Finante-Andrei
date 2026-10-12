@@ -1,4 +1,4 @@
-import { state, commit, setState, resetAll, isValidBackup, accountName } from '../store.js';
+import { state, commit, setState, resetAll, isValidBackup, accountName, dataSize } from '../store.js';
 import { money, num, parseAmount, forInput, CURRENCIES, NUMBER_FORMATS } from '../fmt.js';
 import { DATE_FORMATS } from '../dates.js';
 import { round2 } from '../calc.js';
@@ -33,6 +33,8 @@ function accentPicker() {
     })),
     h('label', { class: 'accent-sw custom' + (isPreset ? '' : ' on'), style: isPreset ? {} : { background: cur }, title: tr('Altă culoare') }, isPreset ? '+' : null, custom));
 }
+
+const sizeLabel = b => (b < 1024 * 1024 ? `${num(b / 1024, 0)} KB` : `${num(b / 1024 / 1024, 1)} MB`);
 
 function navRow(title, sub, onclick, cls = '') {
   return h('button', { type: 'button', class: `row tap ${cls}`, onclick },
@@ -85,7 +87,8 @@ function openOpening() {
 }
 
 function restore() {
-  const input = h('input', { type: 'file', accept: 'application/json,.json', hidden: true });
+  // Fără filtru de tip: pe iPhone, filtrul JSON face ca fișierele .json să nu poată fi alese. Conținutul e verificat după citire.
+  const input = h('input', { type: 'file', hidden: true });
   document.body.append(input);
   input.addEventListener('change', async () => {
     const file = input.files?.[0];
@@ -167,6 +170,7 @@ export function settingsPage() {
       navRow(tr('Restaurare (import JSON)'), tr('Încarcă datele dintr-un backup'), restore),
       navRow(tr('Încarcă date demo'), tr('Ca să vezi cum arată aplicația'), demo),
       navRow(tr('Șterge toate datele'), tr('Cu confirmare dublă'), wipe, 'danger-text')),
-    h('p', { class: 'hint center' }, tr('Datele sunt salvate doar pe acest dispozitiv, în browser. Fă din când în când un backup.')));
+    h('p', { class: 'hint center' }, tr('Datele sunt salvate doar pe acest dispozitiv. Fă din când în când un backup.')),
+    h('p', { class: 'hint center' }, tr('Spațiu folosit: {size}', { size: sizeLabel(dataSize()) })));
   return { title: tr('Setări'), back: '#/mai-mult', node };
 }

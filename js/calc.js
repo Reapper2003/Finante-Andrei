@@ -37,15 +37,33 @@ export function convert(amount, from, to) {
 }
 
 /* ---------- Conturi și „compartimente” de economii ---------- */
-// Economiile sunt împărțite în compartimente: '' = alte economii, 'urgenta' = fond de urgență, 'g:<id>' = goal.
+// Economiile sunt împărțite în compartimente, fiecare cu moneda lui:
+// '' = alte economii (moneda implicită), 'urgenta' = fond de urgență (moneda implicită),
+// 'g:<id>' = goal, 'f:<id>' = fond de economii (ex. „Economii în euro”).
+// La transferuri: `amount` e în moneda implicită; `toAmount` / `fromAmount` (dacă există) sunt în moneda compartimentului.
+
+const baseCur = () => state.settings.currency;
+const findGoal = b => state.goals.find(g => 'g:' + g.id === b);
+const findFund = b => state.funds.find(f => 'f:' + f.id === b);
+
+export function bucketCurrency(b) {
+  if (b?.startsWith('g:')) return findGoal(b)?.currency || baseCur();
+  if (b?.startsWith('f:')) return findFund(b)?.currency || baseCur();
+  return baseCur();
+}
+
+export const allBuckets = () => ['', 'urgenta', ...state.goals.map(g => 'g:' + g.id), ...state.funds.map(f => 'f:' + f.id)];
+
+// Suma intrată în compartiment, respectiv ieșită din el, în moneda compartimentului.
+export const bucketIn = t => t.toAmount ?? t.amount;
+export const bucketOut = t => t.fromAmount ?? t.amount;
 
 export function accountBalance(acc, upTo = null) {
-  let b = 0;
-  if (acc === 'curent') b = state.settings.opening.curent || 0;
   if (acc === 'economii') {
-    b = (state.settings.opening.economii || 0) + (state.emergency.initial || 0);
-    for (const g of state.goals) if (inRange(g.createdAt, upTo)) b += g.initial || 0;
+    const base = baseCur();
+    return round2(allBuckets().reduce((a, b) => a + convert(bucketBalance(b, upTo), bucketCurrency(b), base), 0));
   }
+  let b = acc === 'curent' ? state.settings.opening.curent || 0 : 0;
   for (const t of state.transactions) {
     if (!inRange(t.date, upTo)) continue;
     if (t.type === 'venit' && t.accountId === acc) b += t.amount;
@@ -58,18 +76,22 @@ export function accountBalance(acc, upTo = null) {
   return round2(b);
 }
 
+// Soldul unui compartiment, în moneda lui.
 export function bucketBalance(bucket, upTo = null) {
   let b = 0;
   if (bucket === 'urgenta') b = state.emergency.initial || 0;
   else if (bucket.startsWith('g:')) {
-    const g = state.goals.find(x => 'g:' + x.id === bucket);
+    const g = findGoal(bucket);
     if (g && inRange(g.createdAt, upTo)) b = g.initial || 0;
+  } else if (bucket.startsWith('f:')) {
+    const f = findFund(bucket);
+    if (f && inRange(f.createdAt, upTo)) b = f.initial || 0;
   } else b = state.settings.opening.economii || 0;
   for (const t of state.transactions) {
     if (!inRange(t.date, upTo)) continue;
     if (t.type === 'transfer') {
-      if (t.toAccountId === 'economii' && (t.toBucket || '') === bucket) b += t.amount;
-      if (t.accountId === 'economii' && (t.fromBucket || '') === bucket) b -= t.amount;
+      if (t.toAccountId === 'economii' && (t.toBucket || '') === bucket) b += bucketIn(t);
+      if (t.accountId === 'economii' && (t.fromBucket || '') === bucket) b -= bucketOut(t);
     } else if (bucket === '' && t.accountId === 'economii') {
       b += t.type === 'venit' ? t.amount : -t.amount;
     }
@@ -80,22 +102,40 @@ export function bucketBalance(bucket, upTo = null) {
 export function bucketName(b) {
   if (!b) return tr('Alte economii');
   if (b === 'urgenta') return tr('Fond de urgență');
-  return state.goals.find(g => 'g:' + g.id === b)?.name || tr('Goal șters');
+  if (b.startsWith('f:')) return findFund(b)?.name || tr('Fond șters');
+  return findGoal(b)?.name || tr('Goal șters');
 }
+
+const curTag = b => (bucketCurrency(b) !== baseCur() ? ` (${bucketCurrency(b)})` : '');
 
 export function bucketOptions(current) {
   return [
     { value: '', label: tr('Alte economii') },
     { value: 'urgenta', label: tr('Fond de urgență') },
-    ...state.goals.filter(g => !g.done || 'g:' + g.id === current).map(g => ({ value: 'g:' + g.id, label: tr('Goal: {name}', { name: g.name }) })),
+    ...state.funds.map(f => ({ value: 'f:' + f.id, label: tr('Fond: {name}', { name: f.name }) + curTag('f:' + f.id) })),
+    ...state.goals.filter(g => !g.done || 'g:' + g.id === current).map(g => ({ value: 'g:' + g.id, label: tr('Goal: {name}', { name: g.name }) + curTag('g:' + g.id) })),
   ];
 }
 
+// Pentru grafice: valoarea fiecărui compartiment, convertită în moneda implicită.
 export function savingsBreakdown(upTo = null) {
-  const items = [{ id: 'urgenta', label: tr('Fond de urgență'), value: bucketBalance('urgenta', upTo), color: '#4FD1DC' }];
-  for (const g of state.goals) items.push({ id: 'g:' + g.id, label: g.name, value: bucketBalance('g:' + g.id, upTo), color: g.color });
-  items.push({ id: '', label: tr('Alte economii'), value: bucketBalance('', upTo), color: '#C9CED6' });
-  return items.filter(i => i.value > 0);
+  const base = baseCur();
+  const val = b => convert(bucketBalance(b, upTo), bucketCurrency(b), base);
+  const items = [{ id: 'urgenta', label: tr('Fond de urgență'), value: val('urgenta'), color: '#4FD1DC' }];
+  for (const f of state.funds) items.push({ id: 'f:' + f.id, label: f.name, value: val('f:' + f.id), color: f.color });
+  for (const g of state.goals) items.push({ id: 'g:' + g.id, label: g.name, value: val('g:' + g.id), color: g.color });
+  items.push({ id: '', label: tr('Alte economii'), value: val(''), color: '#C9CED6' });
+  return items.filter(i => i.value > 0).map(i => ({ ...i, value: round2(i.value) }));
+}
+
+// Totaluri de economii pe monede (fiecare în moneda ei).
+export function savingsByCurrency() {
+  const out = {};
+  for (const b of allBuckets()) {
+    const cur = bucketCurrency(b);
+    out[cur] = round2((out[cur] || 0) + bucketBalance(b));
+  }
+  return out;
 }
 
 export function goalStats(g) {
@@ -107,7 +147,7 @@ export function goalStats(g) {
     if (days < 0) overdue = true;
     else perMonth = left / Math.max(1, Math.ceil(days / 30.44));
   }
-  return { saved, left, pct: g.target > 0 ? saved / g.target : 0, perMonth, overdue };
+  return { saved, left, pct: g.target > 0 ? saved / g.target : 0, perMonth, overdue, cur: g.currency || baseCur() };
 }
 
 /* ---------- Lunar ---------- */
@@ -122,10 +162,10 @@ export function monthTotals(key) {
   return { income: round2(income), expense: round2(expense), left: round2(income - expense) };
 }
 
-export function expenseByCategory(key) {
+export function expenseByCategory(key, type = 'cheltuiala') {
   const map = new Map();
   for (const t of state.transactions) {
-    if (t.type !== 'cheltuiala' || !t.date.startsWith(key)) continue;
+    if (t.type !== type || !t.date.startsWith(key)) continue;
     const k = t.categoryId || '';
     map.set(k, (map.get(k) || 0) + t.amount);
   }
@@ -134,6 +174,8 @@ export function expenseByCategory(key) {
     return { id, value: round2(value), label: catName(c), color: c?.color || '#C9CED6', icon: c?.icon || '•' };
   }).sort((a, b) => b.value - a.value);
 }
+
+export const incomeByCategory = key => expenseByCategory(key, 'venit');
 
 /* ---------- Investiții ---------- */
 
@@ -337,7 +379,7 @@ export function buildYearReport(y) {
     ef: { start: bucketBalance('urgenta', start), end: bucketBalance('urgenta', end) },
     goals: state.goals.filter(g => !g.createdAt || g.createdAt <= (end || today())).map(g => {
       const b = 'g:' + g.id, savedEnd = bucketBalance(b, end);
-      return { name: g.name, icon: g.icon, color: g.color, target: g.target, savedEnd, added: round2(savedEnd - bucketBalance(b, start)), pct: g.target > 0 ? savedEnd / g.target : 0 };
+      return { name: g.name, icon: g.icon, color: g.color, cur: g.currency || baseCur(), target: g.target, savedEnd, added: round2(savedEnd - bucketBalance(b, start)), pct: g.target > 0 ? savedEnd / g.target : 0 };
     }),
     networth: { without: nwEnd.without, with: nwEnd.with, startWithout: nwStart.without, startWith: nwStart.with },
   };
@@ -381,7 +423,7 @@ export function dailyAllowance() {
 export function firstDataMonth() {
   const dates = [
     ...state.transactions.map(t => t.date), ...state.contributions.map(c => c.date), ...state.assetValues.map(v => v.date),
-    ...state.debts.map(d => d.startDate), ...state.goals.map(g => g.createdAt), ...state.debtPayments.map(p => p.date),
+    ...state.debts.map(d => d.startDate), ...state.goals.map(g => g.createdAt), ...state.funds.map(f => f.createdAt), ...state.debtPayments.map(p => p.date),
   ].filter(Boolean).sort();
   return dates.length ? dates[0].slice(0, 7) : null;
 }
@@ -436,7 +478,7 @@ export function buildReport(m) {
 
   const goals = state.goals.filter(g => inRange(g.createdAt, end)).map(g => {
     const b = 'g:' + g.id, savedEnd = bucketBalance(b, end);
-    return { name: g.name, icon: g.icon, color: g.color, target: g.target, added: round2(savedEnd - bucketBalance(b, prevEnd)), savedEnd, pct: g.target > 0 ? savedEnd / g.target : 0 };
+    return { name: g.name, icon: g.icon, color: g.color, cur: g.currency || baseCur(), target: g.target, added: round2(savedEnd - bucketBalance(b, prevEnd)), savedEnd, pct: g.target > 0 ? savedEnd / g.target : 0 };
   });
 
   const avg = avgMonthlyExpense(addMonths(m, 1)).value;

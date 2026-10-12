@@ -1,10 +1,9 @@
-import { state, commit, accountName } from '../store.js';
-import { fmtDate } from '../dates.js';
+import { state, commit } from '../store.js';
 import { money, num, pct, parseAmount, forInput } from '../fmt.js';
-import { round2, efStats, avgMonthlyExpense, bucketName } from '../calc.js';
-import { h, card, sectionHead, stat, btn, progress, openSheet, field, amountInput, invalid, toast, swipeRow, icon } from '../ui.js';
+import { round2, efStats, avgMonthlyExpense } from '../calc.js';
+import { h, card, sectionHead, stat, btn, progress, openSheet, field, amountInput, invalid, toast, icon } from '../ui.js';
 import { openBucketMove } from '../forms.js';
-import { confirmDeleteTx, exportButton } from '../components.js';
+import { exportButton, movesList } from '../components.js';
 import { t as tr } from '../i18n.js';
 
 const LEVEL_TEXT = { neg: 'Sub pragul minim', warn: 'Pe drum bun', pos: 'Fond sănătos' };
@@ -43,8 +42,6 @@ export function openEfSettings() {
 export function emergencyPage() {
   const ef = efStats();
   const avg = avgMonthlyExpense();
-  const moves = state.transactions.filter(t => t.type === 'transfer' && (t.toBucket === 'urgenta' || t.fromBucket === 'urgenta'))
-    .sort((a, b) => b.date.localeCompare(a.date));
   const avgText = avg.manual
     ? tr('Valoare introdusă manual.')
     : avg.months === 1 ? tr('Media cheltuielilor din ultima lună încheiată.')
@@ -68,19 +65,7 @@ export function emergencyPage() {
       ef.balance > 0 ? btn(tr('Retrage'), () => openBucketMove({ bucket: 'urgenta', dir: 'out' }), 'secondary') : null,
       btn(tr('Adaugă bani'), () => openBucketMove({ bucket: 'urgenta', dir: 'in' }))),
     sectionHead(tr('Istoric mișcări')),
-    moves.length
-      ? h('div', { class: 'list' }, moves.map(t => {
-        const isIn = t.toBucket === 'urgenta';
-        const other = isIn ? (t.accountId === 'economii' ? bucketName(t.fromBucket) : accountName('curent')) : (t.toAccountId === 'economii' ? bucketName(t.toBucket) : accountName('curent'));
-        const content = h('div', { class: 'row' },
-          h('span', { class: 'cat-ic neutral' }, icon(isIn ? 'download' : 'upload', 20)),
-          h('div', { class: 'row-main' }, h('div', { class: 'row-title' }, isIn ? tr('Depunere') : tr('Retragere')),
-            h('div', { class: 'row-sub' }, `${fmtDate(t.date)} · ${isIn ? tr('din {name}', { name: other }) : tr('către {name}', { name: other })}`)),
-          h('span', { class: 'amt ' + (isIn ? 'pos' : '') }, money(isIn ? t.amount : -t.amount, { sign: true })));
-        const edit = () => openBucketMove({ bucket: 'urgenta', dir: isIn ? 'in' : 'out', existing: t });
-        return swipeRow(content, { onTap: edit, onEdit: edit, onDelete: () => confirmDeleteTx(t) });
-      }))
-      : h('p', { class: 'muted' }, tr('Nicio mișcare încă. Adaugă bani din contul Curent.')),
+    movesList('urgenta'),
     exportButton());
-  return { title: tr('Fond de urgență'), back: '#/mai-mult', node };
+  return { title: tr('Fond de urgență'), back: '#/economii', node };
 }

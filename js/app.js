@@ -1,6 +1,6 @@
 // Pornirea aplicației: rutare, header, bara de jos, butonul +, pull-to-refresh, PWA.
 
-import { state, load, save, subscribe, commit } from './store.js';
+import { state, load, save, subscribe, onSaveError, commit } from './store.js';
 import { h, icon, app, toast, applyTheme, sheetOpen } from './ui.js';
 import { runAutomations } from './actions.js';
 import { openTxForm } from './forms.js';
@@ -13,6 +13,7 @@ import { morePage } from './pages/more.js';
 import { subscriptionsPage } from './pages/subscriptions.js';
 import { networthPage } from './pages/networth.js';
 import { emergencyPage } from './pages/emergency.js';
+import { savingsPage, fundPage } from './pages/savings.js';
 import { debtsPage, debtPage } from './pages/debts.js';
 import { settingsPage } from './pages/settings.js';
 import { categoriesPage } from './pages/categories.js';
@@ -20,6 +21,7 @@ import { categoriesPage } from './pages/categories.js';
 const TABS = [
   ['acasa', 'Acasă', 'home'],
   ['tranzactii', 'Tranzacții', 'list'],
+  ['economii', 'Economii', 'wallet'],
   ['investitii', 'Investiții', 'trend'],
   ['rapoarte', 'Rapoarte', 'report'],
   ['mai-mult', 'Mai mult', 'more'],
@@ -28,6 +30,8 @@ const TABS = [
 const ROUTES = [
   [/^acasa$/, dashboardPage, 'acasa'],
   [/^tranzactii$/, transactionsPage, 'tranzactii'],
+  [/^economii$/, savingsPage, 'economii'],
+  [/^economii\/f\/([\w-]+)$/, fundPage, 'economii'],
   [/^investitii$/, investmentsPage, 'investitii'],
   [/^investitii\/b\/([\w-]+)$/, brokerPage, 'investitii'],
   [/^investitii\/a\/([\w-]+)$/, assetPage, 'investitii'],
@@ -35,7 +39,7 @@ const ROUTES = [
   [/^mai-mult$/, morePage, 'mai-mult'],
   [/^abonamente$/, subscriptionsPage, 'mai-mult'],
   [/^avere$/, networthPage, 'mai-mult'],
-  [/^fond$/, emergencyPage, 'mai-mult'],
+  [/^fond$/, emergencyPage, 'economii'],
   [/^datorii$/, debtsPage, 'mai-mult'],
   [/^datorii\/([\w-]+)$/, debtPage, 'mai-mult'],
   [/^setari$/, settingsPage, 'mai-mult'],
@@ -93,8 +97,8 @@ function buildNav() {
   fab.replaceChildren(icon('plus', 28));
 }
 
-function refresh() {
-  load();
+async function refresh() {
+  await load();
   runAutomations();
   applyTheme();
   render();
@@ -133,8 +137,8 @@ function setupPullToRefresh() {
   window.addEventListener('touchcancel', end);
 }
 
-function start() {
-  load();
+async function start() {
+  await load();
   if (state.settings.privateOnStart) state.settings.privateMode = true;
   runAutomations();
   save();
@@ -148,10 +152,10 @@ function start() {
     toast(state.settings.privateMode ? tr('Mod privat activat') : tr('Sume vizibile'));
   });
   fab.addEventListener('click', () => openTxForm());
-  subscribe(ok => {
-    if (!ok) toast(tr('Nu am putut salva datele (spațiu insuficient)'));
-    render();
-  });
+  subscribe(render);
+  onSaveError(() => toast(tr('Nu am putut salva datele (spațiu insuficient)')));
+  // Cere telefonului să nu șteargă datele aplicației când rămâne fără spațiu.
+  navigator.storage?.persist?.().catch(() => {});
   window.addEventListener('hashchange', render);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && runAutomations()) render();

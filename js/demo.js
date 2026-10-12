@@ -32,11 +32,16 @@ export function buildDemo(keepSettings) {
 
   // Goal-uri
   const goals = [
-    { name: L('Vacanță în Grecia'), icon: '🏖️', target: 8000, initial: 1200, deadline: addMonthsDate(t, 7), color: PALETTE[0] },
+    { name: L('Vacanță în Grecia'), icon: '🏖️', target: 1600, initial: 240, deadline: addMonthsDate(t, 7), color: PALETTE[0], currency: 'EUR' },
     { name: L('Laptop nou'), icon: '💻', target: 6000, initial: 2500, deadline: null, color: PALETTE[4] },
     { name: L('Avans apartament'), icon: '🏠', target: 40000, initial: 9000, deadline: addMonthsDate(t, 30), color: PALETTE[3] },
   ].map(g => ({ id: uid(), done: false, createdAt: startDate, ...g }));
   s.goals = goals;
+
+  // Fond de economii în euro
+  const eur = s.settings.rates.EUR;
+  const fund = { id: uid(), name: L('Economii în euro'), currency: 'EUR', initial: 1500, icon: '💶', color: PALETTE[6], note: '', createdAt: startDate };
+  s.funds = [fund];
 
   // Investiții
   const brokers = [
@@ -79,7 +84,8 @@ export function buildDemo(keepSettings) {
 
     // Economii
     tx({ type: 'transfer', amount: 500, date: day(m, 11), accountId: 'curent', toAccountId: 'economii', toBucket: 'urgenta', note: L('Fond de urgență') });
-    tx({ type: 'transfer', amount: 400, date: day(m, 11), accountId: 'curent', toAccountId: 'economii', toBucket: 'g:' + goals[0].id, note: L('Goal: Vacanță') });
+    tx({ type: 'transfer', amount: Math.round(80 * eur * 100) / 100, toAmount: 80, date: day(m, 11), accountId: 'curent', toAccountId: 'economii', toBucket: 'g:' + goals[0].id, note: L('Goal: Vacanță') });
+    tx({ type: 'transfer', amount: Math.round(100 * eur * 100) / 100, toAmount: 100, date: day(m, 11), accountId: 'curent', toAccountId: 'economii', toBucket: 'f:' + fund.id, note: L('Economii în euro') });
     tx({ type: 'transfer', amount: 200, date: day(m, 11), accountId: 'curent', toAccountId: 'economii', toBucket: 'g:' + goals[1].id, note: L('Goal: Laptop') });
     tx({ type: 'transfer', amount: 300, date: day(m, 11), accountId: 'curent', toAccountId: 'economii', toBucket: 'g:' + goals[2].id, note: L('Goal: Avans') });
 

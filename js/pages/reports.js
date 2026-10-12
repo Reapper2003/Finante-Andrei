@@ -91,7 +91,7 @@ function yearlyView() {
         h('div', { class: 'stats2' }, stat(tr('Fond de urgență – început'), money(y.ef.start)), stat(tr('Fond de urgență – final'), money(y.ef.end))),
         diffLine(y.ef.end, y.ef.start),
         y.goals.length ? h('div', { class: 'stack-sm', style: { marginTop: '14px' } }, y.goals.map(g => h('div', {},
-          h('div', { class: 'top-line' }, h('span', {}, `${g.icon || '🎯'} ${g.name}`), h('b', { class: signCls(g.added) }, money(g.added, { sign: true }))),
+          h('div', { class: 'top-line' }, h('span', {}, `${g.icon || '🎯'} ${g.name}`), h('b', { class: signCls(g.added) }, money(g.added, { sign: true, cur: g.cur }))),
           progress(g.pct, g.color)))) : null),
 
       card(h('h2', {}, tr('Investiții')),
@@ -159,9 +159,9 @@ export function reportsPage() {
 
       r.goals.length ? card(h('h2', {}, tr('Goal-uri')),
         h('div', { class: 'stack-sm' }, r.goals.map(g => h('div', {},
-          h('div', { class: 'top-line' }, h('span', {}, `${g.icon || '🎯'} ${g.name}`), h('b', { class: signCls(g.added) }, money(g.added, { sign: true }))),
+          h('div', { class: 'top-line' }, h('span', {}, `${g.icon || '🎯'} ${g.name}`), h('b', { class: signCls(g.added) }, money(g.added, { sign: true, cur: g.cur }))),
           progress(g.pct, g.color),
-          h('small', { class: 'muted' }, `${tr('{a} din {b}', { a: money(g.savedEnd), b: money(g.target) })} · ${pct(g.pct, 0)}`))))) : null,
+          h('small', { class: 'muted' }, `${tr('{a} din {b}', { a: money(g.savedEnd, { cur: g.cur }), b: money(g.target, { cur: g.cur }) })} · ${pct(g.pct, 0)}`))))) : null,
 
       card(h('h2', {}, tr('Fond de urgență')),
         h('div', { class: 'stats2' }, stat(tr('La început'), money(r.ef.start)), stat(tr('La final'), money(r.ef.end))),

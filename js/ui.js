@@ -421,7 +421,8 @@ export async function deliverFile(blob, filename) {
   const file = new File([blob], filename, { type: blob.type });
   if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: filename });
+      // Fără titlu: pe iPhone, titlul ar fi salvat ca un fișier .txt separat lângă fișierul real.
+      await navigator.share({ files: [file] });
       return;
     } catch (e) {
       if (e.name === 'AbortError') return;

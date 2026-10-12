@@ -4,7 +4,7 @@
 import { state, uid, commit, save, catByName } from './store.js';
 import { today, addMonthsDate } from './dates.js';
 import { t as tr } from './i18n.js';
-import { round2, convert, brokerOfAsset, FREQ, ensureSnapshots, ensureReports, bucketBalance } from './calc.js';
+import { round2, convert, brokerOfAsset, FREQ, ensureSnapshots, ensureReports, bucketBalance, bucketCurrency } from './calc.js';
 
 const base = () => state.settings.currency;
 const assetById = id => state.assets.find(a => a.id === id);
@@ -103,18 +103,42 @@ export function deleteDebt(id) {
   commit();
 }
 
-// Banii strânși într-un goal șters rămân în Economii, la „alte economii”.
+// Banii dintr-un goal sau fond șters rămân în Economii, la „alte economii” (în moneda implicită).
+function releaseBucket(b, initial) {
+  const base = state.settings.currency;
+  state.settings.opening.economii = round2((state.settings.opening.economii || 0) + convert(initial || 0, bucketCurrency(b), base));
+  for (const t of state.transactions) {
+    // Sumele în moneda compartimentului nu mai au sens; rămâne suma în moneda implicită.
+    if (t.toBucket === b) { t.toBucket = ''; delete t.toAmount; }
+    if (t.fromBucket === b) { t.fromBucket = ''; delete t.fromAmount; }
+  }
+}
+
 export function deleteGoal(id) {
   const g = state.goals.find(x => x.id === id);
   if (!g) return;
-  state.settings.opening.economii = round2((state.settings.opening.economii || 0) + (g.initial || 0));
-  const b = 'g:' + id;
-  for (const t of state.transactions) {
-    if (t.toBucket === b) t.toBucket = '';
-    if (t.fromBucket === b) t.fromBucket = '';
-  }
+  releaseBucket('g:' + id, g.initial);
   state.goals = state.goals.filter(x => x.id !== id);
   commit();
+}
+
+export function deleteFund(id) {
+  const f = state.funds.find(x => x.id === id);
+  if (!f) return;
+  releaseBucket('f:' + id, f.initial);
+  state.funds = state.funds.filter(x => x.id !== id);
+  commit();
+}
+
+// Schimbă moneda unui goal sau fond: suma de pornire și toate mișcările se convertesc cu cursul din Setări.
+// Apelată înainte ca obiectul să primească noua monedă; nu salvează (salvează apelantul).
+export function convertBucketHistory(b, from, to) {
+  if (from === to) return;
+  for (const t of state.transactions) {
+    if (t.type !== 'transfer') continue;
+    if (t.toAccountId === 'economii' && t.toBucket === b) t.toAmount = round2(convert(t.toAmount ?? t.amount, from, to));
+    if (t.accountId === 'economii' && t.fromBucket === b) t.fromAmount = round2(convert(t.fromAmount ?? t.amount, from, to));
+  }
 }
 
 // Transferurile făcute rămân în istoric; doar legătura cu activul dispare.

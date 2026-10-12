@@ -7,7 +7,7 @@ import { buildXlsx } from './xlsx.js';
 import { deliverFile } from './ui.js';
 import {
   round2, bucketName, assetStats, brokerStats, assetTypeLabel, brokerOfAsset, debtTypeLabel, debtStats,
-  goalStats, efStats, subMonthly, freqLabel,
+  goalStats, efStats, subMonthly, freqLabel, bucketCurrency, bucketBalance, convert,
 } from './calc.js';
 
 const H = (...names) => names.map(v => ({ v: tr(v), s: 'head' }));
@@ -78,9 +78,18 @@ export function buildAllSheets({ from, to } = {}) {
   });
 
   sheets.push({
-    name: tr('Goal-uri'), freeze: 1, cols: [22, 14, 14, 10, 14, 14, 10],
-    rows: [H('Nume', 'Țintă', 'Strâns', 'Progres %', 'Rămas', 'Termen', 'Finalizat'),
-      ...state.goals.map(g => { const s = goalStats(g); return [g.name, M(g.target), M(s.saved), P(s.pct), M(s.left), g.deadline ? D(g.deadline) : '', yesNo(g.done)]; })],
+    name: tr('Goal-uri'), freeze: 1, cols: [22, 8, 14, 14, 10, 14, 14, 10],
+    rows: [H('Nume', 'Monedă', 'Țintă', 'Strâns', 'Progres %', 'Rămas', 'Termen', 'Finalizat'),
+      ...state.goals.map(g => { const s = goalStats(g); return [g.name, s.cur, M(g.target), M(s.saved), P(s.pct), M(s.left), g.deadline ? D(g.deadline) : '', yesNo(g.done)]; })],
+  });
+
+  sheets.push({
+    name: tr('Fonduri de economii'), freeze: 1, cols: [24, 8, 14, 16, 30],
+    rows: [H('Nume', 'Monedă', 'Sold', 'Sold în moneda implicită', 'Notă'),
+      ...['', ...state.funds.map(f => 'f:' + f.id)].map(b => {
+        const c = bucketCurrency(b), bal = bucketBalance(b);
+        return [bucketName(b), c, M(bal), M(convert(bal, c, cur)), b ? state.funds.find(f => 'f:' + f.id === b)?.note || '' : ''];
+      })],
   });
 
   const ef = efStats();

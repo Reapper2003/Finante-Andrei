@@ -17,10 +17,12 @@
   <script>
     // Tema se aplică înainte de afișare, ca să nu clipească ecranul.
     try {
-      var s = (JSON.parse(localStorage.getItem('finante.data.v1') || '{}').settings) || {};
-      var t = s.theme || 'auto';
+      var p = JSON.parse(localStorage.getItem('finante.prefs') || 'null') ||
+        (JSON.parse(localStorage.getItem('finante.data.v1') || '{}').settings) || {};
+      var t = p.theme || 'auto';
       var d = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
       document.documentElement.dataset.theme = d ? 'dark' : 'light';
+      if (/^#[0-9a-f]{6}$/i.test(p.accent || '')) document.documentElement.style.setProperty('--hero', p.accent);
     } catch (e) {}
   </script>
   <script type="module" src="js/app.js"></script>

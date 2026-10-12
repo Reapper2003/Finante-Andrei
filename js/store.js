@@ -1,8 +1,11 @@
-// Starea aplicației: un singur obiect, salvat în localStorage.
+// Starea aplicației: un singur obiect, salvat local în IndexedDB (rezervă: localStorage).
 
 import { t as tr } from './i18n.js';
+import { idbGet, idbSet, idbDelete } from './db.js';
 
 const KEY = 'finante.data.v1';
+// Tema și culoarea, păstrate și separat ca pagina să le aplice înainte de afișare (vezi index.html).
+const PREFS_KEY = 'finante.prefs';
 
 export const ACCOUNTS = [
   { id: 'curent', name: 'Curent' },
@@ -62,6 +65,7 @@ export function defaultState() {
     assetValues: [],
     subscriptions: [],
     goals: [],
+    funds: [],
     debts: [],
     debtPayments: [],
     receivables: [],
@@ -80,7 +84,7 @@ function migrate(raw) {
   for (const k of Object.keys(d)) if (Array.isArray(d[k]) && !Array.isArray(s[k])) s[k] = [];
   if (!s.categories.length) s.categories = d.categories;
   // Culorile din paleta veche (prea șterse) trec la nuanța corespunzătoare din paleta nouă.
-  for (const x of [...s.categories, ...s.goals]) {
+  for (const x of [...s.categories, ...s.goals, ...s.funds]) {
     const i = OLD_PALETTE.indexOf(String(x.color).toUpperCase());
     if (i >= 0) x.color = PALETTE[i];
   }
@@ -92,34 +96,68 @@ export let state = defaultState();
 export const isValidBackup = raw => !!raw && typeof raw === 'object' && Array.isArray(raw.transactions) && Array.isArray(raw.categories);
 export function setState(raw) { state = migrate(raw); }
 
-export function load() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    state = raw ? migrate(JSON.parse(raw)) : defaultState();
-  } catch {
-    state = defaultState();
-  }
+const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsRemove = k => { try { localStorage.removeItem(k); } catch { /* ignorat */ } };
+
+// 'idb' = IndexedDB; 'ls' = localStorage, doar dacă IndexedDB nu e disponibil.
+let backend = 'idb';
+
+function writePrefs() {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ theme: state.settings.theme, accent: state.settings.accent })); } catch { /* ignorat */ }
 }
 
-export function save() {
+export async function load() {
+  let raw = null;
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
-    return true;
+    raw = await idbGet();
+    if (!raw) {
+      // Prima pornire după actualizare: datele vechi din localStorage se mută în IndexedDB.
+      const old = lsGet(KEY);
+      if (old) {
+        raw = JSON.parse(old);
+        await idbSet(raw);
+        lsRemove(KEY);
+      }
+    }
+    backend = 'idb';
   } catch {
-    return false;
+    backend = 'ls';
+    try { const old = lsGet(KEY); raw = old ? JSON.parse(old) : null; } catch { raw = null; }
   }
+  state = raw ? migrate(raw) : defaultState();
+  writePrefs();
+}
+
+// Întoarce o promisiune: true dacă datele s-au salvat.
+export function save() {
+  writePrefs();
+  if (backend === 'ls') {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+      return Promise.resolve(true);
+    } catch {
+      return Promise.resolve(false);
+    }
+  }
+  return idbSet(state).then(() => true, () => false);
 }
 
 export function resetAll() {
-  try { localStorage.removeItem(KEY); } catch { /* ignorat */ }
+  lsRemove(KEY);
+  if (backend === 'idb') idbDelete().catch(() => {});
   state = defaultState();
 }
 
+// Cât ocupă datele (aproximativ), pentru afișare în Setări.
+export const dataSize = () => new Blob([JSON.stringify(state)]).size;
+
 const listeners = new Set();
+const errorListeners = new Set();
 export const subscribe = fn => listeners.add(fn);
+export const onSaveError = fn => errorListeners.add(fn);
 export function commit() {
-  const ok = save();
-  listeners.forEach(fn => fn(ok));
+  listeners.forEach(fn => fn());
+  save().then(ok => { if (!ok) errorListeners.forEach(fn => fn()); });
 }
 
 let seq = 0;

@@ -2,13 +2,13 @@
 
 import { state, uid, commit, catById, ACCOUNTS, PALETTE, accountName } from './store.js';
 import { today, monthLabel, fmtDate } from './dates.js';
-import { money, parseAmount, plural } from './fmt.js';
-import { round2, bucketBalance, bucketOptions, bucketName, goalStats, brokerOfAsset } from './calc.js';
+import { money, parseAmount, plural, forInput, CURRENCIES } from './fmt.js';
+import { round2, convert, bucketBalance, bucketOptions, bucketName, bucketCurrency, bucketIn, bucketOut, goalStats, brokerOfAsset } from './calc.js';
 import {
   h, openSheet, toast, confirmDialog, btn, field, amountInput, textInput, dateInput, selectInput, segmented,
   invalid, catIcon, emojiPicker, colorPicker, progress,
 } from './ui.js';
-import { saveTx, deleteGoal, goalSnapshot, goalsReached } from './actions.js';
+import { saveTx, deleteGoal, goalSnapshot, goalsReached, convertBucketHistory } from './actions.js';
 import { confetti } from './confetti.js';
 import { txRow, confirmDeleteTx } from './components.js';
 import { exportAll } from './exporter.js';
@@ -79,6 +79,9 @@ export function openTxForm(existing, preset = {}) {
       sel.addEventListener('change', () => { tx.assetId = sel.value; });
       rows.push(field(tr('Contribuție la activul'), sel, tr('Se adaugă automat la contribuțiile activului.')));
     }
+    const foreign = [tx.accountId === 'economii' && (tx.fromBucket || ''), tx.toAccountId === 'economii' && (tx.toBucket || '')]
+      .filter(b => b !== false).map(bucketCurrency).find(c => c !== state.settings.currency);
+    if (foreign) rows.push(h('p', { class: 'hint' }, tr('Suma e în {base}; pentru compartimentul în {cur} se convertește cu cursul din Setări.', { base: state.settings.currency, cur: foreign })));
     rows.push(h('p', { class: 'hint' }, tr('Transferurile nu apar la cheltuieli.')));
     dyn.replaceChildren(...rows);
   }
@@ -95,8 +98,16 @@ export function openTxForm(existing, preset = {}) {
       const sameBucket = (tx.fromBucket || '') === (tx.toBucket || '');
       if (tx.accountId === tx.toAccountId && !(tx.accountId === 'economii' && !sameBucket)) return toast(tr('Alege conturi diferite'));
       Object.assign(out, { accountId: tx.accountId, toAccountId: tx.toAccountId });
-      if (tx.accountId === 'economii') out.fromBucket = tx.fromBucket || '';
-      if (tx.toAccountId === 'economii') out.toBucket = tx.toBucket || '';
+      const base = state.settings.currency;
+      // Suma în moneda compartimentului: o păstrăm dacă nu s-au schimbat suma și compartimentul, altfel o convertim.
+      const bucketAmt = (side, bucket) => {
+        const cur = bucketCurrency(bucket);
+        if (cur === base) return undefined;
+        const same = isEdit && existing.amount === out.amount && (existing[side + 'Bucket'] || '') === bucket && existing[side + 'Amount'] != null;
+        return same ? existing[side + 'Amount'] : round2(convert(out.amount, base, cur));
+      };
+      if (tx.accountId === 'economii') { out.fromBucket = tx.fromBucket || ''; const v = bucketAmt('from', out.fromBucket); if (v != null) out.fromAmount = v; }
+      if (tx.toAccountId === 'economii') { out.toBucket = tx.toBucket || ''; const v = bucketAmt('to', out.toBucket); if (v != null) out.toAmount = v; }
       if (tx.toAccountId === 'investitii' && tx.assetId) out.assetId = tx.assetId;
     } else {
       if (!tx.categoryId) return toast(tr('Alege o categorie'));
@@ -121,9 +132,9 @@ export function openTxForm(existing, preset = {}) {
 }
 
 // Tap pe o categorie din legenda graficului: tranzacțiile ei din lună.
-export function openCategoryTxSheet(catId, m) {
+export function openCategoryTxSheet(catId, m, type = 'cheltuiala') {
   const c = catById(catId);
-  const txs = state.transactions.filter(t => t.type === 'cheltuiala' && (t.categoryId || '') === (catId || '') && t.date.startsWith(m))
+  const txs = state.transactions.filter(t => t.type === type && (t.categoryId || '') === (catId || '') && t.date.startsWith(m))
     .sort((a, b) => b.date.localeCompare(a.date));
   const total = txs.reduce((a, t) => a + t.amount, 0);
   openSheet({
@@ -139,21 +150,38 @@ export function openCategoryTxSheet(catId, m) {
 export function openBucketMove({ bucket, dir, existing }) {
   const isEdit = !!existing;
   const label = bucketName(bucket);
-  const amount = amountInput(existing?.amount);
+  const base = state.settings.currency, cur = bucketCurrency(bucket), foreign = cur !== base;
+  const prevAmt = existing ? (dir === 'in' ? bucketIn(existing) : bucketOut(existing)) : null;
+  const amount = amountInput(prevAmt);
+  // Pentru compartimente în altă monedă: echivalentul în moneda implicită (calculat, dar se poate corecta).
+  const baseAmt = amountInput(foreign && existing ? existing.amount : '');
+  let baseEdited = isEdit;
+  amount.addEventListener('input', () => {
+    if (baseEdited) return;
+    const v = parseAmount(amount.value);
+    baseAmt.value = v > 0 ? forInput(round2(convert(v, cur, base))) : '';
+  });
+  baseAmt.addEventListener('input', () => { baseEdited = true; });
   const date = dateInput(existing?.date || today());
-  const note = textInput(existing?.note ?? (bucket.startsWith('g:') ? tr('Goal: {name}', { name: label }) : label), { maxlength: 140 });
+  const defaultNote = bucket.startsWith('g:') ? tr('Goal: {name}', { name: label }) : label;
+  const note = textInput(existing?.note ?? defaultNote, { maxlength: 140 });
   const otherIsSavings = existing ? (dir === 'in' ? existing.accountId === 'economii' : existing.toAccountId === 'economii') : false;
   const other = segmented([{ value: 'curent', label: tr('Cont Curent') }, { value: 'alte', label: tr('Alte economii') }], otherIsSavings ? 'alte' : 'curent');
-  const balance = bucketBalance(bucket) + (isEdit && dir === 'out' ? existing.amount : 0);
+  const balance = bucketBalance(bucket) + (isEdit && dir === 'out' ? prevAmt : 0);
 
   function submit() {
     const amt = parseAmount(amount.value);
     if (!(amt > 0)) return invalid(amount, tr('Introdu o sumă mai mare ca 0'));
-    if (dir === 'out' && amt > balance + 0.001) return invalid(amount, tr('Poți retrage cel mult {sum}', { sum: money(balance) }));
+    if (dir === 'out' && amt > balance + 0.001) return invalid(amount, tr('Poți retrage cel mult {sum}', { sum: money(balance, { cur }) }));
+    let baseValue = amt;
+    if (foreign) {
+      baseValue = baseAmt.value.trim() ? parseAmount(baseAmt.value) : convert(amt, cur, base);
+      if (!(baseValue > 0)) return invalid(baseAmt, tr('Introdu o sumă mai mare ca 0'));
+    }
     const alte = other.get() === 'alte';
-    const tx = { id: existing?.id, type: 'transfer', amount: round2(amt), date: date.value || today(), note: note.value.trim() };
-    if (dir === 'in') Object.assign(tx, { accountId: alte ? 'economii' : 'curent', toAccountId: 'economii', toBucket: bucket }, alte ? { fromBucket: '' } : {});
-    else Object.assign(tx, { accountId: 'economii', fromBucket: bucket, toAccountId: alte ? 'economii' : 'curent' }, alte ? { toBucket: '' } : {});
+    const tx = { id: existing?.id, type: 'transfer', amount: round2(baseValue), date: date.value || today(), note: note.value.trim() };
+    if (dir === 'in') Object.assign(tx, { accountId: alte ? 'economii' : 'curent', toAccountId: 'economii', toBucket: bucket }, alte ? { fromBucket: '' } : {}, foreign ? { toAmount: round2(amt) } : {});
+    else Object.assign(tx, { accountId: 'economii', fromBucket: bucket, toAccountId: alte ? 'economii' : 'curent' }, alte ? { toBucket: '' } : {}, foreign ? { fromAmount: round2(amt) } : {});
     const reached = saveTx(tx);
     sh.close();
     toast(dir === 'in' ? tr('Bani adăugați în {name}', { name: label }) : tr('Bani retrași din {name}', { name: label }));
@@ -163,7 +191,8 @@ export function openBucketMove({ bucket, dir, existing }) {
   const sh = openSheet({
     title: `${dir === 'in' ? tr('Adaugă bani') : tr('Retrage bani')} · ${label}`,
     body: h('div', {},
-      field(tr('Sumă'), amount, dir === 'out' ? tr('Disponibil: {sum}', { sum: money(balance) }) : null),
+      field(foreign ? tr('Sumă ({cur})', { cur }) : tr('Sumă'), amount, dir === 'out' ? tr('Disponibil: {sum}', { sum: money(balance, { cur }) }) : null),
+      foreign ? field(tr('Echivalent în {cur}', { cur: base }), baseAmt, tr('Calculat cu cursul din Setări; îl poți corecta dacă banca a folosit alt curs.')) : null,
       field(dir === 'in' ? tr('Din') : tr('Către'), other),
       h('div', { class: 'two' }, field(tr('Data'), date), field(tr('Notă'), note)),
       h('p', { class: 'hint' }, tr('Se înregistrează ca transfer, nu ca cheltuială.'))),
@@ -174,14 +203,28 @@ export function openBucketMove({ bucket, dir, existing }) {
 
 /* ---------- Goal-uri ---------- */
 
+export function currencySeg(value, onChange) {
+  return segmented(Object.keys(CURRENCIES).map(c => ({ value: c, label: c })), value, onChange);
+}
+
 const GOAL_EMOJIS = ['🎯', '✈️', '🏖️', '🚗', '🏠', '💻', '📱', '💍', '🎓', '🛋️', '🚲', '🎸', '🐶', '👶', '🏥', '💰'];
 
 export function openGoalForm(existing) {
   const g = existing ? { ...existing } : { icon: '🎯', color: PALETTE[state.goals.length % PALETTE.length] };
+  const oldCur = g.currency || state.settings.currency;
+  let cur = oldCur;
   const name = textInput(g.name, { placeholder: tr('ex. Vacanță'), maxlength: 40 });
   const target = amountInput(g.target);
   const initial = amountInput(g.initial || '');
   const deadline = dateInput(g.deadline);
+  // La schimbarea monedei, sumele din formular se convertesc pe loc, ca să vezi noile valori.
+  const curSeg = currencySeg(cur, v => {
+    for (const inp of [target, initial]) {
+      const n = parseAmount(inp.value);
+      if (n > 0) inp.value = forInput(round2(convert(n, cur, v)));
+    }
+    cur = v;
+  });
 
   function submit() {
     if (!name.value.trim()) return invalid(name, tr('Scrie un nume'));
@@ -189,8 +232,9 @@ export function openGoalForm(existing) {
     if (!(t > 0)) return invalid(target, tr('Ținta trebuie să fie mai mare ca 0'));
     const init = initial.value.trim() ? parseAmount(initial.value) : 0;
     if (!(init >= 0)) return invalid(initial, tr('Suma trebuie să fie pozitivă'));
-    const out = { ...g, name: name.value.trim(), target: round2(t), initial: round2(init), deadline: deadline.value || null };
+    const out = { ...g, name: name.value.trim(), target: round2(t), initial: round2(init), deadline: deadline.value || null, currency: cur };
     const before = goalSnapshot();
+    if (existing) convertBucketHistory('g:' + g.id, oldCur, cur);
     if (existing) state.goals[state.goals.findIndex(x => x.id === g.id)] = out;
     else state.goals.push({ ...out, id: uid(), done: false, createdAt: today() });
     commit();
@@ -203,6 +247,7 @@ export function openGoalForm(existing) {
     title: existing ? tr('Editează goal-ul') : tr('Goal nou'),
     body: h('div', {},
       field(tr('Nume'), name),
+      field(tr('Monedă'), curSeg, existing ? tr('La schimbarea monedei, sumele se convertesc cu cursul din Setări.') : null),
       h('div', { class: 'two' }, field(tr('Sumă țintă'), target), field(tr('Strâns deja'), initial)),
       field(tr('Termen limită (opțional)'), deadline),
       field(tr('Iconiță'), emojiPicker(GOAL_EMOJIS, g.icon, v => { g.icon = v; })),
@@ -219,7 +264,7 @@ export function openGoalActions(g) {
     title: `${g.icon || '🎯'} ${g.name}`,
     body: h('div', {},
       h('div', { class: 'goal-sum' },
-        h('strong', { class: 'big-sm' }, money(st.saved)), h('span', { class: 'muted' }, ` ${tr('din')} ${money(g.target)}`)),
+        h('strong', { class: 'big-sm' }, money(st.saved, { cur: st.cur })), h('span', { class: 'muted' }, ` ${tr('din')} ${money(g.target, { cur: st.cur })}`)),
       progress(st.pct, g.color),
       h('p', { class: 'muted' }, tr('{pct}% completat', { pct: Math.round(st.pct * 100) }) + (g.deadline ? ` · ${tr('termen {date}', { date: fmtDate(g.deadline) })}` : '')),
       h('div', { class: 'action-list' },
@@ -234,7 +279,7 @@ export function openGoalActions(g) {
         }), 'secondary'),
         btn(tr('Șterge'), act(() => confirmDialog({
           title: tr('Ștergi goal-ul?'),
-          message: st.saved > 0 ? tr('Banii strânși ({sum}) rămân în Economii, la „Alte economii”.', { sum: money(st.saved) }) : tr('Acțiunea nu poate fi anulată.'),
+          message: st.saved > 0 ? tr('Banii strânși ({sum}) rămân în Economii, la „Alte economii”.', { sum: money(st.saved, { cur: st.cur }) }) : tr('Acțiunea nu poate fi anulată.'),
         }).then(ok => { if (ok) { deleteGoal(g.id); toast(tr('Goal șters')); } })), 'ghost danger-text'))),
   });
 }

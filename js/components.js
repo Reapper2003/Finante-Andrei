@@ -4,10 +4,10 @@ import { state, catById, accountName } from './store.js';
 import { currentMonth, addMonths, monthLabel, dayLabel, fmtDate } from './dates.js';
 import { money } from './fmt.js';
 import { t as tr, catName } from './i18n.js';
-import { bucketName } from './calc.js';
+import { bucketName, bucketCurrency, bucketIn, bucketOut } from './calc.js';
 import { h, icon, swipeRow, catIcon, toast, confirmDialog } from './ui.js';
 import { deleteTx } from './actions.js';
-import { openTxForm, openExportSheet } from './forms.js';
+import { openTxForm, openExportSheet, openBucketMove } from './forms.js';
 
 export function monthSwitcher(m, onChange) {
   return h('div', { class: 'month-sw' },
@@ -43,9 +43,15 @@ export function txRow(t, { showDate = false } = {}) {
     isTr ? transferLabel(t) : t.accountId === 'economii' ? tr('din Economii') : null,
     showDate ? fmtDate(t.date) : null,
   ].filter(Boolean).join(' · ');
+  // La transferurile spre / dintr-un compartiment în altă monedă, afișăm și suma în acea monedă.
+  const base = state.settings.currency;
+  const foreign = isTr && (t.toAmount != null && bucketCurrency(t.toBucket) !== base ? money(t.toAmount, { cur: bucketCurrency(t.toBucket) })
+    : t.fromAmount != null && bucketCurrency(t.fromBucket) !== base ? money(t.fromAmount, { cur: bucketCurrency(t.fromBucket) }) : null);
   const amt = t.type === 'venit'
     ? h('span', { class: 'amt pos' }, money(t.amount, { sign: true }))
-    : t.type === 'cheltuiala' ? h('span', { class: 'amt' }, money(-t.amount)) : h('span', { class: 'amt muted' }, money(t.amount));
+    : t.type === 'cheltuiala' ? h('span', { class: 'amt' }, money(-t.amount))
+      : foreign ? h('div', { class: 'row-right' }, h('span', { class: 'amt muted' }, money(t.amount)), h('span', { class: 'row-sub' }, foreign))
+        : h('span', { class: 'amt muted' }, money(t.amount));
   const ic = t.type === 'transfer' ? h('span', { class: 'cat-ic neutral' }, icon('transfer', 20)) : catIcon(c);
   const content = h('div', { class: 'row' }, ic,
     h('div', { class: 'row-main' }, h('div', { class: 'row-title' }, title), sub ? h('div', { class: 'row-sub' }, sub) : null), amt);
@@ -63,6 +69,40 @@ export function txGroups(list) {
   return [...groups].map(([date, txs]) => h('div', { class: 'day' },
     h('div', { class: 'day-head' }, dayLabel(date)),
     h('div', { class: 'list' }, txs.map(t => txRow(t)))));
+}
+
+// Mișcările unui compartiment de economii (fond de urgență, fond, alte economii), cu sume în moneda lui.
+export function movesList(bucket) {
+  const cur = bucketCurrency(bucket);
+  const touches = t => t.type === 'transfer'
+    ? (t.toAccountId === 'economii' && (t.toBucket || '') === bucket) || (t.accountId === 'economii' && (t.fromBucket || '') === bucket)
+    : bucket === '' && t.accountId === 'economii';
+  const moves = state.transactions.filter(touches).sort((a, b) => b.date.localeCompare(a.date));
+  if (!moves.length) return h('p', { class: 'muted' }, tr('Nicio mișcare încă. Adaugă bani din contul Curent.'));
+  return h('div', { class: 'list' }, moves.map(t => {
+    let isIn, amount, other, simple;
+    if (t.type === 'transfer') {
+      isIn = t.toAccountId === 'economii' && (t.toBucket || '') === bucket;
+      amount = isIn ? bucketIn(t) : bucketOut(t);
+      other = isIn ? (t.accountId === 'economii' ? bucketName(t.fromBucket) : accountName(t.accountId))
+        : (t.toAccountId === 'economii' ? bucketName(t.toBucket) : accountName(t.toAccountId));
+      // Transferurile simple (din / spre Curent sau „Alte economii”) se editează cu formularul compartimentului.
+      const otherAcc = isIn ? t.accountId : t.toAccountId, otherBucket = isIn ? t.fromBucket : t.toBucket;
+      simple = otherAcc === 'curent' || (otherAcc === 'economii' && !otherBucket);
+    } else {
+      isIn = t.type === 'venit';
+      amount = t.amount;
+      other = catName(catById(t.categoryId));
+      simple = false;
+    }
+    const content = h('div', { class: 'row' },
+      h('span', { class: 'cat-ic neutral' }, icon(isIn ? 'download' : 'upload', 20)),
+      h('div', { class: 'row-main' }, h('div', { class: 'row-title' }, isIn ? tr('Depunere') : tr('Retragere')),
+        h('div', { class: 'row-sub' }, `${fmtDate(t.date)} · ${isIn ? tr('din {name}', { name: other }) : tr('către {name}', { name: other })}`)),
+      h('span', { class: 'amt ' + (isIn ? 'pos' : '') }, money(isIn ? amount : -amount, { cur, sign: true })));
+    const edit = () => (simple ? openBucketMove({ bucket, dir: isIn ? 'in' : 'out', existing: t }) : openTxForm(t));
+    return swipeRow(content, { onTap: edit, onEdit: edit, onDelete: () => confirmDeleteTx(t) });
+  }));
 }
 
 export function exportButton() {

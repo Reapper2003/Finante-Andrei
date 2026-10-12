@@ -2,7 +2,7 @@ import { state, commit, setState } from '../store.js';
 import { currentMonth, monthEnd, fmtDate, fmtDayMonth, inDays } from '../dates.js';
 import { money, num, plural } from '../fmt.js';
 import {
-  accountBalance, monthTotals, expenseByCategory, savingsBreakdown, goalStats, netWorth, efStats, debtTotals, upcomingSubs, dailyAllowance,
+  accountBalance, monthTotals, expenseByCategory, incomeByCategory, savingsBreakdown, goalStats, netWorth, efStats, debtTotals, upcomingSubs, dailyAllowance,
 } from '../calc.js';
 import { h, card, sectionHead, linkBtn, stat, progress, btn, go, app, signCls, emptyState, toast, openSheet, segmented } from '../ui.js';
 import { donut } from '../charts.js';
@@ -22,13 +22,13 @@ export function loadDemo() {
   toast(tr('Date demo încărcate'));
 }
 
-function goalCard(g) {
+export function goalCard(g) {
   const st = goalStats(g);
   let line = null;
   if (!g.done && st.left > 0 && g.deadline) {
     line = st.overdue
       ? h('p', { class: 'goal-line neg' }, tr('Termenul ({date}) a trecut', { date: fmtDate(g.deadline) }))
-      : h('p', { class: 'goal-line' }, tr('Trebuie să pui {sum}/lună ca să ajungi la timp', { sum: money(st.perMonth) }));
+      : h('p', { class: 'goal-line' }, tr('Trebuie să pui {sum}/lună ca să ajungi la timp', { sum: money(st.perMonth, { cur: st.cur }) }));
   } else if (st.left <= 0) line = h('p', { class: 'goal-line pos' }, tr('Ținta a fost atinsă 🎉'));
   return h('button', { type: 'button', class: 'goal' + (g.done ? ' done' : ''), onclick: () => openGoalActions(g) },
     h('div', { class: 'goal-top' },
@@ -36,7 +36,7 @@ function goalCard(g) {
       h('span', { class: 'goal-name' }, g.name),
       h('span', { class: 'goal-pct' }, `${Math.min(999, Math.round(st.pct * 100))}%`)),
     progress(st.pct, g.color),
-    h('p', { class: 'goal-amt' }, tr('{a} din {b}', { a: money(st.saved), b: money(g.target) })),
+    h('p', { class: 'goal-amt' }, tr('{a} din {b}', { a: money(st.saved, { cur: st.cur }), b: money(g.target, { cur: st.cur }) })),
     line);
 }
 
@@ -107,6 +107,12 @@ export function dashboardPage() {
       show(sav.length
         ? donut({ items: sav, title: tr('Total economii'), format: v => money(v), legendLimit: 5, size: 180 })
         : h('p', { class: 'muted' }, tr('Nu ai încă economii. Mută bani din Curent în Economii printr-un transfer.')));
+    } else if (chartTab === 'venituri') {
+      const inc = incomeByCategory(m);
+      chartTitle.textContent = tr('Venituri');
+      show(inc.length
+        ? donut({ items: inc, title: tr('Total venituri'), format: v => money(v), onLegend: it => openCategoryTxSheet(it.id, m, 'venit'), legendLimit: 5, size: 180 })
+        : h('p', { class: 'muted' }, tr('Niciun venit în această lună.')));
     } else {
       const cats = expenseByCategory(m);
       chartTitle.textContent = tr('Cheltuieli');
@@ -119,7 +125,7 @@ export function dashboardPage() {
   const chartCard = card(chartTitle, chartBody,
     h('div', { class: 'card-foot' },
       footLeft,
-      segmented([{ value: 'cheltuieli', label: tr('Cheltuieli') }, { value: 'economii', label: tr('Economii') }], chartTab,
+      segmented([{ value: 'cheltuieli', label: tr('Cheltuieli') }, { value: 'venituri', label: tr('Venituri') }, { value: 'economii', label: tr('Economii') }], chartTab,
         v => { chartTab = v; paintChart(); }, 'seg-sm')));
 
   const active = state.goals.filter(g => !g.done), done = state.goals.filter(g => g.done);
