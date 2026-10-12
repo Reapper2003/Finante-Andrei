@@ -1,5 +1,5 @@
 import { state, commit, setState } from '../store.js';
-import { currentMonth, monthEnd, fmtDate, fmtDayMonth, inDays } from '../dates.js';
+import { currentMonth, monthEnd, fmtDate, fmtDayMonth, inDays, weekdayName } from '../dates.js';
 import { money, num, plural } from '../fmt.js';
 import {
   accountBalance, monthTotals, expenseByCategory, incomeByCategory, savingsBreakdown, goalStats, netWorth, efStats, debtTotals, upcomingSubs, dailyAllowance,
@@ -7,7 +7,7 @@ import {
 import { h, card, sectionHead, linkBtn, stat, progress, btn, go, app, signCls, emptyState, toast, openSheet, segmented } from '../ui.js';
 import { donut } from '../charts.js';
 import { monthSwitcher } from '../components.js';
-import { openTxForm, openCategoryTxSheet, openGoalForm, openGoalActions } from '../forms.js';
+import { openTxForm, openCategoryTxSheet, openGoalForm, openGoalActions, openSalaryDay } from '../forms.js';
 import { buildDemo } from '../demo.js';
 import { runAutomations } from '../actions.js';
 import { t as tr } from '../i18n.js';
@@ -42,7 +42,7 @@ export function goalCard(g) {
 
 function openCommitments(a) {
   openSheet({
-    title: tr('De plătit până la final de lună'),
+    title: a.payday ? tr('De plătit până la salariu') : tr('De plătit până la final de lună'),
     body: h('div', {},
       h('p', { class: 'muted' }, tr('Total: {sum} · se scad din suma pe zi.', { sum: money(a.committed) })),
       h('div', { class: 'list' }, a.commitments.map(c => h('div', { class: 'row' },
@@ -54,9 +54,14 @@ function openCommitments(a) {
 function allowanceCard() {
   const a = dailyAllowance();
   const head = h('h2', {}, tr('Cât pot cheltui azi'));
-  const more = a.commitments.length
-    ? linkBtn(tr('De plătit până pe {date}: {sum}', { date: fmtDayMonth(a.end), sum: money(a.committed) }), () => openCommitments(a), null)
-    : null;
+  const more = h('div', { class: 'allow-links' },
+    a.commitments.length
+      ? linkBtn(tr('De plătit până pe {date}: {sum}', { date: fmtDayMonth(a.end), sum: money(a.committed) }), () => openCommitments(a), null)
+      : null,
+    linkBtn(a.payday ? tr('Salariu: {day}, {date}', { day: weekdayName(a.payday), date: fmtDayMonth(a.payday) }) : tr('Setează ziua salariului'), openSalaryDay, 'settings'));
+  const until = a.payday
+    ? tr('până la salariu ({day}, {date})', { day: weekdayName(a.payday), date: fmtDate(a.payday) })
+    : tr('până pe {date}', { date: fmtDate(a.end) });
   if (a.free <= 0) {
     return card(head,
       h('strong', { class: 'mid neg' }, money(a.free)),
@@ -68,7 +73,7 @@ function allowanceCard() {
     h('strong', { class: 'mid' + (over ? ' neg' : '') }, money(a.leftToday)),
     h('p', { class: 'muted' }, over
       ? tr('Ai depășit suma de azi. Media rămasă: {sum}/zi.', { sum: money(a.perDay) })
-      : tr('≈ {sum}/zi pentru încă {days}, până pe {date}', { sum: money(a.perDay), days: plural(a.daysLeft, tr('zi'), tr('zile')), date: fmtDate(a.end) })),
+      : tr('≈ {sum}/zi pentru încă {days}, {until}', { sum: money(a.perDay), days: plural(a.daysLeft, tr('zi'), tr('zile')), until })),
     progress(a.perDay > 0 ? a.spentToday / a.perDay : 1, over ? 'var(--neg)' : null),
     h('p', { class: 'goal-amt' }, tr('Cheltuit azi: {a} din {b} (fără rate și abonamente)', { a: money(a.spentToday), b: money(a.perDay) })),
     more);

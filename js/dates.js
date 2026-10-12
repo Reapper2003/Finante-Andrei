@@ -131,4 +131,27 @@ export function inDays(s) {
   return `în ${n} zile`;
 }
 
+export const weekdayName = s => names().weekdays[parseISO(s).getDay()];
+
+// Ziua în care intră salariul într-o lună: ziua aleasă (sau ultima zi a lunii, dacă luna e mai scurtă);
+// dacă pică sâmbătă sau duminică, salariul intră vinerea dinainte.
+export function paydayIn(key, day) {
+  const [y, m] = key.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  const d = new Date(y, m - 1, Math.min(day, last));
+  const dow = d.getDay();
+  if (dow === 6) d.setDate(d.getDate() - 1);
+  else if (dow === 0) d.setDate(d.getDate() - 2);
+  return iso(d);
+}
+
+// Următoarea zi de salariu strict după `from` (dacă salariul intră azi, următorul e luna viitoare).
+export function nextPayday(day, from = today()) {
+  for (let i = 0; i < 3; i++) {
+    const p = paydayIn(addMonths(from.slice(0, 7), i), day);
+    if (p > from) return p;
+  }
+  return paydayIn(addMonths(from.slice(0, 7), 1), day);
+}
+
 export const weekdayInitials = () => (isEn() ? ['M', 'Tu', 'W', 'Th', 'F', 'Sa', 'Su'] : ['L', 'Ma', 'Mi', 'J', 'V', 'S', 'D']);

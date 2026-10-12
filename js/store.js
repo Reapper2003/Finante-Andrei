@@ -48,6 +48,7 @@ export function defaultState() {
       numberFormat: 'ro',
       dateFormat: 'dmy.',
       accent: '#6C47FF',
+      salaryDay: null,
       currency: 'RON',
       rates: { EUR: 4.97, USD: 4.35 },
       theme: 'auto',

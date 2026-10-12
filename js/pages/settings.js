@@ -6,7 +6,7 @@ import {
   h, icon, sectionHead, segmented, switchRow, openSheet, field, amountInput, btn, invalid, toast, confirmDialog, go, applyTheme,
   selectInput, DEFAULT_ACCENT,
 } from '../ui.js';
-import { openExportSheet } from '../forms.js';
+import { openExportSheet, openSalaryDay } from '../forms.js';
 import { exportBackup } from '../exporter.js';
 import { runAutomations } from '../actions.js';
 import { loadDemo } from './dashboard.js';
@@ -160,6 +160,7 @@ export function settingsPage() {
       switchRow(tr('Pornește aplicația în mod privat'), st.privateOnStart, v => { st.privateOnStart = v; commit(); }, tr('Sumele sunt ascunse la deschidere'))),
     sectionHead(tr('Conturi')),
     h('div', { class: 'list' },
+      navRow(tr('Ziua salariului'), st.salaryDay ? tr('Pe {d} ale lunii · în weekend, vinerea dinainte', { d: st.salaryDay }) : tr('Nesetată · banii se împart până la final de lună'), openSalaryDay),
       navRow(tr('Solduri inițiale'), `${accountName('curent')} ${money(st.opening.curent)} · ${accountName('economii')} ${money(st.opening.economii)}`, openOpening),
       navRow(tr('Gestionare categorii'), tr('{n} categorii', { n: state.categories.length }), () => go('#/categorii')),
       navRow(tr('Ținta fondului de urgență'), tr('{n} luni', { n: state.emergency.months }), openEfSettings)),

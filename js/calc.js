@@ -3,7 +3,7 @@
 
 import { state, catById, catByName, PALETTE } from './store.js';
 import { t as tr, catName } from './i18n.js';
-import { today, currentMonth, addMonths, monthEnd, monthsRange, daysBetween } from './dates.js';
+import { today, currentMonth, addMonths, monthEnd, monthsRange, daysBetween, addDays, addMonthsDate, nextPayday } from './dates.js';
 
 export const round2 = n => Math.round((Number(n) || 0) * 100) / 100;
 const sum = (arr, f = x => x) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
@@ -387,35 +387,50 @@ export function buildYearReport(y) {
 
 /* ---------- Cât pot cheltui azi ---------- */
 
-// Plățile care mai urmează din contul Curent până la final de lună: abonamente și rate neplătite încă.
-export function upcomingCommitments() {
-  const t = today(), m = currentMonth(), end = monthEnd(m);
+// Plățile din contul Curent care mai urmează până la `end` (inclusiv): abonamente și rate neplătite încă.
+export function upcomingCommitments(end = monthEnd(currentMonth())) {
+  const t = today(), cm = currentMonth();
   const items = [];
   for (const s of state.subscriptions) {
-    if (s.nextPayment && s.nextPayment > t && s.nextPayment <= end) items.push({ label: s.name, date: s.nextPayment, amount: s.amount, kind: tr('Abonament') });
+    // Un abonament poate cădea de mai multe ori în interval (ex. lunar, când salariul e peste mai mult de o lună).
+    for (let d = s.nextPayment, i = 0; d && d <= end && i < 6; d = addMonthsDate(d, FREQ[s.frequency] || 1, s.anchorDay), i++) {
+      if (d > t) items.push({ label: s.name, date: d, amount: s.amount, kind: tr('Abonament') });
+    }
   }
   for (const d of state.debts) {
-    const remaining = debtRemaining(d);
+    let remaining = debtRemaining(d);
     if (!(remaining > 0 && d.monthly > 0)) continue;
-    if (state.debtPayments.some(p => p.debtId === d.id && p.date.startsWith(m))) continue;
-    const day = Math.min(d.dueDay || Number(end.slice(8)), Number(end.slice(8)));
-    items.push({ label: d.creditor, date: `${m}-${String(day).padStart(2, '0')}`, amount: Math.min(d.monthly, remaining), kind: tr('Rată') });
+    for (const m of monthsRange(cm, end.slice(0, 7))) {
+      if (remaining <= 0) break;
+      if (state.debtPayments.some(p => p.debtId === d.id && p.date.startsWith(m))) continue;
+      const last = Number(monthEnd(m).slice(8));
+      const due = `${m}-${String(Math.min(d.dueDay || last, last)).padStart(2, '0')}`;
+      // Luna curentă: rata neplătită intră în calcul chiar dacă scadența a trecut. Lunile următoare: doar până la `end`.
+      if (due > end || (m !== cm && due <= t)) continue;
+      const amount = Math.min(d.monthly, remaining);
+      remaining -= amount;
+      items.push({ label: d.creditor, date: due, amount, kind: tr('Rată') });
+    }
   }
   return items.sort((a, b) => a.date.localeCompare(b.date));
 }
 
+// Banii din Curent se împart până în ziua dinaintea următorului salariu (dacă e setată ziua), altfel până la final de lună.
 export function dailyAllowance() {
-  const t = today(), end = monthEnd(currentMonth());
+  const t = today();
+  const salaryDay = state.settings.salaryDay;
+  const payday = salaryDay ? nextPayday(salaryDay, t) : null;
+  const end = payday ? addDays(payday, -1) : monthEnd(currentMonth());
   // Ratele și abonamentele plătite azi sunt plăți planificate, nu cheltuieli din „bugetul zilei”.
   const spentToday = round2(sum(state.transactions.filter(x =>
     x.type === 'cheltuiala' && x.accountId === 'curent' && x.date === t && !x.debtId && !x.subscriptionId), x => x.amount));
   const available = accountBalance('curent');
-  const commitments = upcomingCommitments();
+  const commitments = upcomingCommitments(end);
   const committed = round2(sum(commitments, c => c.amount));
   const daysLeft = daysBetween(t, end) + 1;
   const free = round2(available + spentToday - committed);
   const perDay = free > 0 ? round2(free / daysLeft) : 0;
-  return { available, spentToday, committed, commitments, daysLeft, free, perDay, leftToday: round2(perDay - spentToday), end };
+  return { available, spentToday, committed, commitments, daysLeft, free, perDay, leftToday: round2(perDay - spentToday), end, payday };
 }
 
 /* ---------- Snapshot-uri și rapoarte lunare ---------- */

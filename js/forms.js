@@ -284,6 +284,31 @@ export function openGoalActions(g) {
   });
 }
 
+/* ---------- Ziua salariului ---------- */
+
+export function openSalaryDay() {
+  const st = state.settings;
+  const day = h('input', { type: 'text', inputmode: 'numeric', value: st.salaryDay ? String(st.salaryDay) : '', placeholder: tr('ex. 10'), 'aria-label': tr('Ziua salariului') });
+  const sh = openSheet({
+    title: tr('Ziua salariului'),
+    body: h('div', {},
+      field(tr('În ce zi a lunii îți intră salariul?'), day,
+        tr('Dacă pică sâmbătă sau duminică, se consideră vinerea dinainte. Salariul nu se adaugă automat; îl treci tu ca venit.')),
+      h('p', { class: 'hint' }, tr('„Cât pot cheltui azi” împarte banii până în ziua dinaintea salariului.'))),
+    footer: h('div', { class: 'btn-row' },
+      st.salaryDay ? btn(tr('Fără zi de salariu'), () => { st.salaryDay = null; commit(); sh.close(); toast(tr('Se împarte până la final de lună')); }, 'ghost') : null,
+      btn(tr('Salvează'), () => {
+        const d = parseInt(day.value, 10);
+        if (!(d >= 1 && d <= 31)) return invalid(day, tr('Ziua trebuie să fie între 1 și 31'));
+        st.salaryDay = d;
+        commit();
+        sh.close();
+        toast(tr('Ziua salariului salvată'));
+      })),
+  });
+  day.focus({ preventScroll: true });
+}
+
 /* ---------- Export Excel ---------- */
 
 export function openExportSheet() {
