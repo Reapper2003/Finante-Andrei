@@ -314,6 +314,7 @@ export const EN = {
   "Luna următoare": "Next month",
   "Luna în curs: raport provizoriu. Raportul final se generează automat la începutul lunii viitoare.": "Current month: provisional report. The final report is generated automatically at the start of next month.",
   "Lunar": "Monthly",
+  "Lunare și anuale · ultimul: {month}": "Monthly and yearly · latest: {month}",
   "Luni acoperite": "Months covered",
   "Luni țintă": "Target months",
   "Mai mult": "More",

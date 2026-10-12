@@ -23,7 +23,6 @@ const TABS = [
   ['tranzactii', 'Tranzacții', 'list'],
   ['economii', 'Economii', 'wallet'],
   ['investitii', 'Investiții', 'trend'],
-  ['rapoarte', 'Rapoarte', 'report'],
   ['mai-mult', 'Mai mult', 'more'],
 ];
 
@@ -35,7 +34,7 @@ const ROUTES = [
   [/^investitii$/, investmentsPage, 'investitii'],
   [/^investitii\/b\/([\w-]+)$/, brokerPage, 'investitii'],
   [/^investitii\/a\/([\w-]+)$/, assetPage, 'investitii'],
-  [/^rapoarte$/, reportsPage, 'rapoarte'],
+  [/^rapoarte$/, reportsPage, 'mai-mult'],
   [/^mai-mult$/, morePage, 'mai-mult'],
   [/^abonamente$/, subscriptionsPage, 'mai-mult'],
   [/^avere$/, networthPage, 'mai-mult'],

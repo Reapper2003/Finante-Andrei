@@ -1,6 +1,7 @@
 import { state } from '../store.js';
 import { money, num } from '../fmt.js';
 import { subTotals, netWorth, efStats, debtTotals } from '../calc.js';
+import { currentMonth, monthLabel, addMonths } from '../dates.js';
 import { h, icon, go } from '../ui.js';
 import { listRow, exportButton } from '../components.js';
 import { t as tr } from '../i18n.js';
@@ -11,6 +12,8 @@ export function morePage() {
     iconEl: h('span', { class: 'cat-ic neutral' }, icon(ico, 20)), title, sub, onTap: () => go(hash), chevron: true,
   });
   const node = h('div', { class: 'page' },
+    h('div', { class: 'list' },
+      item('report', tr('Rapoarte'), tr('Lunare și anuale · ultimul: {month}', { month: monthLabel(addMonths(currentMonth(), -1)) }), '#/rapoarte')),
     h('div', { class: 'list' },
       item('repeat', tr('Abonamente'), tr('{n} active · {sum}/lună', { n: state.subscriptions.length, sum: money(subs.monthly) }), '#/abonamente'),
       item('scale', tr('Avere netă'), tr('Cu investiții: {sum}', { sum: money(nw.with) }), '#/avere'),
