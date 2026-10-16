@@ -498,7 +498,34 @@ body.noscroll .toast { bottom: calc(var(--safe-b) + 96px); }
   background: conic-gradient(#F2545B, #F97316, #FFD157, #16A34A, #0E9AA7, #2F6BD8, #6C47FF, #E1306C, #F2545B);
 }
 .accent-sw.custom.on { color: transparent; }
+
+/* Selector de culoare (Android; pe iPhone e cel al telefonului) */
 .accent-sw.custom input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.cp { display: flex; flex-direction: column; gap: 14px; padding-top: 6px; }
+.cp-panel { min-height: 214px; display: flex; flex-direction: column; justify-content: center; }
+.cp-grid { display: grid; height: 214px; border-radius: 14px; overflow: hidden; touch-action: none; cursor: pointer; }
+.cp-grid i { position: relative; }
+.cp-grid i.on { z-index: 1; box-shadow: 0 0 0 2.5px #fff, 0 0 0 4px rgba(0, 0, 0, 0.45); border-radius: 3px; }
+.cp-spectrum { display: flex; flex-direction: column; gap: 16px; }
+.cp-area { position: relative; height: 170px; border-radius: 16px; touch-action: none; cursor: crosshair; }
+.cp-hue, .cp-track { position: relative; height: 28px; border-radius: 99px; touch-action: none; cursor: pointer; }
+.cp-hue { background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+.cp-sliders { display: flex; flex-direction: column; gap: 22px; padding: 4px 0; }
+.cp-srow { display: grid; grid-template-columns: 18px 1fr 36px; align-items: center; gap: 12px; }
+.cp-srow span { font-weight: 700; color: var(--muted); }
+.cp-srow b { text-align: right; font-variant-numeric: tabular-nums; }
+.cp-thumb { position: absolute; top: 50%; width: 26px; height: 26px; border-radius: 50%; border: 3px solid #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35); transform: translate(-50%, -50%); pointer-events: none; }
+.cp-row { display: flex; align-items: center; gap: 12px; }
+.cp-preview { flex: none; width: 48px; height: 48px; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
+.cp-drop { flex: none; }
+.cp-saved-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: -6px; }
+.cp-saved { display: flex; flex-wrap: wrap; gap: 10px; }
+.cp-sw { width: 38px; height: 38px; border-radius: 50%; border: 0; padding: 0; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+.cp-sw.on { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--text); }
+.cp-sw.add { display: grid; place-items: center; background: var(--soft); color: var(--muted); box-shadow: none; }
+.cp-hex { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; text-transform: uppercase; }
 .link-btn.small { min-height: 36px; font-size: 14px; align-self: flex-start; }
 .line-legend i.box { width: 12px; height: 12px; border: 0; border-radius: 3px; }
 .bar-group { transition: opacity 0.15s; }
@@ -800,3 +827,93 @@ button.pill:active { transform: scale(0.97); }
 
 /* Notițe goal */
 .goal-notes { width: 100%; min-height: 84px; resize: vertical; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--soft); line-height: 1.4; }
+
+/* ---------- Fundaluri animate (desenele în js/heroArt.js) ---------- */
+.hero-bg-aquarium {
+  --on-hero: #FFFFFF; --hero-pos: #B9FBC0; --hero-neg: #FFD0D0;
+  background: radial-gradient(70% 90% at 85% 10%, rgba(140, 230, 255, 0.45) 0%, transparent 60%), linear-gradient(170deg, #0B6E99, #0A4F7A 60%, #083A5C);
+}
+.hero-bg-balloons {
+  --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #6B0F2A;
+  background: linear-gradient(170deg, #5AA9F0, #8CC6F5 50%, #F7B2C4);
+}
+.hero-bg-winter {
+  --on-hero: #FFFFFF; --hero-pos: #C6F6D5; --hero-neg: #FFD0D0;
+  background: linear-gradient(165deg, #1E3A6E, #3466AE 60%, #7FB6F2);
+}
+.hero-bg-city {
+  --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5;
+  background: radial-gradient(60% 80% at 90% 10%, rgba(255, 243, 196, 0.18) 0%, transparent 60%), linear-gradient(170deg, #1B1035, #3A1E6B 60%, #7B3FA0);
+}
+.hero-bg-sailboat {
+  --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #5A0E22;
+  background: linear-gradient(175deg, #2C7BE5, #4FA3EE 55%, #8FD6F5);
+}
+.hero-bg-fireflies {
+  --on-hero: #FFFFFF; --hero-pos: #D9F99D; --hero-neg: #FFC2C2;
+  background: radial-gradient(70% 90% at 85% 5%, #2F6B4F 0%, transparent 60%), linear-gradient(165deg, #0E2A22, #17402F);
+}
+.hero-bg-rocket {
+  --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5;
+  background: radial-gradient(70% 90% at 15% 100%, rgba(244, 132, 95, 0.35) 0%, transparent 60%), linear-gradient(165deg, #12123A, #2D1B69 60%, #5B2C8F);
+}
+
+.hero-art [class^="ha-"], .hero-art [class*=" ha-"] { transform-box: fill-box; transform-origin: center; }
+/* Valurile, zăpada și solul se estompează spre margini, în loc să se termine drept. */
+.hero-bg-aquarium .hero-art, .hero-bg-winter .hero-art, .hero-bg-sailboat .hero-art, .hero-bg-fireflies .hero-art, .hero-bg-city .hero-art {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22%), linear-gradient(to bottom, #000 72%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent 0, #000 22%), linear-gradient(to bottom, #000 72%, transparent 100%);
+  mask-composite: intersect;
+}
+.hero-art .ha-fish { animation: ha-swim 10s ease-in-out infinite; }
+.hero-art .ha-fish.r { animation-name: ha-swim-r; animation-duration: 8s; }
+.hero-art .ha-bub { animation: ha-rise 4s ease-in infinite; }
+.hero-art .ha-weed { transform-origin: 50% 100%; animation: ha-sway 3s ease-in-out infinite alternate; }
+.hero-art .ha-cloud { animation: ha-drift 9s ease-in-out infinite alternate; }
+.hero-art .ha-float { animation: ha-float 3.6s ease-in-out infinite alternate; }
+.hero-art .ha-snow { animation: ha-fall 7s linear infinite; }
+.hero-art .ha-win { animation: ha-twinkle 5s ease-in-out infinite; }
+.hero-art .ha-star { animation: ha-twinkle 3s ease-in-out infinite; }
+.hero-art .ha-blink { animation: ha-twinkle 1.6s steps(1) infinite; }
+.hero-art .ha-shoot { animation: ha-shoot 7s ease-out infinite; }
+.hero-art .ha-wave { animation: ha-wave 4s linear infinite; }
+.hero-art .ha-wave.r { animation-direction: reverse; animation-duration: 6s; }
+.hero-art .ha-bob { transform-origin: 50% 90%; animation: ha-bob 3.4s ease-in-out infinite; }
+.hero-art .ha-gull { animation: ha-glide 12s linear infinite; }
+.hero-art .ha-flap { animation: ha-flap 0.9s ease-in-out infinite; }
+.hero-art .ha-wander { animation: ha-wander 9s ease-in-out infinite; }
+.hero-art .ha-glow { animation: ha-glow 2.6s ease-in-out infinite; }
+.hero-art .ha-hover { animation: ha-hover 1.8s ease-in-out infinite alternate; }
+.hero-art .ha-flame { transform-origin: 50% 0%; animation: ha-flame 0.16s ease-in-out infinite alternate; }
+.hero-art .ha-streak { animation: ha-streak 1.6s linear infinite; }
+
+@keyframes ha-swim {
+  0% { transform: translateX(0) scaleX(1); } 46% { transform: translateX(-40px) scaleX(1); }
+  50% { transform: translateX(-40px) scaleX(-1); } 96% { transform: translateX(0) scaleX(-1); } 100% { transform: translateX(0) scaleX(1); }
+}
+@keyframes ha-swim-r {
+  0% { transform: translateX(0) scaleX(1); } 46% { transform: translateX(34px) scaleX(1); }
+  50% { transform: translateX(34px) scaleX(-1); } 96% { transform: translateX(0) scaleX(-1); } 100% { transform: translateX(0) scaleX(1); }
+}
+@keyframes ha-rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-80px); opacity: 0; } }
+@keyframes ha-sway { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+@keyframes ha-drift { from { transform: translateX(0); } to { transform: translateX(-18px); } }
+@keyframes ha-float { from { transform: translateY(2px); } to { transform: translateY(-7px); } }
+@keyframes ha-fall { 0% { transform: translate(0, 0); } 50% { transform: translate(4px, 56px); } 100% { transform: translate(0, 112px); } }
+@keyframes ha-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+@keyframes ha-shoot { 0%, 76% { transform: translate(0, 0); opacity: 0; } 80% { opacity: 1; } 92%, 100% { transform: translate(52px, 22px); opacity: 0; } }
+@keyframes ha-wave { from { transform: translateX(0); } to { transform: translateX(-30px); } }
+@keyframes ha-bob { 0%, 100% { transform: rotate(-3deg) translateY(0); } 50% { transform: rotate(3deg) translateY(1.5px); } }
+@keyframes ha-glide { from { transform: translate(-30px, 4px); } 50% { transform: translate(40px, -2px); } to { transform: translate(110px, 4px); } }
+@keyframes ha-flap { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.35); } }
+@keyframes ha-wander { 0%, 100% { transform: translate(0, 0); } 33% { transform: translate(7px, -6px); } 66% { transform: translate(-5px, -10px); } }
+@keyframes ha-glow { 0%, 100% { opacity: 0.15; } 50% { opacity: 1; } }
+@keyframes ha-hover { from { transform: translateY(1.5px); } to { transform: translateY(-3px); } }
+@keyframes ha-flame { from { transform: scaleY(0.8); } to { transform: scaleY(1.25); } }
+@keyframes ha-streak { from { transform: translateY(0); } to { transform: translateY(118px); } }
+
+/* Cine a cerut în telefon „mai puțină mișcare” vede desenele nemișcate. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-art [class^="ha-"], .hero-art [class*=" ha-"] { animation: none !important; }
+}

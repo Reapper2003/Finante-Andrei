@@ -1,6 +1,6 @@
 // Componente de interfață: elemente DOM, iconițe, bottom sheet, toast, confirmare, swipe, controale de formular.
 
-import { state } from './store.js';
+import { state, save } from './store.js';
 import { forInput, amountPlaceholder } from './fmt.js';
 import { t as tr } from './i18n.js';
 
@@ -66,6 +66,7 @@ const ICONS = {
   x: '<path d="M6 6l12 12M18 6 6 18"/>',
   gift: '<rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v8.5h14V12M12 8v12.5"/><path d="M12 8C10.5 4 6.5 4.2 7 6.6 7.4 8 12 8 12 8zM12 8c1.5-4 5.5-3.8 5-1.4C16.6 8 12 8 12 8z"/>',
   link: '<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>',
+  pipette: '<path d="m14.5 4.5 5 5"/><path d="M17 2.5a2.1 2.1 0 0 1 3 3l-2.5 2.5-3-3z"/><path d="M15.5 7.5 6 17l-1 3 3-1 9.5-9.5"/>',
   trash: '<path d="M4 7h16M10 7V4.5h4V7"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v5.5M14 11v5.5"/>',
   transfer: '<path d="M4 8h15l-4-4M20 16H5l4 4"/>',
   repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
@@ -326,7 +327,7 @@ export function swipeRow(content, { onTap, onEdit, onDelete, trash = false, cls 
       decided = true;
       horizontal = Math.abs(mx) > Math.abs(my);
       if (!horizontal) { tracking = false; return; }
-      front.setPointerCapture?.(e.pointerId);
+      try { front.setPointerCapture(e.pointerId); } catch { /* ignorat */ }
       front.style.transition = 'none';
       if (closeOpenSwipe && closeOpenSwipe !== close) closeOpenSwipe();
     }
@@ -485,4 +486,175 @@ export async function deliverFile(blob, filename) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+/* ---------- Selector de culoare ---------- */
+// Pe iPhone folosim selectorul telefonului (are grilă, spectru, glisoare, culori salvate și pipetă).
+// Pe Android selectorul sistemului e foarte simplu, așa că deschidem selectorul de mai jos, cu aceleași moduri.
+
+export const nativeColorPicker = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const toHex2 = n => Math.round(Math.max(0, Math.min(255, n))).toString(16).padStart(2, '0');
+const cpHex = (r, g, b) => ('#' + toHex2(r) + toHex2(g) + toHex2(b)).toUpperCase();
+function cpRgb(hex) {
+  const n = parseInt(String(hex).replace('#', ''), 16) || 0;
+  return [n >> 16, (n >> 8) & 255, n & 255];
+}
+function hexToHsv(hex) {
+  const [r, g, b] = cpRgb(hex).map(x => x / 255);
+  const max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+  let hue = 0;
+  if (d) hue = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return { h: ((hue * 60) + 360) % 360, s: max ? d / max : 0, v: max };
+}
+function hsvToHex({ h: hue, s: sat, v: val }) {
+  const f = k => { const x = (k + hue / 60) % 6; return (val - val * sat * Math.max(0, Math.min(x, 4 - x, 1))) * 255; };
+  return cpHex(f(5), f(3), f(1));
+}
+function hslHex(hue, sat, light) {
+  const a = sat * Math.min(light, 1 - light);
+  const f = n => { const k = (n + hue / 30) % 12; return (light - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))) * 255; };
+  return cpHex(f(0), f(8), f(4));
+}
+
+// Grila: primul rând nuanțe de gri, apoi 12 culori × 9 trepte, de la închis la deschis.
+const GRID_COLS = 12;
+const GRID = (() => {
+  const rows = [Array.from({ length: GRID_COLS }, (_, i) => { const v = 255 * (1 - i / (GRID_COLS - 1)); return cpHex(v, v, v); })];
+  const hues = [200, 215, 235, 262, 290, 325, 350, 8, 24, 40, 54, 90];
+  for (let r = 0; r < 9; r++) rows.push(hues.map(hu => hslHex(hu, 0.92, 0.16 + r * 0.085)));
+  return rows;
+})();
+
+// Trage cu degetul pe un element; fn primește poziția relativă (0..1, 0..1).
+function dragArea(el, fn) {
+  const move = e => { const r = el.getBoundingClientRect(); fn(clamp01((e.clientX - r.left) / r.width), clamp01((e.clientY - r.top) / r.height)); };
+  el.addEventListener('pointerdown', e => { try { el.setPointerCapture(e.pointerId); } catch { /* ignorat */ } move(e); });
+  el.addEventListener('pointermove', e => { if (e.buttons || e.pointerType !== 'mouse') move(e); });
+}
+
+let pickerMode = 'grid';
+const MAX_SAVED = 14;
+
+export function openColorPicker({ value, title = tr('Alege culoarea'), onPick }) {
+  let hex = /^#[0-9a-f]{6}$/i.test(value || '') ? value.toUpperCase() : '#6C47FF';
+  let hsv = hexToHsv(hex);
+  const listeners = [];
+  // from: cine a schimbat culoarea (spectrul își păstrează nuanța și la gri / negru).
+  const setHex = (v, from) => {
+    hex = v.toUpperCase();
+    if (from !== 'spectrum') {
+      const next = hexToHsv(hex);
+      hsv = next.s === 0 || next.v === 0 ? { ...next, h: hsv.h } : next;
+    }
+    listeners.forEach(fn => fn(from));
+  };
+
+  /* Grilă */
+  const grid = h('div', { class: 'cp-grid', style: { gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)` } },
+    GRID.flat().map(c => h('i', { style: { background: c }, 'data-c': c })));
+  dragArea(grid, (x, y) => {
+    const col = Math.min(GRID_COLS - 1, Math.floor(x * GRID_COLS)), row = Math.min(GRID.length - 1, Math.floor(y * GRID.length));
+    setHex(GRID[row][col], 'grid');
+  });
+  listeners.push(() => grid.querySelectorAll('i').forEach(el => el.classList.toggle('on', el.dataset.c === hex)));
+
+  /* Spectru */
+  const area = h('div', { class: 'cp-area' }, h('i', { class: 'cp-thumb' }));
+  const hueBar = h('div', { class: 'cp-hue' }, h('i', { class: 'cp-thumb' }));
+  dragArea(area, (x, y) => { hsv = { ...hsv, s: x, v: 1 - y }; setHex(hsvToHex(hsv), 'spectrum'); });
+  dragArea(hueBar, x => { hsv = { ...hsv, h: Math.min(359.9, x * 360) }; setHex(hsvToHex(hsv), 'spectrum'); });
+  listeners.push(() => {
+    area.style.background = `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hsv.h} 100% 50%))`;
+    Object.assign(area.firstChild.style, { left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: hex });
+    Object.assign(hueBar.firstChild.style, { left: `${(hsv.h / 360) * 100}%`, background: `hsl(${hsv.h} 100% 50%)` });
+  });
+  const spectrum = h('div', { class: 'cp-spectrum' }, area, hueBar);
+
+  /* Glisoare RGB */
+  const sliders = h('div', { class: 'cp-sliders' }, ['R', 'G', 'B'].map((name, k) => {
+    const track = h('div', { class: 'cp-track' }, h('i', { class: 'cp-thumb' }));
+    const val = h('b', {});
+    dragArea(track, x => { const rgb = cpRgb(hex); rgb[k] = x * 255; setHex(cpHex(...rgb), 'sliders'); });
+    listeners.push(() => {
+      const rgb = cpRgb(hex), lo = [...rgb], hi = [...rgb];
+      lo[k] = 0; hi[k] = 255;
+      track.style.background = `linear-gradient(to right, ${cpHex(...lo)}, ${cpHex(...hi)})`;
+      Object.assign(track.firstChild.style, { left: `${(rgb[k] / 255) * 100}%`, background: hex });
+      val.textContent = String(rgb[k]);
+    });
+    return h('div', { class: 'cp-srow' }, h('span', {}, name), track, val);
+  }));
+
+  const panels = { grid, spectrum, sliders };
+  const panelBox = h('div', { class: 'cp-panel' });
+  const showMode = m => { pickerMode = m; panelBox.replaceChildren(panels[m]); };
+  const modeSeg = segmented([{ value: 'grid', label: tr('Grilă') }, { value: 'spectrum', label: tr('Spectru') }, { value: 'sliders', label: tr('Glisoare') }], pickerMode, showMode);
+  showMode(pickerMode);
+
+  /* Previzualizare, cod HEX, pipetă (doar unde browserul o permite) */
+  const preview = h('span', { class: 'cp-preview' });
+  const hexIn = h('input', { type: 'text', class: 'cp-hex', maxlength: 7, autocomplete: 'off', autocapitalize: 'characters', spellcheck: false, 'aria-label': 'HEX' });
+  hexIn.addEventListener('input', () => {
+    const v = hexIn.value.trim().replace(/^#?/, '#');
+    if (/^#[0-9a-f]{6}$/i.test(v)) setHex(v, 'hex');
+  });
+  listeners.push(from => { preview.style.background = hex; if (from !== 'hex') hexIn.value = hex; });
+  const dropper = 'EyeDropper' in window ? h('button', {
+    type: 'button', class: 'icon-btn cp-drop', 'aria-label': tr('Ia culoarea de pe ecran'), title: tr('Ia culoarea de pe ecran'),
+    onclick: () => new window.EyeDropper().open().then(r => {
+      const v = /^#[0-9a-f]{6}$/i.test(r.sRGBHex) ? r.sRGBHex : cpHex(...(r.sRGBHex.match(/\d+/g) || [0, 0, 0]).map(Number));
+      setHex(v, 'drop');
+    }).catch(() => {}),
+  }, icon('pipette', 20)) : null;
+
+  /* Culorile mele: + salvează culoarea curentă; ține apăsat pe una ca s-o ștergi. */
+  const savedBox = h('div', { class: 'cp-saved' });
+  const paintSaved = () => {
+    const list = state.settings.savedColors || [];
+    savedBox.replaceChildren(
+      ...list.map(c => {
+        let timer = null, long = false;
+        const b = h('button', {
+          type: 'button', class: 'cp-sw' + (c === hex ? ' on' : ''), style: { background: c }, 'aria-label': c,
+          onclick: () => { if (!long) setHex(c, 'saved'); long = false; },
+        });
+        b.addEventListener('pointerdown', () => {
+          long = false;
+          timer = setTimeout(() => {
+            long = true;
+            state.settings.savedColors = (state.settings.savedColors || []).filter(x => x !== c);
+            save();
+            paintSaved();
+            toast(tr('Culoare ștearsă'));
+          }, 600);
+        });
+        ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearTimeout(timer)));
+        b.addEventListener('contextmenu', e => e.preventDefault());
+        return b;
+      }),
+      h('button', {
+        type: 'button', class: 'cp-sw add', 'aria-label': tr('Salvează culoarea'), onclick: () => {
+          state.settings.savedColors = [hex, ...(state.settings.savedColors || []).filter(x => x !== hex)].slice(0, MAX_SAVED);
+          save();
+          paintSaved();
+          toast(tr('Culoare salvată'));
+        },
+      }, icon('plus', 18)));
+  };
+  listeners.push(paintSaved);
+
+  setHex(hex, 'init');
+  const sh = openSheet({
+    title,
+    body: h('div', { class: 'cp' },
+      modeSeg, panelBox,
+      h('div', { class: 'cp-row' }, preview, hexIn, dropper),
+      h('div', { class: 'cp-saved-head' }, h('span', { class: 'field-label' }, tr('Culorile mele')), h('small', { class: 'muted' }, tr('ține apăsat ca să ștergi'))),
+      savedBox),
+    footer: h('div', { class: 'btn-row' },
+      btn(tr('Anulează'), () => sh.close(), 'ghost'),
+      btn(tr('Aplică'), () => { sh.close(); onPick(hex); })),
+  });
 }

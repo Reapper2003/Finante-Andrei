@@ -4,7 +4,7 @@ import { DATE_FORMATS } from '../dates.js';
 import { round2 } from '../calc.js';
 import {
   h, icon, sectionHead, segmented, switchRow, openSheet, field, amountInput, btn, invalid, toast, confirmDialog, go, applyTheme,
-  selectInput, DEFAULT_ACCENT,
+  selectInput, DEFAULT_ACCENT, openColorPicker, nativeColorPicker,
 } from '../ui.js';
 import { openExportSheet, openSalaryDay } from '../forms.js';
 import { exportBackup } from '../exporter.js';
@@ -22,6 +22,9 @@ const HERO_STYLES = [
   ['sunset', 'Apus'], ['ocean', 'Ocean'], ['forest', 'Pădure'], ['midnight', 'Noapte'], ['gold', 'Auriu'],
   ['bear', 'Ursuleț'], ['car', 'Mașină sport'], ['mountains', 'Munți'], ['space', 'Spațiu'], ['piggy', 'Pușculiță'],
   ['cat', 'Pisică'], ['beach', 'Plajă'],
+  // Animate
+  ['aquarium', 'Acvariu'], ['balloons', 'Baloane'], ['winter', 'Iarnă'], ['city', 'Oraș noaptea'],
+  ['sailboat', 'Velier'], ['fireflies', 'Licurici'], ['rocket', 'Rachetă'],
 ];
 
 function heroPicker() {
@@ -44,14 +47,26 @@ const ACCENTS = [
 function accentPicker() {
   const cur = (state.settings.accent || DEFAULT_ACCENT).toUpperCase();
   const set = v => { state.settings.accent = v.toUpperCase(); applyTheme(); commit(); };
-  const custom = h('input', { type: 'color', value: cur.toLowerCase(), 'aria-label': tr('Altă culoare') });
-  custom.addEventListener('change', () => set(custom.value));
   const isPreset = ACCENTS.some(([c]) => c === cur);
   return h('div', { class: 'accent-grid' },
     ACCENTS.map(([c, name]) => h('button', {
       type: 'button', class: 'accent-sw' + (c === cur ? ' on' : ''), style: { background: c }, 'aria-label': tr(name), title: tr(name), onclick: () => set(c),
     })),
-    h('label', { class: 'accent-sw custom' + (isPreset ? '' : ' on'), style: isPreset ? {} : { background: cur }, title: tr('Altă culoare') }, isPreset ? '+' : null, custom));
+    customSwatch(cur, isPreset, set));
+}
+
+// Pe iPhone: selectorul telefonului (grilă, spectru, glisoare, culori salvate, pipetă). În rest: selectorul din aplicație.
+function customSwatch(cur, isPreset, set) {
+  const props = { class: 'accent-sw custom' + (isPreset ? '' : ' on'), style: isPreset ? {} : { background: cur }, title: tr('Altă culoare') };
+  if (nativeColorPicker()) {
+    const input = h('input', { type: 'color', value: cur.toLowerCase(), 'aria-label': tr('Altă culoare') });
+    input.addEventListener('change', () => set(input.value));
+    return h('label', props, isPreset ? '+' : null, input);
+  }
+  return h('button', {
+    ...props, type: 'button', 'aria-label': tr('Altă culoare'),
+    onclick: () => openColorPicker({ value: cur, title: tr('Altă culoare'), onPick: set }),
+  }, isPreset ? '+' : null);
 }
 
 const sizeLabel = b => (b < 1024 * 1024 ? `${num(b / 1024, 0)} KB` : `${num(b / 1024 / 1024, 1)} MB`);
