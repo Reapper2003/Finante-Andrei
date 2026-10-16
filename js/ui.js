@@ -64,6 +64,9 @@ const ICONS = {
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   filter: '<path d="M4 6h16M7 12h10M10 18h4"/>',
   x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  gift: '<rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v8.5h14V12M12 8v12.5"/><path d="M12 8C10.5 4 6.5 4.2 7 6.6 7.4 8 12 8 12 8zM12 8c1.5-4 5.5-3.8 5-1.4C16.6 8 12 8 12 8z"/>',
+  link: '<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>',
+  trash: '<path d="M4 7h16M10 7V4.5h4V7"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v5.5M14 11v5.5"/>',
   transfer: '<path d="M4 8h15l-4-4M20 16H5l4 4"/>',
   repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
   scale: '<path d="M12 3v18M7 21h10M4 7h16"/><path d="m4 7-2.5 6a3 3 0 0 0 5 0zM20 7l-2.5 6a3 3 0 0 0 5 0z"/>',
@@ -161,13 +164,15 @@ function pushSheetHistory() {
 
 export function openSheet({ title, body, footer, onClose }) {
   const overlay = h('div', { class: 'overlay' });
+  const bodyEl = h('div', { class: 'sheet-body' }, body);
   const panel = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
     h('div', { class: 'sheet-head' },
       h('h2', {}, title),
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': tr('Închide'), onclick: () => api.close() }, icon('x'))),
-    h('div', { class: 'sheet-body' }, body),
+    bodyEl,
     footer ? h('div', { class: 'sheet-foot' }, footer) : null);
   overlay.addEventListener('click', () => api.close());
+  dragToClose(panel, bodyEl, overlay, () => api.close());
   document.body.append(overlay, panel);
   document.body.classList.add('noscroll');
   requestAnimationFrame(() => { overlay.classList.add('open'); panel.classList.add('open'); });
@@ -200,6 +205,47 @@ export function openSheet({ title, body, footer, onClose }) {
 }
 
 export const sheetOpen = () => sheets.length > 0;
+
+// Panoul se poate trage în jos ca să se închidă: de oriunde, dacă lista din el e derulată sus.
+function dragToClose(panel, body, overlay, close) {
+  let x0 = 0, y0 = 0, t0 = 0, dy = 0, active = false, dragging = false;
+  panel.addEventListener('touchstart', e => {
+    active = e.touches.length === 1 && !(body.contains(e.target) && body.scrollTop > 0);
+    if (!active) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); dy = 0; dragging = false;
+  }, { passive: true });
+  panel.addEventListener('touchmove', e => {
+    if (!active) return;
+    const mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+    if (!dragging) {
+      if (Math.abs(mx) < 6 && Math.abs(my) < 6) return;
+      // În sus, în lateral sau cu lista derulată: e scroll obișnuit, nu închidere.
+      if (my <= 0 || Math.abs(mx) > Math.abs(my) || body.scrollTop > 0) { active = false; return; }
+      dragging = true;
+      panel.style.transition = 'none';
+      overlay.style.transition = 'none';
+      document.activeElement?.blur?.();
+    }
+    e.preventDefault();
+    dy = Math.max(0, my);
+    panel.style.transform = `translate(-50%, ${dy}px)`;
+    overlay.style.opacity = String(Math.max(0, 1 - dy / panel.offsetHeight));
+  }, { passive: false });
+  const end = () => {
+    if (!active) return;
+    active = false;
+    if (!dragging) return;
+    dragging = false;
+    const fast = dy / Math.max(1, Date.now() - t0) > 0.5 && dy > 40;
+    panel.style.transition = '';
+    overlay.style.transition = '';
+    panel.style.transform = '';
+    overlay.style.opacity = '';
+    if (fast || dy > Math.min(160, panel.offsetHeight * 0.3)) close();
+  };
+  panel.addEventListener('touchend', end);
+  panel.addEventListener('touchcancel', end);
+}
 
 // Navigare sigură și când un panou e deschis.
 export function go(hash) {
@@ -243,13 +289,15 @@ export function toast(msg) {
 
 let closeOpenSwipe = null;
 
-export function swipeRow(content, { onTap, onEdit, onDelete }) {
+// trash: în loc de butoane cu text apare doar un coș de gunoi.
+export function swipeRow(content, { onTap, onEdit, onDelete, trash = false, cls = '' }) {
   const front = h('div', { class: 'swipe-front' }, content);
-  const actions = h('div', { class: 'swipe-actions' },
+  const actions = h('div', { class: 'swipe-actions' + (trash ? ' trash' : '') },
     onEdit && h('button', { type: 'button', class: 'sa-edit', tabindex: -1, onclick: e => { e.stopPropagation(); close(); onEdit(); } }, tr('Editează')),
-    onDelete && h('button', { type: 'button', class: 'sa-del', tabindex: -1, onclick: e => { e.stopPropagation(); close(); onDelete(); } }, tr('Șterge')));
-  const wrap = h('div', { class: 'swipe' }, actions, front);
-  const W = (onEdit ? 84 : 0) + (onDelete ? 84 : 0);
+    onDelete && h('button', { type: 'button', class: 'sa-del', tabindex: -1, 'aria-label': tr('Șterge'), onclick: e => { e.stopPropagation(); close(); onDelete(); } },
+      trash ? icon('trash', 22) : tr('Șterge')));
+  const wrap = h('div', { class: 'swipe ' + cls }, actions, front);
+  const W = trash ? (onDelete ? 76 : 0) : (onEdit ? 84 : 0) + (onDelete ? 84 : 0);
   let x0 = 0, y0 = 0, start = 0, dx = 0, tracking = false, decided = false, horizontal = false, moved = false;
 
   function open() {

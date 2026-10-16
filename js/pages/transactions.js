@@ -2,7 +2,7 @@ import { state, catById, ACCOUNTS, accountName } from '../store.js';
 import { currentMonth, today, dayLabel, monthLabel, weekdayInitials } from '../dates.js';
 import { money, num, parseAmount, forInput, CURRENCIES } from '../fmt.js';
 import { monthTotals, txCurrency, txAmountIn } from '../calc.js';
-import { h, icon, app, openSheet, segmented, selectInput, field, btn, emptyState, stat, signCls, card } from '../ui.js';
+import { h, icon, app, go, openSheet, segmented, selectInput, field, btn, emptyState, card } from '../ui.js';
 import { txGroups, txRow, exportButton } from '../components.js';
 import { getMonth, monthChip } from '../menu.js';
 import { openTxForm } from '../forms.js';
@@ -25,6 +25,14 @@ function extraMatch(t) {
   }
   return true;
 }
+// Deschide Tranzacții filtrate pe un tip (folosit de pastilele de pe Acasă).
+export function showTransactions(type) {
+  f.type = type;
+  f.q = '';
+  if (f.cat && (type === 'transfer' || (type && catById(f.cat)?.type !== type))) f.cat = '';
+  go('#/tranzactii');
+}
+
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 function matches(t) {
@@ -168,6 +176,17 @@ function chips() {
     h('button', { type: 'button', class: 'chip', onclick: fn, 'aria-label': tr('Elimină filtrul {name}', { name: label }) }, label, icon('x', 14))));
 }
 
+function sumCard(type, ico, tone, label, value, cls) {
+  const on = f.type === type;
+  return h('button', { type: 'button', class: on ? 'on' : '', 'aria-pressed': String(on), onclick: () => {
+    f.type = on ? '' : type;
+    if (f.type && f.cat && catById(f.cat)?.type !== f.type) f.cat = '';
+    app.rerender();
+  } },
+    h('span', { class: 's-top' }, h('span', { class: 's-ic ' + tone }, icon(ico, 18)), h('small', {}, label)),
+    h('b', { class: cls }, value));
+}
+
 export function transactionsPage() {
   const listBox = h('div', { class: 'stack' });
   const paintList = () => {
@@ -192,13 +211,13 @@ export function transactionsPage() {
         icon('filter'), activeFilters ? h('span', { class: 'badge' }, activeFilters) : null)),
     // Tipul se alege direct din „pastile”; categoria și contul rămân în panoul de filtre.
     h('div', { class: 'chips-scroll' },
-      [['', 'Toate'], ['cheltuiala', 'Cheltuieli'], ['venit', 'Venituri'], ['transfer', 'Transferuri']].map(([v, label]) =>
+      [['', 'Toate'], ['venit', 'Venituri'], ['cheltuiala', 'Cheltuieli'], ['transfer', 'Transferuri']].map(([v, label]) =>
         h('button', { type: 'button', class: 'pchip' + (f.type === v ? ' on' : ''), onclick: () => { f.type = v; if (v === 'transfer') f.cat = ''; app.rerender(); } }, tr(label)))),
     chips(),
-    h('div', { class: 'sum3' },
-      h('div', {}, h('small', {}, tr('Venituri')), h('b', { class: tot.income > 0 ? 'pos' : '' }, money(tot.income, { sign: true }))),
-      h('div', {}, h('small', {}, tr('Cheltuieli')), h('b', {}, money(-tot.expense))),
-      h('div', {}, h('small', {}, tr('Rămas')), h('b', { class: signCls(tot.left) }, money(tot.left)))),
+    // Tap pe un card: arată doar acel tip; tap din nou: toate.
+    h('div', { class: 'sum2' },
+      sumCard('venit', 'plus', 'pos', tr('Venituri'), money(tot.income, { sign: true }), tot.income > 0 ? 'pos' : ''),
+      sumCard('cheltuiala', 'minus', 'neg', tr('Cheltuieli'), money(-tot.expense), '')),
     calendar(getMonth()),
     listBox,
     exportButton());

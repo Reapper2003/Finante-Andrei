@@ -73,6 +73,7 @@ export function defaultState() {
     receivables: [],
     snapshots: [],
     reports: [],
+    wishes: [], // listă de dorințe / cadouri; nu intră în niciun calcul
   };
 }
 

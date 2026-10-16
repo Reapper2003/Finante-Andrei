@@ -109,25 +109,30 @@ export function lineChart({ labels, series, format, height = 180 }) {
   svg.append(guide, ...dots, hit);
   const tip = h('div', { class: 'chart-tip', hidden: true });
 
+  // Punctele urmează degetul cursiv de-a lungul liniei; eticheta arată luna cea mai apropiată.
+  let shownIdx = -1;
   function show(e) {
     const r = svg.getBoundingClientRect();
     const x = ((e.clientX - r.left) / r.width) * W;
-    let i = n === 1 ? 0 : Math.round(((x - pl) / (W - pl - pr)) * (n - 1));
-    i = Math.max(0, Math.min(n - 1, i));
-    const cx = X(i);
+    const fi = n === 1 ? 0 : Math.max(0, Math.min(n - 1, ((x - pl) / (W - pl - pr)) * (n - 1)));
+    const i = Math.round(fi), cx = n === 1 ? X(0) : pl + (fi * (W - pl - pr)) / (n - 1);
     guide.setAttribute('x1', cx); guide.setAttribute('x2', cx); guide.setAttribute('visibility', 'visible');
     series.forEach((se, j) => {
-      const v = se.values[i];
+      const lo = Math.floor(fi), hi = Math.min(n - 1, lo + 1), a = se.values[lo], b = se.values[hi];
+      const v = a != null && b != null ? a + (b - a) * (fi - lo) : se.values[i];
       if (v == null) { dots[j].setAttribute('visibility', 'hidden'); return; }
       dots[j].setAttribute('cx', cx); dots[j].setAttribute('cy', Y(v)); dots[j].setAttribute('visibility', 'visible');
     });
-    tip.replaceChildren(h('b', {}, labels[i]), ...series.map(se => h('span', {}, h('i', { style: { background: se.color } }), `${se.name}: ${format(se.values[i])}`)));
+    if (i !== shownIdx) {
+      shownIdx = i;
+      tip.replaceChildren(h('b', {}, labels[i]), ...series.map(se => h('span', {}, h('i', { style: { background: se.color } }), `${se.name}: ${format(se.values[i])}`)));
+    }
     tip.hidden = false;
     const left = (cx / W) * 100;
     tip.style.left = `${left}%`;
-    tip.style.transform = `translateX(${left > 60 ? '-100%' : left < 40 ? '0' : '-50%'})`;
+    tip.style.transform = `translateX(${-Math.max(0, Math.min(100, (left - 15) / 70 * 100))}%)`;
   }
-  hit.addEventListener('pointerdown', show);
+  hit.addEventListener('pointerdown', e => { try { hit.setPointerCapture(e.pointerId); } catch {} show(e); });
   hit.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || e.buttons) show(e); });
 
   const legend = h('div', { class: 'line-legend' }, series.map(se =>

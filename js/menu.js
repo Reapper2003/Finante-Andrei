@@ -58,6 +58,7 @@ export function openMainMenu() {
         item('settings', tr('Setări'), '#/setari'),
         item('report', tr('Rapoarte'), '#/rapoarte'),
         item('repeat', tr('Abonamente'), '#/abonamente'),
+        item('gift', tr('Listă de dorințe'), '#/dorinte'),
         item('scale', tr('Avere netă'), '#/avere'),
         item('shield', tr('Fond de urgență'), '#/fond'),
         item('card', tr('Datorii'), '#/datorii'),

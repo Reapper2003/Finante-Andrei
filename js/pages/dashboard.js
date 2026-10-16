@@ -4,7 +4,7 @@ import { money, moneyParts, moneyShort, num, plural } from '../fmt.js';
 import {
   accountBalance, monthTotals, expenseByCategory, incomeByCategory, savingsBreakdown, goalStats, netWorth, efStats, debtTotals, upcomingSubs, dailyAllowance,
 } from '../calc.js';
-import { h, s, icon, card, sectionHead, linkBtn, progress, btn, go, app, emptyState, toast, openSheet, segmented } from '../ui.js';
+import { h, s, icon, card, sectionHead, linkBtn, progress, btn, go, app, emptyState, toast, openSheet, segmented, swipeRow } from '../ui.js';
 import { barBreakdown } from '../charts.js';
 import { getMonth, monthChip } from '../menu.js';
 import { openTxForm, openCategoryTxSheet, openGoalForm, openGoalActions, openSalaryDay } from '../forms.js';
@@ -12,6 +12,7 @@ import { buildDemo } from '../demo.js';
 import { runAutomations } from '../actions.js';
 import { t as tr } from '../i18n.js';
 import { HERO_ART } from '../heroArt.js';
+import { showTransactions } from './transactions.js';
 
 let chartTab = 'cheltuieli';
 
@@ -28,8 +29,8 @@ export function bigMoney(v, opts = {}, cls = 'big') {
   return h('strong', { class: `${cls} num${v < 0 ? ' neg' : ''}` }, p.main, p.rest ? h('span', { class: 'dec' }, p.rest) : null);
 }
 
-// Card de goal pentru liste (folosit și în pagina Economii).
-export function goalCard(g) {
+// Card de goal pentru liste (folosit și în pagina Economii). Cu onDelete: glisare spre stânga → coș de gunoi.
+export function goalCard(g, onDelete) {
   const st = goalStats(g);
   let line = null;
   if (!g.done && st.left > 0 && g.deadline) {
@@ -37,14 +38,17 @@ export function goalCard(g) {
       ? h('p', { class: 'goal-line neg' }, tr('Termenul ({date}) a trecut', { date: fmtDate(g.deadline) }))
       : h('p', { class: 'goal-line' }, tr('Trebuie să pui {sum}/lună ca să ajungi la timp', { sum: money(st.perMonth, { cur: st.cur }) }));
   } else if (st.left <= 0) line = h('p', { class: 'goal-line pos' }, tr('Ținta a fost atinsă 🎉'));
-  return h('button', { type: 'button', class: 'goal' + (g.done ? ' done' : ''), onclick: () => openGoalActions(g) },
+  const body = [
     h('div', { class: 'goal-top' },
       h('span', { class: 'goal-ic', style: { background: g.color + '55' } }, g.icon || '🎯'),
       h('span', { class: 'goal-name' }, g.name),
       h('span', { class: 'goal-pct' }, `${Math.min(999, Math.round(st.pct * 100))}%`)),
     progress(st.pct, g.color),
     h('p', { class: 'goal-amt' }, tr('{a} din {b}', { a: money(st.saved, { cur: st.cur }), b: money(g.target, { cur: st.cur }) })),
-    line);
+    line];
+  const cls = 'goal' + (g.done ? ' done' : '');
+  if (onDelete) return swipeRow(h('div', { class: cls }, body), { onTap: () => openGoalActions(g), onDelete: () => onDelete(g), trash: true, cls: 'goal-swipe' });
+  return h('button', { type: 'button', class: cls, onclick: () => openGoalActions(g) }, body);
 }
 
 // Card mic de goal, pentru șirul orizontal de pe Acasă.
@@ -156,15 +160,16 @@ export function dashboardPage() {
     art || sparkline(m),
     h('span', { class: 'label' }, m === cm ? tr('Disponibil · cont Curent') : tr('Disponibil la {date}', { date: fmtDate(upTo) })),
     bigMoney(avail),
+    // Tap pe o pastilă: Tranzacții, filtrate pe acel tip (Rămas = toate).
     h('div', { class: 'pills' },
-      h('div', { class: 'pill' }, h('small', {}, tr('Venituri')), h('b', {}, moneyShort(tot.income))),
-      h('div', { class: 'pill' }, h('small', {}, tr('Cheltuieli')), h('b', {}, moneyShort(tot.expense))),
-      h('div', { class: 'pill' }, h('small', {}, tr('Rămas')), h('b', {}, moneyShort(tot.left, { sign: true })))));
+      h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('venit') }, h('small', {}, tr('Venituri')), h('b', {}, moneyShort(tot.income))),
+      h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('cheltuiala') }, h('small', {}, tr('Cheltuieli')), h('b', {}, moneyShort(-tot.expense))),
+      h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('') }, h('small', {}, tr('Rămas')), h('b', {}, moneyShort(tot.left)))));
 
   const qa = (ico, label, fn) => h('button', { type: 'button', class: 'qa', onclick: fn }, h('span', {}, icon(ico, 24)), label);
   const quick = h('div', { class: 'quick' },
-    qa('minus', tr('Cheltuială'), () => openTxForm(null, { type: 'cheltuiala' })),
     qa('plus', tr('Venit'), () => openTxForm(null, { type: 'venit' })),
+    qa('minus', tr('Cheltuială'), () => openTxForm(null, { type: 'cheltuiala' })),
     qa('transfer', tr('Transfer'), () => openTxForm(null, { type: 'transfer' })),
     qa('target', tr('Goal'), () => openGoalForm()));
 

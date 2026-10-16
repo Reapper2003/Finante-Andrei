@@ -1,6 +1,6 @@
 // Formulare comune (bottom sheets): tranzacție, mutare bani în goal / fond, goal, export.
 
-import { state, uid, commit, catById, ACCOUNTS, PALETTE, accountName } from './store.js';
+import { state, uid, commit, save, catById, ACCOUNTS, PALETTE, accountName } from './store.js';
 import { today, monthLabel, fmtDate } from './dates.js';
 import { money, parseAmount, plural, forInput, CURRENCIES } from './fmt.js';
 import { round2, convert, bucketBalance, bucketOptions, bucketName, bucketCurrency, bucketIn, bucketOut, goalStats, brokerOfAsset } from './calc.js';
@@ -21,7 +21,7 @@ function celebrate(goals) {
   toast(tr('Felicitări! Ai atins ținta pentru {name} 🎉', { name: goals.map(g => g.name).join(', ') }));
 }
 
-const TYPES = () => [{ value: 'cheltuiala', label: tr('Cheltuială') }, { value: 'venit', label: tr('Venit') }, { value: 'transfer', label: tr('Transfer') }];
+const TYPES = () => [{ value: 'venit', label: tr('Venit') }, { value: 'cheltuiala', label: tr('Cheltuială') }, { value: 'transfer', label: tr('Transfer') }];
 
 /* ---------- Tranzacție ---------- */
 
@@ -284,13 +284,23 @@ export function openGoalForm(existing) {
 export function openGoalActions(g) {
   const st = goalStats(g);
   const act = (fn) => () => { sh.close(); setTimeout(fn, 0); };
+  // Notițele se salvează pe măsură ce scrii; lista se reîmprospătează la închidere.
+  let notesChanged = false;
+  const notes = h('textarea', {
+    class: 'goal-notes', rows: 3, maxlength: 2000, placeholder: tr('Scrie aici idei, linkuri sau pași pentru acest goal'),
+    oninput: () => { g.note = notes.value.trim(); notesChanged = true; },
+    onchange: () => save(),
+  });
+  notes.value = g.note || '';
   const sh = openSheet({
     title: `${g.icon || '🎯'} ${g.name}`,
+    onClose: () => { if (notesChanged) commit(); },
     body: h('div', {},
       h('div', { class: 'goal-sum' },
         h('strong', { class: 'big-sm' }, money(st.saved, { cur: st.cur })), h('span', { class: 'muted' }, ` ${tr('din')} ${money(g.target, { cur: st.cur })}`)),
       progress(st.pct, g.color),
       h('p', { class: 'muted' }, tr('{pct}% completat', { pct: Math.round(st.pct * 100) }) + (g.deadline ? ` · ${tr('termen {date}', { date: fmtDate(g.deadline) })}` : '')),
+      field(tr('Notițe'), notes),
       h('div', { class: 'action-list' },
         btn(tr('Adaugă bani'), act(() => openBucketMove({ bucket: 'g:' + g.id, dir: 'in' })), 'primary'),
         st.saved > 0 ? btn(tr('Retrage bani'), act(() => openBucketMove({ bucket: 'g:' + g.id, dir: 'out' })), 'secondary') : null,

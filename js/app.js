@@ -18,6 +18,7 @@ import { debtsPage, debtPage } from './pages/debts.js';
 import { settingsPage } from './pages/settings.js';
 import { categoriesPage } from './pages/categories.js';
 import { calculatorPage } from './pages/calculator.js';
+import { wishlistPage } from './pages/wishlist.js';
 
 // Bara de jos: două tab-uri, butonul + la mijloc, alte două tab-uri. „Mai mult” e butonul rotund din header.
 const TABS = [
@@ -44,6 +45,7 @@ const ROUTES = [
   [/^setari$/, settingsPage, 'mai-mult'],
   [/^categorii$/, categoriesPage, 'mai-mult'],
   [/^calculator$/, calculatorPage, 'mai-mult'],
+  [/^dorinte$/, wishlistPage, 'mai-mult'],
 ];
 
 const view = document.getElementById('view');

@@ -4,16 +4,16 @@ import { state, uid, commit, PALETTE } from '../store.js';
 import { today } from '../dates.js';
 import { money, num, parseAmount, forInput, CURRENCIES } from '../fmt.js';
 import {
-  round2, convert, accountBalance, bucketBalance, bucketCurrency, bucketName, allBuckets, savingsByCurrency, efStats,
+  round2, convert, accountBalance, bucketBalance, bucketCurrency, bucketName, allBuckets, savingsByCurrency, efStats, goalStats,
 } from '../calc.js';
 import {
   h, icon, card, sectionHead, linkBtn, stat, btn, go, app, emptyState, openSheet, field, textInput, amountInput,
-  segmented, invalid, toast, confirmDialog, emojiPicker, colorPicker,
+  segmented, invalid, toast, confirmDialog, emojiPicker, colorPicker, swipeRow,
 } from '../ui.js';
 import { barBreakdown } from '../charts.js';
 import { listRow, exportButton, movesList } from '../components.js';
 import { openGoalForm, openBucketMove, currencySeg } from '../forms.js';
-import { deleteFund, convertBucketHistory } from '../actions.js';
+import { deleteFund, deleteGoal, convertBucketHistory, saveTx } from '../actions.js';
 import { goalCard, bigMoney } from './dashboard.js';
 import { t as tr } from '../i18n.js';
 
@@ -60,6 +60,40 @@ export function openFundForm(existing) {
   if (!existing) name.focus({ preventScroll: true });
 }
 
+/* ---------- Ștergere prin glisare (fondul de urgență nu se poate șterge) ---------- */
+
+const ZERO = v => Math.abs(v) < 0.005;
+
+function removeFund(f) {
+  const b = 'f:' + f.id, cur = bucketCurrency(b), bal = bucketBalance(b);
+  const run = () => { deleteFund(f.id); toast(tr('Fond șters')); };
+  if (ZERO(bal)) return run();
+  confirmDialog({ title: tr('Ștergi {name}?', { name: f.name }), message: tr('Banii ({sum}) trec la „Alte economii”.', { sum: money(bal, { cur }) }) })
+    .then(ok => { if (ok) run(); });
+}
+
+function removeGoal(g) {
+  const st = goalStats(g);
+  const run = () => { deleteGoal(g.id); toast(tr('Goal șters')); };
+  if (ZERO(st.saved)) return run();
+  confirmDialog({ title: tr('Ștergi goal-ul?'), message: tr('Banii strânși ({sum}) rămân în Economii, la „Alte economii”.', { sum: money(st.saved, { cur: st.cur }) }) })
+    .then(ok => { if (ok) run(); });
+}
+
+// „Alte economii” dispare din listă; dacă are bani, aceștia se mută înapoi în Curent.
+// Reapare singur când ajung din nou bani acolo (ex. la ștergerea unui fond).
+function removeOther() {
+  const bal = bucketBalance('');
+  const run = () => { state.settings.hideOtherSavings = true; commit(); toast(tr('„Alte economii” a fost șters')); };
+  if (ZERO(bal)) return run();
+  confirmDialog({ title: tr('Ștergi „Alte economii”?'), message: tr('Banii ({sum}) se mută înapoi în contul Curent.', { sum: money(bal) }) })
+    .then(ok => {
+      if (!ok) return;
+      saveTx({ type: 'transfer', amount: round2(bal), date: today(), note: tr('Închidere „Alte economii”'), accountId: 'economii', fromBucket: '', toAccountId: 'curent' });
+      run();
+    });
+}
+
 /* ---------- Pagini ---------- */
 
 const curLabel = c => (c === 'RON' ? 'lei' : CURRENCIES[c]);
@@ -86,16 +120,18 @@ export function savingsPage() {
   const goals = state.goals.filter(g => show('g:' + g.id));
   const active = goals.filter(g => !g.done), done = goals.filter(g => g.done);
 
-  const fundRow = (b, title, emoji, color, onTap) => {
+  const fundRow = (b, title, emoji, color, onTap, onDelete) => {
     const cur = bucketCurrency(b), bal = bucketBalance(b);
-    return listRow({
+    return swipeRow(listRow({
       iconEl: h('span', { class: 'cat-ic', style: { background: (color || '#C9CED6') + '55', fontSize: '19px' } }, emoji),
       title, sub: cur,
       right: money(bal, { cur }),
       rightSub: all && cur !== base ? h('span', { class: 'row-sub' }, `≈ ${money(convert(bal, cur, base))}`) : null,
-      onTap, chevron: true,
-    });
+      chevron: true,
+    }), { onTap, onDelete, trash: true });
   };
+  const otherBal = bucketBalance('');
+  const showOther = show('') && (!state.settings.hideOtherSavings || !ZERO(otherBal));
 
   const node = h('div', { class: 'page' },
     h('div', { class: 'total-center' },
@@ -118,14 +154,15 @@ export function savingsPage() {
         title: tr('Fond de urgență'), sub: tr('{n} luni din {m}', { n: num(ef.covered, 1), m: ef.months }),
         right: money(ef.balance), onTap: () => go('#/fond'), chevron: true,
       }) : null,
-      show('') ? fundRow('', tr('Alte economii'), '🗂️', '#C9CED6', () => go('#/economii/f/alte')) : null,
-      state.funds.filter(f => show('f:' + f.id)).map(f => fundRow('f:' + f.id, f.name, f.icon || '💰', f.color, () => go(`#/economii/f/${f.id}`)))),
+      showOther ? fundRow('', tr('Alte economii'), '🗂️', '#C9CED6', () => go('#/economii/f/alte'), otherBal >= 0 ? removeOther : null) : null,
+      state.funds.filter(f => show('f:' + f.id)).map(f => fundRow('f:' + f.id, f.name, f.icon || '💰', f.color, () => go(`#/economii/f/${f.id}`), () => removeFund(f)))),
     !state.funds.length ? h('p', { class: 'hint' }, tr('Creează un fond pentru bani puși deoparte într-o anumită monedă, de exemplu „Economii în euro”.')) : null,
 
     sectionHead(tr('Goal-uri'), linkBtn(tr('Adaugă'), () => openGoalForm())),
     goals.length ? null : card(emptyState(tr('Niciun goal în această monedă.'))),
-    ...active.map(goalCard),
-    done.length ? h('details', { class: 'done-goals' }, h('summary', {}, tr('Finalizate ({n})', { n: done.length })), h('div', { class: 'stack' }, done.map(goalCard))) : null,
+    ...active.map(g => goalCard(g, removeGoal)),
+    done.length ? h('details', { class: 'done-goals' }, h('summary', {}, tr('Finalizate ({n})', { n: done.length })), h('div', { class: 'stack' }, done.map(g => goalCard(g, removeGoal)))) : null,
+    h('p', { class: 'hint center' }, tr('Glisează spre stânga pe un fond sau goal ca să-l ștergi.')),
     exportButton());
   return { title: tr('Economii'), node };
 }
