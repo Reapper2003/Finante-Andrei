@@ -1,0 +1,17 @@
+{
+  "name": "Finanțe personale",
+  "short_name": "Finanțe",
+  "description": "Cheltuieli, economii, investiții și datorii, simplu.",
+  "lang": "ro",
+  "start_url": "./#/acasa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F6F8",
+  "theme_color": "#F5F6F8",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

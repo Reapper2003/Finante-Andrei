@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ro" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#F5F6F8" />
+  <meta name="description" content="Aplicație simplă pentru finanțe personale: cheltuieli, economii, investiții, datorii." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Finanțe" />
+  <title>Finanțe</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    // Tema se aplică înainte de afișare, ca să nu clipească ecranul.
+    try {
+      var p = JSON.parse(localStorage.getItem('finante.prefs') || 'null') ||
+        (JSON.parse(localStorage.getItem('finante.data.v1') || '{}').settings) || {};
+      var t = p.theme || 'auto';
+      var d = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = d ? 'dark' : 'light';
+      if (/^#[0-9a-f]{6}$/i.test(p.accent || '')) document.documentElement.style.setProperty('--hero', p.accent);
+    } catch (e) {}
+  </script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header class="top">
+      <a class="icon-btn back" id="back" href="#/acasa" aria-label="Înapoi" hidden></a>
+      <div class="titles"><small id="subtitle" hidden></small><h1 id="title">Finanțe</h1></div>
+      <button class="icon-btn round" id="eye" type="button" aria-label="Mod privat"></button>
+      <button class="icon-btn round" id="more" type="button" aria-label="Meniu"></button>
+    </header>
+    <main id="view"></main>
+  </div>
+  <div class="ptr" id="ptr" aria-hidden="true"></div>
+  <button class="fab" id="fab" type="button" aria-label="Adaugă tranzacție"></button>
+  <nav class="tabs" id="tabs" aria-label="Navigare principală"></nav>
+  <noscript><p style="padding:24px">Aplicația are nevoie de JavaScript activat.</p></noscript>
+</body>
+</html>
