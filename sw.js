@@ -1,7 +1,7 @@
 // Service worker: aplicația funcționează și fără internet.
-// La fiecare modificare a fișierelor, crește VERSION ca telefoanele să ia versiunea nouă.
+// La fiecare modificare a fișierelor, crește VERSION (și APP_VERSION din js/store.js) ca telefoanele să ia versiunea nouă.
 
-const VERSION = 'finante-v26';
+const VERSION = 'finante-v27';
 const FILES = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
@@ -13,7 +13,10 @@ const FILES = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache: 'reload' = fișierele vin direct de pe server, nu din copia veche a browserului.
+  e.waitUntil(caches.open(VERSION)
+    .then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -28,7 +31,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   e.respondWith(caches.open(VERSION).then(async cache => {
     const cached = await cache.match(req, { ignoreSearch: true }) || (req.mode === 'navigate' ? await cache.match('./index.html') : null);
-    const network = fetch(req).then(res => {
+    const network = fetch(req.url, { cache: 'no-cache' }).then(res => {
       if (res.ok) cache.put(req, res.clone());
       return res;
     }).catch(() => cached);

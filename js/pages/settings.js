@@ -1,4 +1,4 @@
-import { state, commit, setState, resetAll, isValidBackup, accountName, dataSize } from '../store.js';
+import { state, commit, setState, resetAll, isValidBackup, accountName, dataSize, APP_VERSION } from '../store.js';
 import { money, num, parseAmount, forInput, CURRENCIES, NUMBER_FORMATS } from '../fmt.js';
 import { DATE_FORMATS } from '../dates.js';
 import { round2 } from '../calc.js';
@@ -196,6 +196,7 @@ export function settingsPage() {
       navRow(tr('Încarcă date demo'), tr('Ca să vezi cum arată aplicația'), demo),
       navRow(tr('Șterge toate datele'), tr('Cu confirmare dublă'), wipe, 'danger-text')),
     h('p', { class: 'hint center' }, tr('Datele sunt salvate doar pe acest dispozitiv. Fă din când în când un backup.')),
-    h('p', { class: 'hint center' }, tr('Spațiu folosit: {size}', { size: sizeLabel(dataSize()) })));
+    h('p', { class: 'hint center' }, tr('Spațiu folosit: {size}', { size: sizeLabel(dataSize()) })),
+    h('p', { class: 'hint center' }, tr('Versiunea {v}', { v: APP_VERSION })));
   return { title: tr('Setări'), back: '#/acasa', node };
 }

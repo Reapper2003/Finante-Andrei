@@ -3,6 +3,9 @@
 import { t as tr } from './i18n.js';
 import { idbGet, idbSet, idbDelete } from './db.js';
 
+// Crește odată cu VERSION din sw.js; apare în Setări ca să vezi ce versiune rulează.
+export const APP_VERSION = 27;
+
 const KEY = 'finante.data.v1';
 // Tema și culoarea, păstrate și separat ca pagina să le aplice înainte de afișare (vezi index.html).
 const PREFS_KEY = 'finante.prefs';

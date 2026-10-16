@@ -1,6 +1,6 @@
 // Pornirea aplicației: rutare, header, bara de jos, butonul +, pull-to-refresh, PWA.
 
-import { state, load, save, subscribe, onSaveError, commit } from './store.js';
+import { state, load, save, subscribe, onSaveError, commit, APP_VERSION } from './store.js';
 import { h, icon, app, toast, applyTheme, sheetOpen } from './ui.js';
 import { runAutomations } from './actions.js';
 import { openTxForm } from './forms.js';
@@ -173,11 +173,44 @@ async function start() {
   setupPullToRefresh();
   render();
 
+  // După o actualizare automată, confirmă versiunea nouă.
+  try {
+    if (sessionStorage.getItem(UPDATED_KEY)) {
+      sessionStorage.removeItem(UPDATED_KEY);
+      toast(tr('Aplicația a fost actualizată · versiunea {v}', { v: APP_VERSION }));
+    }
+  } catch { /* ignorat */ }
+
   // Service worker pentru funcționare offline (nu pe localhost, ca să vezi imediat modificările).
   const local = ['localhost', '127.0.0.1'].includes(location.hostname) && !location.search.includes('sw=1');
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !local) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  }
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !local) setupUpdates();
+}
+
+// Pe iPhone aplicația de obicei doar revine din fundal, fără să se redeschidă, deci nu ar căuta singură
+// o versiune nouă. Verificăm la fiecare revenire; când versiunea nouă e gata, pagina se reîncarcă
+// (după ce închizi panoul deschis, ca să nu pierzi ce scrii).
+const UPDATED_KEY = 'finante.updated';
+function setupUpdates() {
+  const sw = navigator.serviceWorker;
+  // La prima instalare nu reîncărcăm; la orice versiune care vine după, da.
+  let hadController = !!sw.controller;
+  let reloading = false;
+  const reloadWhenIdle = () => {
+    if (reloading) return;
+    if (sheetOpen()) { setTimeout(reloadWhenIdle, 1500); return; }
+    reloading = true;
+    try { sessionStorage.setItem(UPDATED_KEY, '1'); } catch { /* ignorat */ }
+    location.reload();
+  };
+  sw.addEventListener('controllerchange', () => {
+    if (hadController) reloadWhenIdle();
+    hadController = true;
+  });
+  sw.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') reg.update().catch(() => {});
+    });
+  }).catch(() => {});
 }
 
 start();
