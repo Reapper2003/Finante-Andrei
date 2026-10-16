@@ -47,7 +47,12 @@ export function txRow(t, { showDate = false } = {}) {
   const base = state.settings.currency;
   const foreign = isTr && (t.toAmount != null && bucketCurrency(t.toBucket) !== base ? money(t.toAmount, { cur: bucketCurrency(t.toBucket) })
     : t.fromAmount != null && bucketCurrency(t.fromBucket) !== base ? money(t.fromAmount, { cur: bucketCurrency(t.fromBucket) }) : null);
-  const amt = t.type === 'venit'
+  const orig = !isTr && t.origCurrency && t.origCurrency !== base;
+  const amt = orig
+    ? h('div', { class: 'row-right' },
+      h('span', { class: 'amt' + (t.type === 'venit' ? ' pos' : '') }, money(t.type === 'venit' ? t.origAmount : -t.origAmount, { cur: t.origCurrency, sign: t.type === 'venit' })),
+      h('span', { class: 'row-sub' }, money(t.type === 'venit' ? t.amount : -t.amount, { sign: t.type === 'venit' })))
+    : t.type === 'venit'
     ? h('span', { class: 'amt pos' }, money(t.amount, { sign: true }))
     : t.type === 'cheltuiala' ? h('span', { class: 'amt' }, money(-t.amount))
       : foreign ? h('div', { class: 'row-right' }, h('span', { class: 'amt muted' }, money(t.amount)), h('span', { class: 'row-sub' }, foreign))
@@ -66,9 +71,13 @@ export function txGroups(list) {
     if (!groups.has(t.date)) groups.set(t.date, []);
     groups.get(t.date).push(t);
   }
-  return [...groups].map(([date, txs]) => h('div', { class: 'day' },
-    h('div', { class: 'day-head' }, dayLabel(date)),
-    h('div', { class: 'list' }, txs.map(t => txRow(t)))));
+  return [...groups].map(([date, txs]) => {
+    // Totalul zilei: venituri minus cheltuieli (transferurile nu intră).
+    const net = txs.reduce((a, t) => a + (t.type === 'venit' ? t.amount : t.type === 'cheltuiala' ? -t.amount : 0), 0);
+    return h('div', { class: 'day' },
+    h('div', { class: 'day-head' }, h('span', {}, dayLabel(date)), net ? h('span', {}, money(net, { sign: true })) : null),
+    h('div', { class: 'list' }, txs.map(t => txRow(t))));
+  });
 }
 
 // Mișcările unui compartiment de economii (fond de urgență, fond, alte economii), cu sume în moneda lui.

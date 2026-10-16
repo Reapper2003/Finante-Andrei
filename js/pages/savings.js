@@ -10,11 +10,11 @@ import {
   h, icon, card, sectionHead, linkBtn, stat, btn, go, app, emptyState, openSheet, field, textInput, amountInput,
   segmented, invalid, toast, confirmDialog, emojiPicker, colorPicker,
 } from '../ui.js';
-import { donut } from '../charts.js';
+import { barBreakdown } from '../charts.js';
 import { listRow, exportButton, movesList } from '../components.js';
 import { openGoalForm, openBucketMove, currencySeg } from '../forms.js';
 import { deleteFund, convertBucketHistory } from '../actions.js';
-import { goalCard } from './dashboard.js';
+import { goalCard, bigMoney } from './dashboard.js';
 import { t as tr } from '../i18n.js';
 
 const FUND_EMOJIS = ['💰', '🏦', '💶', '💵', '🐷', '🔒', '🌍', '🏠', '🚗', '🎓', '🧳', '📦'];
@@ -63,6 +63,7 @@ export function openFundForm(existing) {
 /* ---------- Pagini ---------- */
 
 const curLabel = c => (c === 'RON' ? 'lei' : CURRENCIES[c]);
+const FLAGS = { RON: '🇷🇴', EUR: '🇪🇺', USD: '🇺🇸' };
 
 export function savingsPage() {
   const base = state.settings.currency;
@@ -97,26 +98,26 @@ export function savingsPage() {
   };
 
   const node = h('div', { class: 'page' },
+    h('div', { class: 'total-center' },
+      h('small', {}, !all ? tr('Total economii în {cur}', { cur: curLabel(curFilter) })
+        : currencies.length > 1 ? tr('Total economii · convertit în {cur}', { cur: base }) : tr('Total economii')),
+      bigMoney(total, { cur: totalCur })),
+    // Tap pe o monedă: arată doar economiile în ea. Tap din nou: înapoi la toate.
     currencies.length > 1
-      ? segmented([{ value: 'all', label: tr('Toate') }, ...currencies.map(c => ({ value: c, label: curLabel(c) }))], curFilter, v => { curFilter = v; app.rerender(); })
+      ? h('div', { class: 'curchips' }, currencies.map(c => h('button', {
+        type: 'button', class: curFilter === c ? 'on' : '', 'aria-pressed': String(curFilter === c),
+        onclick: () => { curFilter = curFilter === c ? 'all' : c; app.rerender(); },
+      }, `${FLAGS[c] || ''} ${money(byCur[c] || 0, { cur: c })}`)))
       : null,
-    h('section', { class: 'card summary' },
-      h('span', { class: 'label' }, all && currencies.length > 1 ? tr('Total economii · convertit în {cur}', { cur: base }) : tr('Total economii')),
-      h('strong', { class: 'big' }, money(total, { cur: totalCur })),
-      all && currencies.length > 1
-        ? h('div', { class: 'stats3' }, currencies.map(c => stat(tr('În {cur}', { cur: curLabel(c) }), money(byCur[c] || 0, { cur: c }))))
-        : null),
-    alloc.length ? card(h('h2', {}, tr('Împărțire')), donut({ items: alloc, title: tr('Total'), format: v => money(v, { cur: totalCur }), legendLimit: 5, size: 180 })) : null,
-
-    show('urgenta') ? sectionHead(tr('Fond de urgență')) : null,
-    show('urgenta') ? h('div', { class: 'list' }, listRow({
-      iconEl: h('span', { class: 'cat-ic neutral' }, icon('shield', 20)),
-      title: tr('Fond de urgență'), sub: tr('{n} luni din {m}', { n: num(ef.covered, 1), m: ef.months }),
-      right: money(ef.balance), onTap: () => go('#/fond'), chevron: true,
-    })) : null,
+    alloc.length ? card(barBreakdown({ items: alloc, format: v => money(v, { cur: totalCur }), legendOnly: true })) : null,
 
     sectionHead(tr('Fonduri de economii'), linkBtn(tr('Adaugă'), () => openFundForm())),
     h('div', { class: 'list' },
+      show('urgenta') ? listRow({
+        iconEl: h('span', { class: 'cat-ic', style: { background: '#4FD1DC40', fontSize: '19px' } }, '🛡️'),
+        title: tr('Fond de urgență'), sub: tr('{n} luni din {m}', { n: num(ef.covered, 1), m: ef.months }),
+        right: money(ef.balance), onTap: () => go('#/fond'), chevron: true,
+      }) : null,
       show('') ? fundRow('', tr('Alte economii'), '🗂️', '#C9CED6', () => go('#/economii/f/alte')) : null,
       state.funds.filter(f => show('f:' + f.id)).map(f => fundRow('f:' + f.id, f.name, f.icon || '💰', f.color, () => go(`#/economii/f/${f.id}`)))),
     !state.funds.length ? h('p', { class: 'hint' }, tr('Creează un fond pentru bani puși deoparte într-o anumită monedă, de exemplu „Economii în euro”.')) : null,

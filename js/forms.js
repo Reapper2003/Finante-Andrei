@@ -30,13 +30,30 @@ export function openTxForm(existing, preset = {}) {
   const tx = isEdit ? { ...existing } : { type: 'cheltuiala', date: today(), accountId: 'curent', ...preset };
   if (tx.type === 'transfer' && !tx.toAccountId) tx.toAccountId = tx.accountId === 'curent' ? 'economii' : 'curent';
 
-  const amount = amountInput(tx.amount, { 'aria-label': tr('Sumă'), enterkeyhint: 'done' });
+  const base = state.settings.currency;
+  // Cheltuielile și veniturile pot fi introduse în euro sau dolari; în lei se salvează convertite cu cursul din Setări.
+  let txCur = tx.type !== 'transfer' && tx.origCurrency ? tx.origCurrency : base;
+  const amount = amountInput(txCur !== base ? tx.origAmount : tx.amount, { 'aria-label': tr('Sumă'), enterkeyhint: 'done' });
+  const fxHint = h('span', { class: 'fx-hint' });
+  const paintFx = () => {
+    const v = parseAmount(amount.value);
+    fxHint.textContent = txCur === base ? ''
+      : v > 0 ? tr('≈ {sum} la cursul din Setări', { sum: money(convert(v, txCur, base), { show: true }) })
+        : tr('1 {cur} = {rate} lei', { cur: txCur, rate: forInput(state.settings.rates[txCur]) });
+  };
+  const curRow = h('div', { class: 'cur-row' },
+    segmented(Object.keys(CURRENCIES).map(c => ({ value: c, label: c === 'RON' ? 'lei' : CURRENCIES[c] })), txCur, v => { txCur = v; paintFx(); }, 'seg-sm'),
+    fxHint);
+  curRow.hidden = tx.type === 'transfer';
+  amount.addEventListener('input', paintFx);
+  paintFx();
   const date = dateInput(tx.date);
   const note = textInput(tx.note, { placeholder: tr('Opțional'), maxlength: 140, enterkeyhint: 'done' });
   const dyn = h('div');
 
   const typeSeg = segmented(TYPES(), tx.type, v => {
     tx.type = v;
+    curRow.hidden = v === 'transfer';
     if (v === 'transfer') {
       if (!tx.toAccountId || tx.toAccountId === tx.accountId) tx.toAccountId = tx.accountId === 'curent' ? 'economii' : 'curent';
     } else {
@@ -113,6 +130,13 @@ export function openTxForm(existing, preset = {}) {
       if (!tx.categoryId) return toast(tr('Alege o categorie'));
       out.categoryId = tx.categoryId;
       out.accountId = tx.accountId === 'economii' ? 'economii' : 'curent';
+      if (txCur !== base) {
+        // Păstrăm conversia veche dacă suma și moneda nu s-au schimbat (cursul din Setări poate fi între timp altul).
+        const same = isEdit && existing.origCurrency === txCur && existing.origAmount === out.amount;
+        out.origAmount = out.amount;
+        out.origCurrency = txCur;
+        out.amount = same ? existing.amount : round2(convert(out.amount, txCur, base));
+      }
     }
     const reached = saveTx(out);
     sh.close();
@@ -123,7 +147,7 @@ export function openTxForm(existing, preset = {}) {
 
   const sh = openSheet({
     title: isEdit ? tr('Editează tranzacția') : tr('Tranzacție nouă'),
-    body: h('div', {}, typeSeg, field(tr('Sumă'), amount), dyn, h('div', { class: 'two' }, field(tr('Data'), date), field(tr('Notă'), note))),
+    body: h('div', {}, typeSeg, field(tr('Sumă'), amount), curRow, dyn, h('div', { class: 'two' }, field(tr('Data'), date), field(tr('Notă'), note))),
     footer: h('div', { class: 'btn-row' },
       isEdit ? btn(tr('Șterge'), () => confirmDeleteTx(existing, () => sh.close()), 'ghost danger-text') : null,
       btn(isEdit ? tr('Salvează') : tr('Adaugă'), submit)),

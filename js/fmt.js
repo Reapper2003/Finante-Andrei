@@ -34,6 +34,19 @@ export function money(v, opts = {}) {
   return `${sign}${num(n)} ${CURRENCIES[cur] || cur}`;
 }
 
+// Suma împărțită în partea întreagă și restul („,60 lei”), ca zecimalele să poată fi afișate mai mic.
+export function moneyParts(v, opts = {}) {
+  if (isPrivate() && !opts.show) return { main: HIDDEN, rest: '' };
+  const cur = opts.cur || state.settings.currency;
+  const n = Math.round((Number(v) || 0) * 100) / 100;
+  const sign = n < 0 ? '−' : opts.sign && n > 0 ? '+' : '';
+  const [i, f] = num(n).split(decimalSep());
+  return { main: sign + i, rest: `${decimalSep()}${f} ${CURRENCIES[cur] || cur}` };
+}
+
+// Sumă fără zecimale și fără monedă, pentru spații mici (ex. „9.800”).
+export const moneyShort = (v, opts = {}) => (isPrivate() ? HIDDEN : `${opts.sign && v > 0 ? '+' : v < 0 ? '−' : ''}${num(Math.round(Math.abs(v)), 0)}`);
+
 export function pct(v, dec = 1, sign = false) {
   if (v == null || !isFinite(v)) return '—';
   const p = v * 100;

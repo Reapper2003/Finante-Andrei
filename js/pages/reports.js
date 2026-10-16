@@ -111,7 +111,7 @@ function yearlyView() {
 
 export function reportsPage() {
   const modeSeg = segmented([{ value: 'lunar', label: tr('Lunar') }, { value: 'anual', label: tr('Anual') }], mode, v => { mode = v; app.rerender(); });
-  if (mode === 'anual') return { title: tr('Rapoarte'), back: '#/mai-mult', node: h('div', { class: 'page' }, modeSeg, yearlyView()) };
+  if (mode === 'anual') return { title: tr('Rapoarte'), back: '#/acasa', node: h('div', { class: 'page' }, modeSeg, yearlyView()) };
   const cm = currentMonth();
   const stored = [...state.reports].sort((a, b) => b.month.localeCompare(a.month));
   const options = [{ value: cm, label: tr('{month} (în curs)', { month: monthLabel(cm) }) }, ...stored.map(r => ({ value: r.month, label: monthLabel(r.month) }))];
@@ -192,5 +192,5 @@ export function reportsPage() {
         toast(tr('Raport regenerat'));
       }, 'secondary') : null,
       btn(tr('Exportă în Excel'), () => exportReport(r).then(() => toast(tr('Raport exportat'))), 'primary')));
-  return { title: tr('Rapoarte'), back: '#/mai-mult', node };
+  return { title: tr('Rapoarte'), back: '#/acasa', node };
 }

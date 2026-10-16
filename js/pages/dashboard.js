@@ -1,18 +1,18 @@
 import { state, commit, setState } from '../store.js';
-import { currentMonth, monthEnd, fmtDate, fmtDayMonth, inDays, weekdayName } from '../dates.js';
-import { money, num, plural } from '../fmt.js';
+import { today, currentMonth, monthEnd, fmtDate, fmtDayMonth, inDays, weekdayName, longDate, addDays } from '../dates.js';
+import { money, moneyParts, moneyShort, num, plural } from '../fmt.js';
 import {
   accountBalance, monthTotals, expenseByCategory, incomeByCategory, savingsBreakdown, goalStats, netWorth, efStats, debtTotals, upcomingSubs, dailyAllowance,
 } from '../calc.js';
-import { h, card, sectionHead, linkBtn, stat, progress, btn, go, app, signCls, emptyState, toast, openSheet, segmented } from '../ui.js';
-import { donut } from '../charts.js';
-import { monthSwitcher } from '../components.js';
+import { h, s, icon, card, sectionHead, linkBtn, progress, btn, go, app, emptyState, toast, openSheet, segmented } from '../ui.js';
+import { barBreakdown } from '../charts.js';
+import { getMonth, monthChip } from '../menu.js';
 import { openTxForm, openCategoryTxSheet, openGoalForm, openGoalActions, openSalaryDay } from '../forms.js';
 import { buildDemo } from '../demo.js';
 import { runAutomations } from '../actions.js';
 import { t as tr } from '../i18n.js';
+import { HERO_ART } from '../heroArt.js';
 
-let month = currentMonth();
 let chartTab = 'cheltuieli';
 
 export function loadDemo() {
@@ -22,6 +22,13 @@ export function loadDemo() {
   toast(tr('Date demo încărcate'));
 }
 
+// Suma mare, cu zecimalele și moneda mai mici: 9.612,60 lei
+export function bigMoney(v, opts = {}, cls = 'big') {
+  const p = moneyParts(v, opts);
+  return h('strong', { class: `${cls} num${v < 0 ? ' neg' : ''}` }, p.main, p.rest ? h('span', { class: 'dec' }, p.rest) : null);
+}
+
+// Card de goal pentru liste (folosit și în pagina Economii).
 export function goalCard(g) {
   const st = goalStats(g);
   let line = null;
@@ -40,6 +47,35 @@ export function goalCard(g) {
     line);
 }
 
+// Card mic de goal, pentru șirul orizontal de pe Acasă.
+function goalMini(g) {
+  const st = goalStats(g);
+  return h('button', { type: 'button', class: 'gcard', onclick: () => openGoalActions(g) },
+    h('span', { class: 'cat-ic', style: { width: '40px', height: '40px', background: g.color + '40', fontSize: '19px' } }, g.icon || '🎯'),
+    h('b', {}, g.name),
+    h('small', {}, tr('{a} din {b}', { a: money(st.saved, { cur: st.cur }), b: money(g.target, { cur: st.cur }) })),
+    progress(st.pct, g.color));
+}
+
+function greeting() {
+  const hr = new Date().getHours();
+  return hr < 12 ? tr('Bună dimineața') : hr < 18 ? tr('Bună ziua') : tr('Bună seara');
+}
+
+// Mică linie cu evoluția soldului din contul Curent în luna afișată.
+function sparkline(m) {
+  const last = m === currentMonth() ? today() : monthEnd(m);
+  const days = [];
+  for (let d = `${m}-01`; d <= last; d = addDays(d, 1)) days.push(d);
+  if (days.length < 2) return null;
+  const vals = days.map(d => accountBalance('curent', d));
+  const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
+  const W = 200, H = 64;
+  const pts = vals.map((v, i) => `${((i / (vals.length - 1)) * W).toFixed(1)} ${(H - 6 - ((v - min) / span) * (H - 12)).toFixed(1)}`);
+  return s('svg', { class: 'spark', width: W, height: H, viewBox: `0 0 ${W} ${H}`, fill: 'none', 'aria-hidden': 'true' },
+    s('path', { d: 'M' + pts.join(' L'), stroke: 'currentColor', 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+}
+
 function openCommitments(a) {
   openSheet({
     title: a.payday ? tr('De plătit până la salariu') : tr('De plătit până la final de lună'),
@@ -51,94 +87,126 @@ function openCommitments(a) {
   });
 }
 
+function gauge(fraction, label, color) {
+  const C = 2 * Math.PI * 42, f = Math.max(0, Math.min(1, fraction));
+  return h('div', { class: 'gauge' },
+    s('svg', { viewBox: '0 0 100 100', width: 92, height: 92, 'aria-hidden': 'true' },
+      s('circle', { cx: 50, cy: 50, r: 42, fill: 'none', stroke: 'var(--soft)', 'stroke-width': 10 }),
+      s('circle', { cx: 50, cy: 50, r: 42, fill: 'none', stroke: color, 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-dasharray': `${C * f} ${C}`, transform: 'rotate(-90 50 50)' })),
+    h('b', {}, label));
+}
+
 function allowanceCard() {
   const a = dailyAllowance();
-  const head = h('h2', {}, tr('Cât pot cheltui azi'));
-  const more = h('div', { class: 'allow-links' },
+  const links = h('div', { class: 'allow-links' },
     a.commitments.length
       ? linkBtn(tr('De plătit până pe {date}: {sum}', { date: fmtDayMonth(a.end), sum: money(a.committed) }), () => openCommitments(a), null)
       : null,
     linkBtn(a.payday ? tr('Salariu: {day}, {date}', { day: weekdayName(a.payday), date: fmtDayMonth(a.payday) }) : tr('Setează ziua salariului'), openSalaryDay, 'settings'));
   const until = a.payday
-    ? tr('până la salariu ({day}, {date})', { day: weekdayName(a.payday), date: fmtDate(a.payday) })
-    : tr('până pe {date}', { date: fmtDate(a.end) });
+    ? tr('până la salariu ({day}, {date})', { day: weekdayName(a.payday), date: fmtDayMonth(a.payday) })
+    : tr('până pe {date}', { date: fmtDayMonth(a.end) });
+
   if (a.free <= 0) {
-    return card(head,
-      h('strong', { class: 'mid neg' }, money(a.free)),
-      h('p', { class: 'muted' }, tr('Plățile rămase luna aceasta depășesc banii din contul Curent.')),
-      more);
+    return card(h('div', { class: 'allow' },
+      gauge(0, '0%', 'var(--neg)'),
+      h('div', { class: 'allow-main' },
+        h('small', {}, tr('Cât pot cheltui azi')),
+        bigMoney(a.free, {}, 'mid'),
+        h('p', { class: 'muted' }, tr('Plățile rămase luna aceasta depășesc banii din contul Curent.')))), links);
   }
   const over = a.leftToday < 0;
-  return card(head,
-    h('strong', { class: 'mid' + (over ? ' neg' : '') }, money(a.leftToday)),
-    h('p', { class: 'muted' }, over
-      ? tr('Ai depășit suma de azi. Media rămasă: {sum}/zi.', { sum: money(a.perDay) })
-      : tr('≈ {sum}/zi pentru încă {days}, {until}', { sum: money(a.perDay), days: plural(a.daysLeft, tr('zi'), tr('zile')), until })),
-    progress(a.perDay > 0 ? a.spentToday / a.perDay : 1, over ? 'var(--neg)' : null),
-    h('p', { class: 'goal-amt' }, tr('Cheltuit azi: {a} din {b} (fără rate și abonamente)', { a: money(a.spentToday), b: money(a.perDay) })),
-    more);
+  const left = a.perDay > 0 ? a.leftToday / a.perDay : 0;
+  return card(h('div', { class: 'allow' },
+    gauge(over ? 1 : left, over ? tr('depășit') : `${Math.round(Math.max(0, left) * 100)}%\n${tr('rămas')}`, over ? 'var(--neg)' : 'var(--accent)'),
+    h('div', { class: 'allow-main' },
+      h('small', {}, tr('Cât pot cheltui azi')),
+      bigMoney(a.leftToday, {}, 'mid'),
+      h('p', { class: 'muted' }, over
+        ? tr('Ai depășit suma de azi. Media rămasă: {sum}/zi.', { sum: money(a.perDay) })
+        : tr('din {sum}/zi · {days} {until}', { sum: money(a.perDay), days: plural(a.daysLeft, tr('zi'), tr('zile')), until })))), links);
 }
 
 function widget(title, onclick, ...kids) {
   return h('button', { type: 'button', class: 'widget', onclick }, h('span', { class: 'w-title' }, title), ...kids);
 }
 
+// Iconițe pentru compartimentele de economii din grafic.
+function savingsIcons(items) {
+  return items.map(it => {
+    if (it.id === 'urgenta') return { ...it, icon: '🛡️' };
+    if (it.id === '') return { ...it, icon: '🗂️' };
+    const src = it.id.startsWith('g:') ? state.goals.find(g => 'g:' + g.id === it.id) : state.funds.find(f => 'f:' + f.id === it.id);
+    return { ...it, icon: src?.icon || '💰' };
+  });
+}
+
 export function dashboardPage() {
   const cm = currentMonth();
-  if (month > cm) month = cm;
-  const m = month;
+  const m = getMonth();
   const upTo = m === cm ? null : monthEnd(m);
   const tot = monthTotals(m);
   const avail = accountBalance('curent', upTo);
   const isEmpty = !state.transactions.length && !state.goals.length && !state.brokers.length && !state.subscriptions.length && !state.debts.length;
 
-  const summary = h('section', { class: 'card summary hero' },
-    h('span', { class: 'label' }, m === cm ? tr('Total disponibil · cont Curent') : tr('Disponibil la {date}', { date: fmtDate(upTo) })),
-    h('strong', { class: 'big ' + (avail < 0 ? 'neg' : '') }, money(avail)),
-    h('div', { class: 'stats3' },
-      stat(tr('Venituri'), money(tot.income)),
-      stat(tr('Cheltuieli'), money(tot.expense)),
-      stat(tr('Rămas'), money(tot.left), signCls(tot.left))));
+  const heroStyle = state.settings.heroStyle || 'aurora';
+  const art = HERO_ART[heroStyle] ? h('div', { class: 'hero-art' }) : null;
+  if (art) art.innerHTML = HERO_ART[heroStyle];
+  const hero = h('section', { class: `card summary hero hero-bg-${heroStyle}${art ? ' has-art' : ''}` },
+    art || sparkline(m),
+    h('span', { class: 'label' }, m === cm ? tr('Disponibil · cont Curent') : tr('Disponibil la {date}', { date: fmtDate(upTo) })),
+    bigMoney(avail),
+    h('div', { class: 'pills' },
+      h('div', { class: 'pill' }, h('small', {}, tr('Venituri')), h('b', {}, moneyShort(tot.income))),
+      h('div', { class: 'pill' }, h('small', {}, tr('Cheltuieli')), h('b', {}, moneyShort(tot.expense))),
+      h('div', { class: 'pill' }, h('small', {}, tr('Rămas')), h('b', {}, moneyShort(tot.left, { sign: true })))));
 
-  // Un singur card pentru cele două cercuri, cu comutator mic în dreapta jos.
+  const qa = (ico, label, fn) => h('button', { type: 'button', class: 'qa', onclick: fn }, h('span', {}, icon(ico, 24)), label);
+  const quick = h('div', { class: 'quick' },
+    qa('minus', tr('Cheltuială'), () => openTxForm(null, { type: 'cheltuiala' })),
+    qa('plus', tr('Venit'), () => openTxForm(null, { type: 'venit' })),
+    qa('transfer', tr('Transfer'), () => openTxForm(null, { type: 'transfer' })),
+    qa('target', tr('Goal'), () => openGoalForm()));
+
+  // Un card cu trei variante: cheltuieli, venituri, economii (bare pe categorii).
   const chartBody = h('div');
   const chartTitle = h('h2', {});
-  const footLeft = h('div', { class: 'card-foot-left' });
-  const show = el => { chartBody.replaceChildren(el); footLeft.replaceChildren(...(el.moreButton ? [el.moreButton] : [])); };
   const paintChart = () => {
+    const fmt = v => money(v);
     if (chartTab === 'economii') {
-      const sav = savingsBreakdown(upTo);
+      const sav = savingsIcons(savingsBreakdown(upTo));
       chartTitle.textContent = tr('Economii');
-      show(sav.length
-        ? donut({ items: sav, title: tr('Total economii'), format: v => money(v), legendLimit: 5, size: 180 })
+      chartBody.replaceChildren(sav.length
+        ? barBreakdown({ items: sav, format: fmt, onTap: () => go('#/economii') })
         : h('p', { class: 'muted' }, tr('Nu ai încă economii. Mută bani din Curent în Economii printr-un transfer.')));
     } else if (chartTab === 'venituri') {
       const inc = incomeByCategory(m);
       chartTitle.textContent = tr('Venituri');
-      show(inc.length
-        ? donut({ items: inc, title: tr('Total venituri'), format: v => money(v), onLegend: it => openCategoryTxSheet(it.id, m, 'venit'), legendLimit: 5, size: 180 })
+      chartBody.replaceChildren(inc.length
+        ? barBreakdown({ items: inc, format: fmt, onTap: it => openCategoryTxSheet(it.id, m, 'venit') })
         : h('p', { class: 'muted' }, tr('Niciun venit în această lună.')));
     } else {
       const cats = expenseByCategory(m);
       chartTitle.textContent = tr('Cheltuieli');
-      show(cats.length
-        ? donut({ items: cats, title: tr('Total cheltuieli'), format: v => money(v), onLegend: it => openCategoryTxSheet(it.id, m), legendLimit: 5, size: 180 })
+      chartBody.replaceChildren(cats.length
+        ? barBreakdown({ items: cats, format: fmt, onTap: it => openCategoryTxSheet(it.id, m) })
         : h('p', { class: 'muted' }, tr('Nicio cheltuială în această lună.')));
     }
   };
   paintChart();
-  const chartCard = card(chartTitle, chartBody,
-    h('div', { class: 'card-foot' },
-      footLeft,
+  const chartCard = card(
+    h('div', { class: 'card-head' }, chartTitle,
       segmented([{ value: 'cheltuieli', label: tr('Cheltuieli') }, { value: 'venituri', label: tr('Venituri') }, { value: 'economii', label: tr('Economii') }], chartTab,
-        v => { chartTab = v; paintChart(); }, 'seg-sm')));
+        v => { chartTab = v; paintChart(); }, 'seg-sm')),
+    chartBody);
 
-  const active = state.goals.filter(g => !g.done), done = state.goals.filter(g => g.done);
-  const goals = h('div', { class: 'stack' },
-    sectionHead(tr('Goal-uri'), linkBtn(tr('Adaugă'), () => openGoalForm())),
-    active.length || done.length ? null : emptyState(tr('Creează un goal: un lucru pentru care strângi bani.'), tr('Creează primul goal'), () => openGoalForm()),
-    ...active.map(goalCard),
-    done.length ? h('details', { class: 'done-goals' }, h('summary', {}, tr('Finalizate ({n})', { n: done.length })), h('div', { class: 'stack' }, done.map(goalCard))) : null);
+  const active = state.goals.filter(g => !g.done);
+  const goals = [
+    sectionHead(tr('Goal-uri'), linkBtn(tr('Toate'), () => go('#/economii'), null)),
+    h('div', { class: 'carousel' },
+      active.map(goalMini),
+      h('button', { type: 'button', class: 'gcard add', onclick: () => openGoalForm() }, icon('plus', 24), active.length ? tr('Goal nou') : tr('Creează primul goal'))),
+  ];
 
   const nw = netWorth(), ef = efStats(), debts = debtTotals(), subs = upcomingSubs(7);
   const widgets = h('div', { class: 'widgets' },
@@ -154,20 +222,22 @@ export function dashboardPage() {
       h('small', {}, debts.monthly > 0 ? tr('Rate: {sum}/lună', { sum: money(debts.monthly) }) : tr('Nicio rată activă'))),
     widget(tr('Abonamente · 7 zile'), () => go('#/abonamente'),
       subs.length
-        ? subs.slice(0, 3).map(s => h('span', { class: 'w-row' }, h('small', {}, `${s.name} · ${inDays(s.nextPayment)}`), h('b', {}, money(s.amount))))
+        ? subs.slice(0, 3).map(sub => h('span', { class: 'w-row' }, h('small', {}, `${sub.name} · ${inDays(sub.nextPayment)}`), h('b', {}, money(sub.amount))))
         : h('small', {}, tr('Nicio plată în următoarele 7 zile'))));
 
   const node = h('div', { class: 'page' },
-    monthSwitcher(m, v => { month = v; app.rerender(); }),
-    summary,
+    monthChip(),
+    hero,
+    quick,
     m === cm && !isEmpty ? allowanceCard() : null,
     isEmpty ? card(
       h('h2', {}, tr('Bun venit! 👋')),
       h('p', { class: 'muted' }, tr('Adaugă prima tranzacție cu butonul +, sau încarcă date demo ca să vezi cum arată aplicația.')),
       h('div', { class: 'btn-row' }, btn(tr('Încarcă date demo'), loadDemo, 'secondary'), btn(tr('Adaugă tranzacție'), () => openTxForm()))) : null,
     chartCard,
-    goals,
+    ...goals,
     sectionHead(tr('Pe scurt')),
     widgets);
-  return { title: tr('Acasă'), node };
+  return { title: `${greeting()} 👋`, subtitle: longDate(today()), node };
 }
+

@@ -125,6 +125,7 @@ export function investmentsPage() {
       title: tr('Investiții'),
       node: h('div', { class: 'page' },
         card(emptyState(tr('Nu ai încă nicio investiție, adaugă primul broker.'), tr('Adaugă broker'), () => openBrokerForm())),
+        h('div', { class: 'center' }, linkBtn(tr('Calculator investiții'), () => go('#/calculator'), 'trend')),
         h('p', { class: 'hint center' }, tr('Investițiile sunt separate de restul banilor și nu intră în totalul disponibil.'))),
     };
   }
@@ -159,6 +160,7 @@ export function investmentsPage() {
       });
     })),
     h('p', { class: 'hint center' }, base !== 'RON' || state.brokers.some(b => b.currency !== base) ? tr('Totalurile sunt convertite cu cursul din Setări.') : ''),
+    h('div', { class: 'center' }, linkBtn(tr('Calculator investiții'), () => go('#/calculator'), 'trend')),
     exportButton());
   return { title: tr('Investiții'), node };
 }

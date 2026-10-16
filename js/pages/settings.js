@@ -12,9 +12,29 @@ import { runAutomations } from '../actions.js';
 import { loadDemo } from './dashboard.js';
 import { openEfSettings } from './emergency.js';
 import { t as tr } from '../i18n.js';
+import { HERO_ART } from '../heroArt.js';
 
 const CUR_OPTS = Object.keys(CURRENCIES).map(c => ({ value: c, label: c }));
 const LANG_OPTS = [{ value: 'ro', label: 'Română' }, { value: 'en', label: 'English' }];
+// Fundalurile cardului principal de pe Acasă (vezi style.css: .hero-bg-*).
+const HERO_STYLES = [
+  ['aurora', 'Aurora'], ['solid', 'Simplu'], ['glow', 'Strălucire'], ['pattern', 'Dungi'], ['glass', 'Sticlă'],
+  ['sunset', 'Apus'], ['ocean', 'Ocean'], ['forest', 'Pădure'], ['midnight', 'Noapte'], ['gold', 'Auriu'],
+  ['bear', 'Ursuleț'], ['car', 'Mașină sport'], ['mountains', 'Munți'], ['space', 'Spațiu'], ['piggy', 'Pușculiță'],
+  ['cat', 'Pisică'], ['beach', 'Plajă'],
+];
+
+function heroPicker() {
+  const cur = state.settings.heroStyle || 'aurora';
+  return h('div', { class: 'bg-grid' }, HERO_STYLES.map(([id, name]) => {
+    const art = HERO_ART[id] ? h('div', { class: 'hero-art' }) : null;
+    if (art) art.innerHTML = HERO_ART[id];
+    return h('button', {
+      type: 'button', class: `bg-tile hero-bg-${id}${id === cur ? ' on' : ''}`, 'aria-pressed': String(id === cur),
+      onclick: () => { state.settings.heroStyle = id; commit(); toast(tr('Fundal schimbat: {name}', { name: tr(name) })); },
+    }, art, h('span', { style: { position: 'relative' } }, tr(name)));
+  }));
+}
 const ACCENTS = [
   ['#6C47FF', 'Mov'], ['#2F6BD8', 'Albastru'], ['#4F46E5', 'Indigo'], ['#0E9AA7', 'Turcoaz'], ['#16A34A', 'Verde'],
   ['#F2545B', 'Coral'], ['#E1306C', 'Roz'], ['#F97316', 'Portocaliu'], ['#3F4652', 'Grafit'],
@@ -155,6 +175,7 @@ export function settingsPage() {
       stackRow(tr('Monedă implicită'), segmented(CUR_OPTS, st.currency, v => { st.currency = v; commit(); toast(tr('Monedă schimbată')); }), tr('Sumele existente nu se convertesc, se schimbă doar afișarea.')),
       navRow(tr('Curs de schimb'), tr('1 EUR = {eur} lei · 1 USD = {usd} lei', { eur: num(st.rates.EUR, 4), usd: num(st.rates.USD, 4) }), openRates),
       stackRow(tr('Temă'), segmented(themeOpts, st.theme, v => { st.theme = v; applyTheme(); commit(); })),
+      stackRow(tr('Fundal card principal'), heroPicker(), tr('Aurora, Simplu, Strălucire, Dungi și Sticlă folosesc culoarea principală de mai jos.')),
       stackRow(tr('Culoare principală'), accentPicker(),
         (st.accent || DEFAULT_ACCENT).toUpperCase() !== DEFAULT_ACCENT ? h('button', { type: 'button', class: 'link-btn small', onclick: () => { st.accent = DEFAULT_ACCENT; applyTheme(); commit(); } }, tr('Revino la mov')) : null),
       switchRow(tr('Pornește aplicația în mod privat'), st.privateOnStart, v => { st.privateOnStart = v; commit(); }, tr('Sumele sunt ascunse la deschidere'))),
@@ -164,6 +185,9 @@ export function settingsPage() {
       navRow(tr('Solduri inițiale'), `${accountName('curent')} ${money(st.opening.curent)} · ${accountName('economii')} ${money(st.opening.economii)}`, openOpening),
       navRow(tr('Gestionare categorii'), tr('{n} categorii', { n: state.categories.length }), () => go('#/categorii')),
       navRow(tr('Ținta fondului de urgență'), tr('{n} luni', { n: state.emergency.months }), openEfSettings)),
+    sectionHead(tr('Instrumente')),
+    h('div', { class: 'list' },
+      navRow(tr('Calculator investiții'), tr('Cât strângi dacă depui lunar, cu randament anual'), () => go('#/calculator'))),
     sectionHead(tr('Date')),
     h('div', { class: 'list' },
       navRow(tr('Exportă în Excel'), tr('Toate datele sau o anumită perioadă'), openExportSheet),
@@ -173,5 +197,5 @@ export function settingsPage() {
       navRow(tr('Șterge toate datele'), tr('Cu confirmare dublă'), wipe, 'danger-text')),
     h('p', { class: 'hint center' }, tr('Datele sunt salvate doar pe acest dispozitiv. Fă din când în când un backup.')),
     h('p', { class: 'hint center' }, tr('Spațiu folosit: {size}', { size: sizeLabel(dataSize()) })));
-  return { title: tr('Setări'), back: '#/mai-mult', node };
+  return { title: tr('Setări'), back: '#/acasa', node };
 }

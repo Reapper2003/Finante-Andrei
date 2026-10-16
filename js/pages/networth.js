@@ -56,5 +56,5 @@ export function networthPage() {
       : card(h('h2', {}, tr('Evoluție lunară')), h('p', { class: 'muted' }, tr('Graficul apare după prima lună încheiată. La finalul fiecărei luni se salvează automat un snapshot.'))),
     h('div', { class: 'center' }, linkBtn(tr('Recalculează istoricul'), () => { rebuildSnapshots(); save(); app.rerender(); toast(tr('Istoric recalculat')); }, 'refresh')),
     exportButton());
-  return { title: tr('Avere netă'), back: '#/mai-mult', node };
+  return { title: tr('Avere netă'), back: '#/acasa', node };
 }

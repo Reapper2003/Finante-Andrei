@@ -88,5 +88,5 @@ export function subscriptionsPage() {
       : card(emptyState(tr('Nu ai niciun abonament. Adaugă-le ca să știi cât te costă pe lună.'), tr('Adaugă abonament'), () => openSubForm())),
     list.length ? h('p', { class: 'hint center' }, tr('Glisează spre stânga pentru Editează / Șterge.')) : null,
     exportButton());
-  return { title: tr('Abonamente'), back: '#/mai-mult', node };
+  return { title: tr('Abonamente'), back: '#/acasa', node };
 }

@@ -191,7 +191,7 @@ export function debtsPage() {
         : card(emptyState(tr('Nimeni nu îți datorează bani acum.'), tr('Adaugă'), () => openReceivableForm())),
     ];
   }
-  return { title: tr('Datorii'), back: '#/mai-mult', node: h('div', { class: 'page' }, seg, ...content, exportButton()) };
+  return { title: tr('Datorii'), back: '#/acasa', node: h('div', { class: 'page' }, seg, ...content, exportButton()) };
 }
 
 export function debtPage(id) {

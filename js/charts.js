@@ -183,3 +183,31 @@ export function barChart({ labels, series, format }) {
     h('span', {}, h('i', { class: 'box', style: { background: se.color } }), se.name)));
   return h('div', { class: 'line-chart' }, h('div', { class: 'line-wrap' }, svg, tip), legend);
 }
+
+// Împărțire pe categorii ca bară colorată + rânduri cu bare (în locul cercului).
+// legendOnly: doar bara și o legendă scurtă (fără rânduri).
+export function barBreakdown({ items, format, onTap, limit = 5, legendOnly = false }) {
+  const total = items.reduce((a, i) => a + i.value, 0) || 1;
+  const stack = h('div', { class: 'stackbar' }, items.map(it => h('i', { style: { flex: String(it.value), background: it.color }, title: it.label })));
+  if (legendOnly) {
+    return h('div', {}, stack, h('div', { class: 'bk-legend' },
+      items.map(it => h('span', {}, h('i', { style: { background: it.color } }), `${it.label} ${pct(it.value / total, 0)}`))));
+  }
+  const rows = items.map(it => h(onTap ? 'button' : 'div', { type: onTap ? 'button' : null, class: 'bk-row', onclick: onTap ? () => onTap(it) : null },
+    h('span', { class: 'cat-ic', style: { width: '40px', height: '40px', background: (it.color || '#C9CED6') + '40', fontSize: '19px' } }, it.icon || '•'),
+    h('div', { class: 'row-main' },
+      h('div', { class: 'top-line' }, h('span', {}, it.label), h('span', {}, format(it.value))),
+      h('div', { class: 'bar' }, h('i', { style: { width: `${(it.value / total) * 100}%`, background: it.color } })))));
+  const el = h('div', {}, stack, ...rows);
+  if (items.length > limit + 1) {
+    let open = false;
+    const hidden = rows.slice(limit);
+    hidden.forEach(r => { r.hidden = true; });
+    const more = h('button', { type: 'button', class: 'lg-more' });
+    const label = () => { more.textContent = open ? tr('Arată mai puține') : tr('Arată toate ({n})', { n: items.length }); };
+    more.addEventListener('click', () => { open = !open; hidden.forEach(r => { r.hidden = !open; }); label(); });
+    label();
+    el.append(more);
+  }
+  return el;
+}

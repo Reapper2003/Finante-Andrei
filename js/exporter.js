@@ -33,12 +33,12 @@ export function buildAllSheets({ from, to } = {}) {
   const sheets = [];
 
   sheets.push({
-    name: tr('Tranzacții'), freeze: 1, cols: [12, 12, 18, 12, 24, 14, 8, 30],
-    rows: [H('Data', 'Tip', 'Categorie', 'Cont', 'Cont destinație', 'Sumă', 'Monedă', 'Notă'),
+    name: tr('Tranzacții'), freeze: 1, cols: [12, 12, 18, 12, 24, 14, 8, 30, 14, 10],
+    rows: [H('Data', 'Tip', 'Categorie', 'Cont', 'Cont destinație', 'Sumă', 'Monedă', 'Notă', 'Sumă originală', 'Moneda originală'),
       ...tx.map(t => [D(t.date), typeName(t.type), t.type === 'transfer' ? '' : catName(catById(t.categoryId)),
         t.accountId === 'economii' && t.type === 'transfer' ? `${accountName('economii')} (${bucketName(t.fromBucket)})` : accountName(t.accountId),
         t.type !== 'transfer' ? '' : t.toAccountId === 'economii' ? `${accountName('economii')} (${bucketName(t.toBucket)})` : accountName(t.toAccountId) + (t.assetId ? ` – ${assetName(t.assetId)}` : ''),
-        M(t.amount), cur, t.note || ''])],
+        M(t.amount), cur, t.note || '', t.origCurrency ? M(t.origAmount) : '', t.origCurrency || ''])],
   });
 
   sheets.push({

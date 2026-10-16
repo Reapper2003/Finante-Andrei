@@ -133,6 +133,12 @@ export function inDays(s) {
 
 export const weekdayName = s => names().weekdays[parseISO(s).getDay()];
 
+// „Vineri, 16 octombrie”
+export function longDate(s) {
+  const d = parseISO(s), n = names();
+  return `${cap(n.weekdays[d.getDay()])}, ${d.getDate()} ${n.months[d.getMonth()]}`;
+}
+
 // Ziua în care intră salariul într-o lună: ziua aleasă (sau ultima zi a lunii, dacă luna e mai scurtă);
 // dacă pică sâmbătă sau duminică, salariul intră vinerea dinainte.
 export function paydayIn(key, day) {

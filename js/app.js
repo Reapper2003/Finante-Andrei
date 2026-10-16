@@ -4,12 +4,12 @@ import { state, load, save, subscribe, onSaveError, commit } from './store.js';
 import { h, icon, app, toast, applyTheme, sheetOpen } from './ui.js';
 import { runAutomations } from './actions.js';
 import { openTxForm } from './forms.js';
+import { openMainMenu } from './menu.js';
 import { t as tr } from './i18n.js';
 import { dashboardPage } from './pages/dashboard.js';
 import { transactionsPage } from './pages/transactions.js';
 import { investmentsPage, brokerPage, assetPage } from './pages/investments.js';
 import { reportsPage } from './pages/reports.js';
-import { morePage } from './pages/more.js';
 import { subscriptionsPage } from './pages/subscriptions.js';
 import { networthPage } from './pages/networth.js';
 import { emergencyPage } from './pages/emergency.js';
@@ -17,13 +17,14 @@ import { savingsPage, fundPage } from './pages/savings.js';
 import { debtsPage, debtPage } from './pages/debts.js';
 import { settingsPage } from './pages/settings.js';
 import { categoriesPage } from './pages/categories.js';
+import { calculatorPage } from './pages/calculator.js';
 
+// Bara de jos: două tab-uri, butonul + la mijloc, alte două tab-uri. „Mai mult” e butonul rotund din header.
 const TABS = [
   ['acasa', 'Acasă', 'home'],
   ['tranzactii', 'Tranzacții', 'list'],
   ['economii', 'Economii', 'wallet'],
   ['investitii', 'Investiții', 'trend'],
-  ['mai-mult', 'Mai mult', 'more'],
 ];
 
 const ROUTES = [
@@ -35,7 +36,6 @@ const ROUTES = [
   [/^investitii\/b\/([\w-]+)$/, brokerPage, 'investitii'],
   [/^investitii\/a\/([\w-]+)$/, assetPage, 'investitii'],
   [/^rapoarte$/, reportsPage, 'mai-mult'],
-  [/^mai-mult$/, morePage, 'mai-mult'],
   [/^abonamente$/, subscriptionsPage, 'mai-mult'],
   [/^avere$/, networthPage, 'mai-mult'],
   [/^fond$/, emergencyPage, 'economii'],
@@ -43,10 +43,13 @@ const ROUTES = [
   [/^datorii\/([\w-]+)$/, debtPage, 'mai-mult'],
   [/^setari$/, settingsPage, 'mai-mult'],
   [/^categorii$/, categoriesPage, 'mai-mult'],
+  [/^calculator$/, calculatorPage, 'mai-mult'],
 ];
 
 const view = document.getElementById('view');
 const titleEl = document.getElementById('title');
+const subtitleEl = document.getElementById('subtitle');
+const moreEl = document.getElementById('more');
 const backEl = document.getElementById('back');
 const eyeEl = document.getElementById('eye');
 const tabsEl = document.getElementById('tabs');
@@ -64,6 +67,10 @@ function render() {
   if (!res) { location.replace('#/acasa'); return; }
 
   titleEl.textContent = res.title;
+  subtitleEl.hidden = !res.subtitle;
+  subtitleEl.textContent = res.subtitle || '';
+  moreEl.classList.toggle('on', route[2] === 'mai-mult');
+  moreEl.setAttribute('aria-label', tr('Meniu'));
   document.title = `${res.title} · ${tr('Finanțe')}`;
   document.documentElement.lang = state.settings.lang === 'en' ? 'en' : 'ro';
   backEl.hidden = !res.back;
@@ -75,7 +82,7 @@ function render() {
   backEl.setAttribute('aria-label', tr('Înapoi'));
   fab.setAttribute('aria-label', tr('Adaugă tranzacție'));
   tabsEl.setAttribute('aria-label', tr('Navigare principală'));
-  for (const a of tabsEl.children) {
+  for (const a of tabsEl.querySelectorAll('a[data-tab]')) {
     const on = a.dataset.tab === route[2];
     a.lastChild.textContent = tr(TABS.find(x => x[0] === a.dataset.tab)[1]);
     a.classList.toggle('on', on);
@@ -90,8 +97,10 @@ function render() {
 app.rerender = render;
 
 function buildNav() {
-  tabsEl.replaceChildren(...TABS.map(([id, label, ico]) =>
-    h('a', { href: `#/${id}`, 'data-tab': id }, icon(ico, 24), h('span', {}, label))));
+  const tab = ([id, label, ico]) => h('a', { href: `#/${id}`, 'data-tab': id }, icon(ico, 24), h('span', {}, label));
+  tabsEl.replaceChildren(...TABS.slice(0, 2).map(tab), fab, ...TABS.slice(2).map(tab));
+  moreEl.replaceChildren(icon('more'));
+  moreEl.addEventListener('click', openMainMenu);
   backEl.replaceChildren(icon('back'));
   fab.replaceChildren(icon('plus', 28));
 }

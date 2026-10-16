@@ -150,6 +150,37 @@ export function goalStats(g) {
   return { saved, left, pct: g.target > 0 ? saved / g.target : 0, perMonth, overdue, cur: g.currency || baseCur() };
 }
 
+/* ---------- Moneda unei tranzacții ---------- */
+// O tranzacție e „în euro” dacă are o sumă proprie în euro: transfer spre / dintr-un fond sau goal în euro,
+// sau contribuție la un broker în euro. Restul sunt în moneda implicită.
+
+export function txCurrency(t) {
+  const base = baseCur();
+  if (t.origCurrency && t.origCurrency !== base) return t.origCurrency;
+  if (t.type === 'transfer') {
+    if (t.toAmount != null && bucketCurrency(t.toBucket) !== base) return bucketCurrency(t.toBucket);
+    if (t.fromAmount != null && bucketCurrency(t.fromBucket) !== base) return bucketCurrency(t.fromBucket);
+    if (t.toAccountId === 'investitii' && t.assetId) {
+      const a = state.assets.find(x => x.id === t.assetId), b = a && brokerOfAsset(a);
+      if (b && b.currency !== base) return b.currency;
+    }
+  }
+  return base;
+}
+
+// Suma tranzacției într-o monedă: suma proprie dacă e chiar în acea monedă, altfel convertită cu cursul din Setări.
+export function txAmountIn(t, cur) {
+  const own = txCurrency(t), base = baseCur();
+  if (own === cur && own !== base) {
+    if (t.origAmount != null && t.origCurrency === own) return t.origAmount;
+    if (t.toAmount != null && bucketCurrency(t.toBucket) === own) return t.toAmount;
+    if (t.fromAmount != null && bucketCurrency(t.fromBucket) === own) return t.fromAmount;
+    const c = state.contributions.find(x => x.txId === t.id);
+    if (c) return c.amount;
+  }
+  return round2(convert(t.amount, base, cur));
+}
+
 /* ---------- Lunar ---------- */
 
 export function monthTotals(key) {

@@ -502,3 +502,275 @@ body.noscroll .toast { bottom: calc(var(--safe-b) + 96px); }
 .hl-row { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .hl-row .muted { font-size: 14px; }
 .allow-links { display: flex; flex-direction: column; align-items: flex-start; }
+
+/* =====================================================================
+   Design 2.0 — carduri fără margini, umbre fine, bară de jos din „sticlă”
+   ===================================================================== */
+:root {
+  --bg: #F4F5F8;
+  --shadow: 0 1px 2px rgba(15, 17, 21, 0.04), 0 8px 24px rgba(15, 17, 21, 0.06);
+  --glass: rgba(255, 255, 255, 0.72);
+  --radius: 22px;
+  --nav-h: 66px;
+}
+:root[data-theme="dark"] {
+  --bg: #0B0C10;
+  --card: #16181D;
+  --soft: #1F2228;
+  --line: rgba(255, 255, 255, 0.07);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --glass: rgba(28, 30, 36, 0.72);
+}
+.num, .amt, .big, .mid, .stat strong, .lg-val, .cmp-val, .w-big, .w-row b { font-variant-numeric: tabular-nums; }
+.dec { font-size: 0.55em; font-weight: 600; opacity: 0.75; letter-spacing: 0; }
+
+/* Header: titlu mare, butoane rotunde */
+.top { padding: calc(var(--safe-t) + 10px) 16px 8px; gap: 8px; }
+.top .titles { flex: 1; min-width: 0; }
+.top .titles small { display: block; color: var(--muted); font-size: 13px; font-weight: 500; }
+.top h1 { font-size: 28px; font-weight: 750; letter-spacing: -0.03em; }
+.top .back { margin-left: -10px; }
+.icon-btn.round { width: 40px; height: 40px; border-radius: 50%; background: var(--card); box-shadow: var(--shadow); }
+.icon-btn.round.on { color: var(--accent); }
+
+/* Carduri și liste */
+.card, .list, .widget, .goal { border: 0; box-shadow: var(--shadow); }
+.card { border-radius: 24px; padding: 18px; }
+.list { border-radius: var(--radius); }
+.list > * + * { border-top-color: var(--line); }
+.search, .filter-btn { border: 0; box-shadow: var(--shadow); }
+.page { gap: 14px; }
+.sec-head h2 { font-size: 20px; font-weight: 750; letter-spacing: -0.02em; }
+.card h2 { font-size: 17px; letter-spacing: -0.01em; }
+.cat-ic { border-radius: 13px; }
+.seg { border-radius: 999px; }
+.seg button { border-radius: 999px; }
+.btn { border-radius: 16px; }
+
+/* Card principal cu gradient (pornește de la culoarea aleasă în Setări) */
+.hero {
+  position: relative; overflow: hidden; border-radius: 28px; padding: 20px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--hero, #6C47FF) 55%, #FFFFFF) 0%, transparent 55%),
+    radial-gradient(90% 120% at 100% 100%, color-mix(in srgb, var(--hero, #6C47FF) 45%, #FF7AB6) 0%, transparent 60%),
+    linear-gradient(135deg, color-mix(in srgb, var(--hero, #6C47FF) 85%, #000000), var(--hero, #6C47FF));
+}
+.hero .big { font-size: 40px; font-weight: 800; margin: 2px 0 10px; position: relative; }
+.hero .spark { position: absolute; right: 0; top: 18px; opacity: 0.55; pointer-events: none; }
+.hero .pills { display: flex; gap: 8px; position: relative; }
+.hero .pill { flex: 1; min-width: 0; background: color-mix(in srgb, var(--on-hero, #fff) 16%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-radius: 16px; padding: 9px 10px; }
+.hero .pill small { display: block; font-size: 12px; opacity: 0.85; }
+.hero .pill b { font-size: 14.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Acțiuni rapide */
+.quick { display: flex; justify-content: space-between; padding: 2px 4px; }
+.qa { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--muted); background: none; border: 0; padding: 0; min-width: 64px; }
+.qa span { width: 54px; height: 54px; border-radius: 18px; display: grid; place-items: center; background: var(--card); box-shadow: var(--shadow); color: var(--accent); }
+.qa:active span { transform: scale(0.95); }
+
+/* „Cât pot cheltui azi” cu inel */
+.allow { display: flex; gap: 16px; align-items: center; }
+.gauge { position: relative; width: 92px; height: 92px; flex: none; }
+.gauge b { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-size: 13px; line-height: 1.15; color: var(--muted); font-weight: 600; }
+.allow-main { min-width: 0; }
+.allow-main small { color: var(--muted); font-size: 13px; font-weight: 600; }
+.allow-main .mid { font-size: 26px; font-weight: 800; }
+
+/* Bare pe categorii */
+.stackbar { display: flex; height: 12px; gap: 3px; border-radius: 99px; overflow: hidden; margin: 2px 0 10px; }
+.stackbar i { display: block; height: 100%; border-radius: 99px; min-width: 3px; }
+.bk-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 0; border: 0; background: none; text-align: left; color: inherit; }
+.bk-row .row-main { display: flex; flex-direction: column; gap: 6px; }
+.bk-row .top-line span:last-child { font-weight: 650; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bk-row .bar { height: 6px; }
+.bk-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); font-weight: 500; }
+.bk-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.bk-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.card-head .seg-sm button { min-height: 32px; padding: 0 10px; font-size: 12.5px; }
+
+/* Goal-uri pe orizontală */
+.carousel { display: flex; gap: 12px; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 8px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.carousel::-webkit-scrollbar { display: none; }
+.gcard { flex: none; width: 168px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 14px; border: 0; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); color: inherit; }
+.gcard .cat-ic { margin-bottom: 4px; }
+.gcard b { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gcard small { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.gcard.add { align-items: center; justify-content: center; color: var(--accent); font-weight: 600; min-height: 140px; }
+
+/* Tranzacții: filtre tip „pastilă”, sumar în trei carduri */
+.chips-scroll { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 2px; scrollbar-width: none; }
+.chips-scroll::-webkit-scrollbar { display: none; }
+.pchip { flex: none; min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--card); box-shadow: var(--shadow); color: var(--muted); font-size: 14px; font-weight: 600; }
+.pchip.on { background: var(--text); color: var(--bg); }
+.sum3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sum3 > div { background: var(--card); border-radius: 18px; padding: 12px; box-shadow: var(--shadow); min-width: 0; }
+.sum3 small { display: block; color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.sum3 b { font-size: clamp(13px, 3.9vw, 15.5px); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.day-head { display: flex; justify-content: space-between; margin: 8px 4px 8px; }
+.day-head span:last-child { font-variant-numeric: tabular-nums; }
+
+/* Economii */
+.total-center { text-align: center; padding: 4px 0; }
+.total-center small { color: var(--muted); font-weight: 600; font-size: 13px; }
+.total-center .big { font-size: 38px; font-weight: 800; }
+.curchips { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
+.curchips span { padding: 7px 12px; border-radius: 999px; background: var(--card); box-shadow: var(--shadow); font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Bara de jos plutitoare, din „sticlă”, cu + la mijloc */
+.tabs {
+  bottom: calc(var(--safe-b) + 12px); width: calc(100% - 28px); max-width: 452px; height: var(--nav-h);
+  padding: 0 6px; border: 0; border-radius: 33px; align-items: center; justify-content: space-around;
+  background: var(--glass); -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+.tabs a { flex: none; width: 64px; height: 56px; font-size: 11px; font-weight: 600; }
+.tabs .fab {
+  position: static; flex: none; width: 54px; height: 54px; margin: 0;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 80%, #FFFFFF), var(--accent));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+main { padding-bottom: calc(var(--nav-h) + var(--safe-b) + 40px); }
+.toast { bottom: calc(var(--nav-h) + var(--safe-b) + 28px); }
+.gauge b { white-space: pre-line; }
+.gcard .bar { margin-top: auto; }
+.total-center small, .total-center .big { display: block; }
+.curchips button { min-height: 38px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.curchips button.on { background: var(--accent); color: var(--on-accent); }
+.cur-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin-top: 10px; }
+.cur-row .seg-sm { width: auto; }
+.cur-row .seg-sm button { min-height: 34px; padding: 0 14px; }
+.fx-hint { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+/* =====================================================================
+   Fundaluri pentru cardul principal (Setări → Fundal card principal)
+   Aceleași clase se folosesc și pentru previzualizările din Setări.
+   ===================================================================== */
+.hero-bg-aurora {
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--hero, #6C47FF) 55%, #FFFFFF) 0%, transparent 55%),
+    radial-gradient(90% 120% at 100% 100%, color-mix(in srgb, var(--hero, #6C47FF) 45%, #FF7AB6) 0%, transparent 60%),
+    linear-gradient(135deg, color-mix(in srgb, var(--hero, #6C47FF) 85%, #000000), var(--hero, #6C47FF));
+}
+.hero-bg-solid { background: var(--hero, #6C47FF); }
+.hero-bg-glow {
+  --on-hero: #FFFFFF; --hero-pos: #8FF0C0; --hero-neg: #FFB4B4;
+  background:
+    radial-gradient(80% 90% at 85% 0%, color-mix(in srgb, var(--hero, #6C47FF) 85%, transparent) 0%, transparent 65%),
+    radial-gradient(60% 70% at 0% 100%, color-mix(in srgb, var(--hero, #6C47FF) 45%, transparent) 0%, transparent 70%),
+    #0E0F14;
+}
+.hero-bg-pattern {
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0 2px, transparent 2px 14px),
+    linear-gradient(135deg, color-mix(in srgb, var(--hero, #6C47FF) 80%, #000000), var(--hero, #6C47FF));
+}
+.hero-bg-sunset {
+  --on-hero: #FFFFFF; --hero-pos: #FFF3B0; --hero-neg: #3A0A1E;
+  background:
+    radial-gradient(90% 120% at 100% 0%, #FFD36E 0%, transparent 55%),
+    linear-gradient(135deg, #E8436E, #FF7E5F 60%, #FEB47B);
+}
+.hero-bg-ocean {
+  --on-hero: #FFFFFF; --hero-pos: #A7F3D0; --hero-neg: #FECACA;
+  background:
+    radial-gradient(100% 120% at 100% 100%, #2DD4BF 0%, transparent 55%),
+    linear-gradient(135deg, #0B3D91, #1677C9 55%, #1CB5E0);
+}
+.hero-bg-forest {
+  --on-hero: #FFFFFF; --hero-pos: #D9F99D; --hero-neg: #FECACA;
+  background:
+    radial-gradient(90% 110% at 100% 0%, #A3E635 0%, transparent 50%),
+    linear-gradient(135deg, #064E3B, #0B6E4F 50%, #2E9E6A);
+}
+.hero-bg-midnight {
+  --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5;
+  background:
+    radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(1px 1px at 70% 20%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(1.5px 1.5px at 85% 65%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1px 1px at 40% 80%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(80% 100% at 100% 100%, #4338CA 0%, transparent 60%),
+    linear-gradient(160deg, #0B1026, #1E1B4B);
+}
+.hero-bg-gold {
+  --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FEE2E2;
+  background:
+    radial-gradient(90% 120% at 0% 0%, #F7D98B 0%, transparent 55%),
+    linear-gradient(135deg, #7A5A12, #B8892B 55%, #D9AE4B);
+}
+.hero-bg-glass {
+  --on-hero: var(--text); --hero-pos: var(--pos); --hero-neg: var(--neg);
+  background:
+    radial-gradient(100% 120% at 100% 0%, color-mix(in srgb, var(--hero, #6C47FF) 22%, transparent) 0%, transparent 60%),
+    radial-gradient(90% 120% at 0% 100%, color-mix(in srgb, var(--hero, #6C47FF) 14%, transparent) 0%, transparent 60%),
+    var(--card);
+  box-shadow: var(--shadow), inset 0 0 0 1px color-mix(in srgb, var(--hero, #6C47FF) 25%, transparent);
+}
+.hero.hero-bg-glass .pill { background: color-mix(in srgb, var(--hero, #6C47FF) 10%, var(--soft)); }
+
+/* Previzualizări în Setări */
+.bg-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.bg-tile {
+  position: relative; aspect-ratio: 1.55; border: 3px solid transparent; border-radius: 16px; padding: 0 8px 6px;
+  display: flex; align-items: flex-end; color: var(--on-hero, #fff); font-size: 12.5px; font-weight: 700; cursor: pointer;
+  background-clip: padding-box; overflow: hidden; text-align: left;
+}
+.bg-tile.on { border-color: var(--text); }
+.bg-tile::before { content: ""; position: absolute; left: 8px; top: 8px; width: 40%; height: 6px; border-radius: 99px; background: currentColor; opacity: 0.85; }
+
+/* ---------- Fundaluri ilustrate (desenul vine din js/heroArt.js) ---------- */
+.hero-art { position: absolute; right: 10px; top: 8px; width: 42%; max-width: 170px; height: 64%; pointer-events: none; }
+.hero-art svg { width: 100%; height: 100%; display: block; }
+.hero.has-art .spark { display: none; }
+.hero.has-art > .label, .hero.has-art > .big { position: relative; z-index: 1; }
+.hero.has-art > .big { text-shadow: 0 1px 10px rgba(0, 0, 0, 0.22); }
+.bg-tile .hero-art { right: 6px; top: 6px; width: 52%; height: 72%; }
+
+.hero-bg-bear {
+  --on-hero: #FFFFFF; --hero-pos: #FFF1B8; --hero-neg: #4A0D24;
+  background: radial-gradient(90% 120% at 100% 0%, #FFC7D9 0%, transparent 55%), linear-gradient(135deg, #D9578A, #A35BD6);
+}
+.hero-bg-car {
+  --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5;
+  background: radial-gradient(70% 90% at 85% 35%, rgba(225, 23, 30, 0.45) 0%, transparent 65%), linear-gradient(135deg, #0F1115, #2A2D35);
+}
+.hero-bg-mountains {
+  --on-hero: #FFFFFF; --hero-pos: #D9F99D; --hero-neg: #3B0A1A;
+  background: linear-gradient(170deg, #6C6FD8, #8DA6EA 55%, #9FE3E0);
+}
+.hero-bg-space {
+  --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5;
+  background: radial-gradient(70% 90% at 15% 100%, rgba(124, 58, 237, 0.55) 0%, transparent 65%), linear-gradient(160deg, #0B1026, #1C1650);
+}
+.hero-bg-piggy {
+  --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #4A0D24;
+  background: radial-gradient(90% 120% at 100% 0%, #6EE7B7 0%, transparent 55%), linear-gradient(135deg, #0B7E74, #1FB98E);
+}
+.hero-bg-cat {
+  --on-hero: #FFFFFF; --hero-pos: #D9F99D; --hero-neg: #FFD0D0;
+  background: radial-gradient(90% 120% at 100% 0%, #D8C7FF 0%, transparent 55%), linear-gradient(135deg, #5B4BD8, #9F7AEA);
+}
+.hero-bg-beach {
+  --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #4A0D24;
+  background: linear-gradient(165deg, #F06A4D, #FF9E5E 45%, #FFC36B 70%, #36C2D6);
+}
+
+/* ---------- Meniul din butonul ⋯ și luna afișată ---------- */
+.month-chip {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px;
+  border: 0; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 14px; font-weight: 600;
+}
+.menu-sec { margin: 6px 2px 10px; color: var(--muted); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.menu-sec ~ .menu-sec { margin-top: 18px; }
+.mp { background: var(--soft); border-radius: 18px; padding: 6px 10px 12px; margin-bottom: 10px; }
+.mp-year { display: flex; align-items: center; justify-content: space-between; }
+.mp-year b { font-size: 17px; }
+.mp-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.mp-m { min-height: 44px; border: 0; border-radius: 12px; background: var(--card); color: var(--text); font-size: 15px; font-weight: 600; text-transform: capitalize; }
+.mp-m.now { box-shadow: inset 0 0 0 2px var(--accent); }
+.mp-m.on { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.mp-m:disabled { opacity: 0.35; }
+.menu-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 14px; border: 0; background: var(--card); color: var(--text); font-size: 15.5px; font-weight: 550; text-align: left; }
+.menu-item > span:nth-child(2) { flex: 1; }
+.menu-item .ic { color: var(--muted); }
+.menu-item:active { background: var(--soft); }
