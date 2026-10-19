@@ -1,6 +1,6 @@
 // Grafice SVG simple: cerc (donut) interactiv și grafic linie.
 
-import { h, s } from './ui.js';
+import { h, s, catGlyph } from './ui.js';
 import { pct, compact, isPrivate } from './fmt.js';
 import { t as tr } from './i18n.js';
 
@@ -69,8 +69,9 @@ export function donut({ items, title, format, onLegend, size = 200, legendLimit 
   return el;
 }
 
-export function lineChart({ labels, series, format, height = 180 }) {
-  const hideAxis = isPrivate();
+let gradId = 0;
+export function lineChart({ labels, series, format, height = 180, bare = false }) {
+  const hideAxis = isPrivate() || bare;
   const W = 340, H = height, pl = hideAxis ? 10 : 44, pr = 12, pt = 12, pb = 26;
   const all = series.flatMap(se => se.values).filter(v => v != null && isFinite(v));
   let min = all.length ? Math.min(...all) : 0, max = all.length ? Math.max(...all) : 1;
@@ -95,6 +96,16 @@ export function lineChart({ labels, series, format, height = 180 }) {
   for (const se of series) {
     const pts = se.values.map((v, i) => (v == null ? null : [X(i), Y(v)])).filter(Boolean);
     if (!pts.length) continue;
+    if (se.area && pts.length > 1) {
+      const id = `lg${++gradId}`;
+      svg.append(s('defs', {}, s('linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 },
+        s('stop', { offset: '0', style: `stop-color:${se.color};stop-opacity:.38` }),
+        s('stop', { offset: '1', style: `stop-color:${se.color};stop-opacity:0` }))));
+      svg.append(s('path', {
+        d: `M${pts[0][0].toFixed(1)} ${(H - pb).toFixed(1)} ` + pts.map(p => `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ') + ` L${pts[pts.length - 1][0].toFixed(1)} ${(H - pb).toFixed(1)}Z`,
+        fill: `url(#${id})`, stroke: 'none',
+      }));
+    }
     svg.append(s('path', {
       d: pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' '),
       fill: 'none', stroke: se.color, 'stroke-width': 2.2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round',
@@ -199,7 +210,7 @@ export function barBreakdown({ items, format, onTap, limit = 5, legendOnly = fal
       items.map(it => h('span', {}, h('i', { style: { background: it.color } }), `${it.label} ${pct(it.value / total, 0)}`))));
   }
   const rows = items.map(it => h(onTap ? 'button' : 'div', { type: onTap ? 'button' : null, class: 'bk-row', onclick: onTap ? () => onTap(it) : null },
-    h('span', { class: 'cat-ic', style: { width: '40px', height: '40px', background: (it.color || '#C9CED6') + '40', fontSize: '19px' } }, it.icon || '•'),
+    h('span', { class: 'cat-ic', style: { width: '40px', height: '40px', background: (it.color || '#C9CED6') + '40', fontSize: '19px', color: `color-mix(in srgb, ${it.color || '#C9CED6'} 62%, var(--text))` } }, catGlyph(it.icon, it.label, 40)),
     h('div', { class: 'row-main' },
       h('div', { class: 'top-line' }, h('span', {}, it.label), h('span', {}, format(it.value))),
       h('div', { class: 'bar' }, h('i', { style: { width: `${(it.value / total) * 100}%`, background: it.color } })))));

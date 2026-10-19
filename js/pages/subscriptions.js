@@ -4,7 +4,7 @@ import { money, parseAmount } from '../fmt.js';
 import { round2, subTotals, freqLabel, freqOptions } from '../calc.js';
 import {
   h, card, sectionHead, linkBtn, stat, btn, emptyState, openSheet, field, textInput, amountInput, dateInput, segmented,
-  selectInput, switchRow, invalid, toast, confirmDialog, swipeRow, catIcon,
+  selectInput, switchRow, invalid, toast, confirmDialog, swipeRow, catIcon, onceHint
 } from '../ui.js';
 import { exportButton } from '../components.js';
 import { t as tr, catName } from '../i18n.js';
@@ -86,7 +86,6 @@ export function subscriptionsPage() {
         return swipeRow(content, { onTap: () => openSubForm(s), onEdit: () => openSubForm(s), onDelete: () => confirmDelete(s) });
       }))
       : card(emptyState(tr('Nu ai niciun abonament. Adaugă-le ca să știi cât te costă pe lună.'), tr('Adaugă abonament'), () => openSubForm())),
-    list.length ? h('p', { class: 'hint center' }, tr('Glisează spre stânga pentru Editează / Șterge.')) : null,
-    exportButton());
+    list.length ? onceHint('swipe-sub', tr('Glisează spre stânga pentru Editează / Șterge.')) : null);
   return { title: tr('Abonamente'), back: '#/acasa', node };
 }

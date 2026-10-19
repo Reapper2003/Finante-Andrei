@@ -1,8 +1,10 @@
 // Componente de interfață: elemente DOM, iconițe, bottom sheet, toast, confirmare, swipe, controale de formular.
 
 import { state, save } from './store.js';
+import { effectiveAccent } from './heroColors.js';
+import { lineIcon } from './catIcons.js';
 import { forInput, amountPlaceholder } from './fmt.js';
-import { t as tr } from './i18n.js';
+import { t as tr, catName } from './i18n.js';
 
 export const app = { rerender: () => {} };
 
@@ -118,8 +120,9 @@ export function applyTheme() {
   root.dataset.theme = dark ? 'dark' : 'light';
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#121418' : '#F5F6F8');
 
-  // Culoarea principală aleasă în Setări; în tema întunecată folosim o variantă mai deschisă.
-  const base = /^#[0-9a-f]{6}$/i.test(state.settings.accent || '') ? state.settings.accent : DEFAULT_ACCENT;
+  // Culoarea principală aleasă în Setări (sau cea a fundalului cardului, dacă e bifat); în tema întunecată, o variantă mai deschisă.
+  const chosen = effectiveAccent(state.settings);
+  const base = /^#[0-9a-f]{6}$/i.test(chosen || '') ? chosen : DEFAULT_ACCENT;
   const accent = dark ? mix(base, '#FFFFFF', 0.3) : base;
   const onHero = textOn(base);
   const vars = {
@@ -133,6 +136,24 @@ export function applyTheme() {
     '--heat': base,
   };
   for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
+
+  // Varianta temei (ex. negru complet pe întunecat, „hârtie” pe luminos). „Nuanța aplicației” se calculează din culoare.
+  const st = state.settings;
+  const variant = dark ? (st.darkVariant || 'grafit') : (st.lightVariant || 'rece');
+  root.dataset.variant = variant;
+  const tinted = variant === 'nuanta' ? (dark
+    ? { '--bg': mix(base, '#000000', 0.9), '--card': mix(base, '#15161A', 0.86), '--soft': mix(base, '#1F2228', 0.8) }
+    : { '--bg': mix(base, '#FFFFFF', 0.93), '--card': '#FFFFFF', '--soft': mix(base, '#FFFFFF', 0.88) }) : {};
+  for (const k of ['--bg', '--card', '--soft']) {
+    if (tinted[k]) root.style.setProperty(k, tinted[k]); else root.style.removeProperty(k);
+  }
+  const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
+  if (bg) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
+
+  // Densitatea și bara de jos
+  document.body.classList.toggle('dens-compact', st.density === 'compact');
+  document.body.classList.toggle('nav-plina', st.navStyle === 'plina');
+  document.body.classList.toggle('nav-fara-text', st.navLabels === false);
 }
 
 /* ---------- Bottom sheet ---------- */
@@ -382,11 +403,29 @@ export function stat(label, value, cls = '') {
   return h('div', { class: 'stat' }, h('span', { class: 'label' }, label), h('strong', { class: cls }, value));
 }
 
+// Conținutul iconiței unei categorii, după stilul ales în Setări: emoji, desen cu linie sau inițiala numelui.
+export function catGlyph(icon, label, size = 40) {
+  const style = state.settings.iconStyle || 'emoji';
+  if (style === 'emoji') return icon || '•';
+  const line = style === 'linie' && lineIcon(icon);
+  if (line) {
+    const px = Math.round(size * 0.52);
+    const svg = s('svg', { viewBox: '0 0 24 24', width: px, height: px, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.9, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' });
+    svg.innerHTML = line;
+    return svg;
+  }
+  return h('b', { class: 'cat-initial', style: { fontSize: Math.round(size * 0.42) + 'px' } }, (String(label || '?').trim()[0] || '?').toUpperCase());
+}
+// Emoji + nume în texte (ex. legende), doar dacă stilul e „Emoji”.
+export const withEmoji = (icon, label) => ((state.settings.iconStyle || 'emoji') === 'emoji' && icon ? `${icon} ${label}` : label);
+
 export function catIcon(c, size = 40) {
+  const color = c?.color || '#C9CED6';
+  const plain = (state.settings.iconStyle || 'emoji') !== 'emoji';
   return h('span', {
-    class: 'cat-ic',
-    style: { width: size + 'px', height: size + 'px', background: (c?.color || '#C9CED6') + '55', fontSize: Math.round(size * 0.48) + 'px' },
-  }, c?.icon || '•');
+    class: 'cat-ic' + (plain ? ' cat-ic-plain' : ''),
+    style: { width: size + 'px', height: size + 'px', background: color + (plain ? '33' : '55'), fontSize: Math.round(size * 0.48) + 'px', ...(plain ? { color: `color-mix(in srgb, ${color} 62%, var(--text))` } : {}) },
+  }, catGlyph(c?.icon, c ? catName(c) : '', size));
 }
 
 export const signCls = v => (v > 0.004 ? 'pos' : v < -0.004 ? 'neg' : '');
@@ -657,4 +696,34 @@ export function openColorPicker({ value, title = tr('Alege culoarea'), onPick })
       btn(tr('Anulează'), () => sh.close(), 'ghost'),
       btn(tr('Aplică'), () => { sh.close(); onPick(hex); })),
   });
+}
+
+/* ---------- Explicații „?” și indicii afișate doar primele dăți ---------- */
+
+const HELP = {
+  azi: ['Cât pot cheltui azi', 'Banii din contul Curent, minus plățile care mai urmează până la salariu (abonamente, rate), împărțiți la zilele rămase. Dacă azi cheltui mai puțin, suma pe zi crește în zilele următoare.'],
+  bilant: ['Bilanț', 'Veniturile lunii minus cheltuielile lunii. Pozitiv înseamnă că ai câștigat mai mult decât ai cheltuit.'],
+  avere: ['Avere netă', 'Tot ce ai (cont Curent, economii, bani de primit, investiții) minus tot ce datorezi. Arată dacă, per total, averea ta crește de la o lună la alta.'],
+  fond: ['Fond de urgență', 'Bani puși deoparte pentru neprevăzute: pierderea jobului, o reparație, o problemă de sănătate. Se măsoară în luni de cheltuieli; ținta obișnuită e 3–6 luni.'],
+};
+
+export function helpBtn(key) {
+  const [title, text] = HELP[key];
+  return h('button', {
+    type: 'button', class: 'help-btn', 'aria-label': tr('Ce înseamnă?'),
+    onclick: e => { e.stopPropagation(); openSheet({ title: tr(title), body: h('p', { class: 'help-text' }, tr(text)) }); },
+  }, '?');
+}
+
+// Indiciul apare în primele 3 deschideri ale aplicației, apoi dispare.
+const hintsThisSession = new Set();
+export function onceHint(key, text) {
+  const seen = state.settings.hintsSeen?.[key] || 0;
+  if (!hintsThisSession.has(key)) {
+    if (seen >= 3) return null;
+    hintsThisSession.add(key);
+    state.settings.hintsSeen = { ...state.settings.hintsSeen, [key]: seen + 1 };
+    save();
+  }
+  return h('p', { class: 'hint center' }, text);
 }

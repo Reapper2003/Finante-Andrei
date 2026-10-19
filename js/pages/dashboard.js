@@ -1,11 +1,8 @@
 import { state, commit, setState } from '../store.js';
-import { today, currentMonth, monthEnd, fmtDate, fmtDayMonth, inDays, weekdayName, longDate, addDays } from '../dates.js';
-import { money, moneyParts, moneyShort, num, plural } from '../fmt.js';
-import {
-  accountBalance, monthTotals, expenseByCategory, incomeByCategory, savingsBreakdown, goalStats, netWorth, efStats, debtTotals, upcomingSubs, dailyAllowance,
-} from '../calc.js';
-import { h, s, icon, card, sectionHead, linkBtn, progress, btn, go, app, emptyState, toast, openSheet, segmented, swipeRow } from '../ui.js';
-import { barBreakdown } from '../charts.js';
+import { today, currentMonth, monthEnd, fmtDate, fmtDayMonth, weekdayName, longDate, addDays } from '../dates.js';
+import { money, moneyParts, moneyShort, plural } from '../fmt.js';
+import { accountBalance, monthTotals, goalStats, dailyAllowance } from '../calc.js';
+import { h, s, icon, card, sectionHead, linkBtn, progress, btn, go, toast, openSheet, swipeRow, helpBtn } from '../ui.js';
 import { getMonth, monthChip } from '../menu.js';
 import { openTxForm, openCategoryTxSheet, openGoalForm, openGoalActions, openSalaryDay } from '../forms.js';
 import { buildDemo } from '../demo.js';
@@ -13,8 +10,7 @@ import { runAutomations } from '../actions.js';
 import { t as tr } from '../i18n.js';
 import { HERO_ART } from '../heroArt.js';
 import { showTransactions } from './transactions.js';
-
-let chartTab = 'cheltuieli';
+import { upcomingRow, tilesGrid, cleanChart } from './homeParts.js';
 
 export function loadDemo() {
   setState(buildDemo(state.settings));
@@ -100,8 +96,7 @@ function gauge(fraction, label, color) {
     h('b', {}, label));
 }
 
-function allowanceCard() {
-  const a = dailyAllowance();
+function allowanceDetails(a) {
   const links = h('div', { class: 'allow-links' },
     a.commitments.length
       ? linkBtn(tr('De plătit până pe {date}: {sum}', { date: fmtDayMonth(a.end), sum: money(a.committed) }), () => openCommitments(a), null)
@@ -110,29 +105,37 @@ function allowanceCard() {
   const until = a.payday
     ? tr('până la salariu ({day}, {date})', { day: weekdayName(a.payday), date: fmtDayMonth(a.payday) })
     : tr('până pe {date}', { date: fmtDayMonth(a.end) });
-
-  if (a.free <= 0) {
-    return card(h('div', { class: 'allow' },
-      gauge(0, '0%', 'var(--neg)'),
-      h('div', { class: 'allow-main' },
-        h('small', {}, tr('Cât pot cheltui azi')),
-        bigMoney(a.free, {}, 'mid'),
-        h('p', { class: 'muted' }, tr('Plățile rămase luna aceasta depășesc banii din contul Curent.')))), links);
-  }
   const over = a.leftToday < 0;
   const left = a.perDay > 0 ? a.leftToday / a.perDay : 0;
-  return card(h('div', { class: 'allow' },
-    gauge(over ? 1 : left, over ? tr('depășit') : `${Math.round(Math.max(0, left) * 100)}%\n${tr('rămas')}`, over ? 'var(--neg)' : 'var(--accent)'),
-    h('div', { class: 'allow-main' },
-      h('small', {}, tr('Cât pot cheltui azi')),
-      bigMoney(a.leftToday, {}, 'mid'),
-      h('p', { class: 'muted' }, over
-        ? tr('Ai depășit suma de azi. Media rămasă: {sum}/zi.', { sum: money(a.perDay) })
-        : tr('din {sum}/zi · {days} {until}', { sum: money(a.perDay), days: plural(a.daysLeft, tr('zi'), tr('zile')), until })))), links);
+  const body = a.free <= 0
+    ? h('div', { class: 'allow' }, gauge(0, '0%', 'var(--warn)'),
+      h('div', { class: 'allow-main' }, bigMoney(a.free, {}, 'mid'), h('p', { class: 'muted' }, tr('Plățile rămase luna aceasta depășesc banii din contul Curent.'))))
+    : h('div', { class: 'allow' },
+      gauge(over ? 1 : left, over ? tr('depășit') : `${Math.round(Math.max(0, left) * 100)}%\n${tr('rămas')}`, over ? 'var(--warn)' : 'var(--accent)'),
+      h('div', { class: 'allow-main' },
+        bigMoney(a.leftToday, {}, 'mid'),
+        h('p', { class: 'muted' }, over
+          ? tr('Ai depășit suma de azi. Media rămasă: {sum}/zi.', { sum: money(a.perDay) })
+          : tr('din {sum}/zi · {days} {until}', { sum: money(a.perDay), days: plural(a.daysLeft, tr('zi'), tr('zile')), until }))));
+  openSheet({ title: tr('Cât pot cheltui azi'), body: h('div', {}, body, links) });
 }
 
-function widget(title, onclick, ...kids) {
-  return h('button', { type: 'button', class: 'widget', onclick }, h('span', { class: 'w-title' }, title), ...kids);
+function allowanceCard() {
+  const a = dailyAllowance();
+  const over = a.free > 0 && a.leftToday < 0;
+  const frac = a.free > 0 && a.perDay > 0 ? Math.max(0, Math.min(1, a.leftToday / a.perDay)) : 0;
+  const sub = a.free <= 0 ? tr('Plățile rămase depășesc banii din cont')
+    : over ? tr('Ai depășit suma de azi cu {sum}', { sum: money(-a.leftToday) })
+      : tr('din {sum}/zi · {days} {until}', {
+        sum: money(a.perDay), days: plural(a.daysLeft, tr('zi'), tr('zile')),
+        until: a.payday ? tr('până la salariu') : tr('până la final de lună'),
+      });
+  return h('div', { class: 'card allow2' + (over || a.free <= 0 ? ' over' : ''), role: 'button', tabindex: 0, onclick: () => allowanceDetails(a) },
+    h('div', { class: 'allow2-top' }, h('span', {}, tr('Azi mai poți cheltui')), helpBtn('azi'), h('span', { class: 'chev' }, icon('chevR', 18))),
+    bigMoney(Math.max(0, a.free > 0 ? a.leftToday : 0), {}, 'mid'),
+    progress(frac, over ? 'var(--warn)' : null),
+    h('p', { class: 'allow2-sub' }, sub),
+    upcomingRow(a));
 }
 
 // Iconițe pentru compartimentele de economii din grafic.
@@ -153,57 +156,19 @@ export function dashboardPage() {
   const avail = accountBalance('curent', upTo);
   const isEmpty = !state.transactions.length && !state.goals.length && !state.brokers.length && !state.subscriptions.length && !state.debts.length;
 
+  // Cardul de sus ocupă toată lățimea și se topește în pagină; desenul ales stă lângă sold.
   const heroStyle = state.settings.heroStyle || 'aurora';
   const art = HERO_ART[heroStyle] ? h('div', { class: 'hero-art' }) : null;
   if (art) art.innerHTML = HERO_ART[heroStyle];
-  const hero = h('section', { class: `card summary hero hero-bg-${heroStyle}${art ? ' has-art' : ''}` },
+  const hero = h('section', { class: `card summary hero hero-bg-${heroStyle}${art ? ' has-art' : ''} bleed-hero hl-mixt` },
     art || sparkline(m),
     h('span', { class: 'label' }, m === cm ? tr('Disponibil · cont Curent') : tr('Disponibil la {date}', { date: fmtDate(upTo) })),
-    bigMoney(avail),
-    // Tap pe o pastilă: Tranzacții, filtrate pe acel tip (Rămas = toate).
-    h('div', { class: 'pills' },
-      h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('venit') }, h('small', {}, tr('Venituri')), h('b', {}, moneyShort(tot.income))),
-      h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('cheltuiala') }, h('small', {}, tr('Cheltuieli')), h('b', {}, moneyShort(-tot.expense))),
-      h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('') }, h('small', {}, tr('Rămas')), h('b', {}, moneyShort(tot.left)))));
-
-  const qa = (ico, label, fn) => h('button', { type: 'button', class: 'qa', onclick: fn }, h('span', {}, icon(ico, 24)), label);
-  const quick = h('div', { class: 'quick' },
-    qa('plus', tr('Venit'), () => openTxForm(null, { type: 'venit' })),
-    qa('minus', tr('Cheltuială'), () => openTxForm(null, { type: 'cheltuiala' })),
-    qa('transfer', tr('Transfer'), () => openTxForm(null, { type: 'transfer' })),
-    qa('target', tr('Goal'), () => openGoalForm()));
-
-  // Un card cu trei variante: cheltuieli, venituri, economii (bare pe categorii).
-  const chartBody = h('div');
-  const chartTitle = h('h2', {});
-  const paintChart = () => {
-    const fmt = v => money(v);
-    if (chartTab === 'economii') {
-      const sav = savingsIcons(savingsBreakdown(upTo));
-      chartTitle.textContent = tr('Economii');
-      chartBody.replaceChildren(sav.length
-        ? barBreakdown({ items: sav, format: fmt, onTap: () => go('#/economii') })
-        : h('p', { class: 'muted' }, tr('Nu ai încă economii. Mută bani din Curent în Economii printr-un transfer.')));
-    } else if (chartTab === 'venituri') {
-      const inc = incomeByCategory(m);
-      chartTitle.textContent = tr('Venituri');
-      chartBody.replaceChildren(inc.length
-        ? barBreakdown({ items: inc, format: fmt, onTap: it => openCategoryTxSheet(it.id, m, 'venit') })
-        : h('p', { class: 'muted' }, tr('Niciun venit în această lună.')));
-    } else {
-      const cats = expenseByCategory(m);
-      chartTitle.textContent = tr('Cheltuieli');
-      chartBody.replaceChildren(cats.length
-        ? barBreakdown({ items: cats, format: fmt, onTap: it => openCategoryTxSheet(it.id, m) })
-        : h('p', { class: 'muted' }, tr('Nicio cheltuială în această lună.')));
-    }
-  };
-  paintChart();
-  const chartCard = card(
-    h('div', { class: 'card-head' }, chartTitle,
-      segmented([{ value: 'cheltuieli', label: tr('Cheltuieli') }, { value: 'venituri', label: tr('Venituri') }, { value: 'economii', label: tr('Economii') }], chartTab,
-        v => { chartTab = v; paintChart(); }, 'seg-sm')),
-    chartBody);
+    bigMoney(avail));
+  // Cele trei sume stau ca plăci la trecerea dintre card și pagină. Tap: Tranzacții, filtrate pe acel tip.
+  const pills = h('div', { class: 'pill-strip' },
+    h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('venit') }, h('small', {}, tr('Venituri')), h('b', {}, moneyShort(tot.income))),
+    h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('cheltuiala') }, h('small', {}, tr('Cheltuieli')), h('b', {}, moneyShort(-tot.expense))),
+    h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('') }, h('small', {}, tot.left >= 0 ? tr('Economisit') : tr('Cheltuit în plus')), h('b', {}, moneyShort(Math.abs(tot.left)))));
 
   const active = state.goals.filter(g => !g.done);
   const goals = [
@@ -213,36 +178,22 @@ export function dashboardPage() {
       h('button', { type: 'button', class: 'gcard add', onclick: () => openGoalForm() }, icon('plus', 24), active.length ? tr('Goal nou') : tr('Creează primul goal'))),
   ];
 
-  const nw = netWorth(), ef = efStats(), debts = debtTotals(), subs = upcomingSubs(7);
-  const widgets = h('div', { class: 'widgets' },
-    widget(tr('Avere netă'), () => go('#/avere'),
-      h('span', { class: 'w-row' }, h('small', {}, tr('Fără investiții')), h('b', { class: nw.without < 0 ? 'neg' : '' }, money(nw.without))),
-      h('span', { class: 'w-row' }, h('small', {}, tr('Cu investiții')), h('b', { class: nw.with < 0 ? 'neg' : '' }, money(nw.with)))),
-    widget(tr('Fond de urgență'), () => go('#/fond'),
-      h('b', { class: 'w-big' }, h('i', { class: `dot-${ef.level}` }), tr('{n} luni', { n: num(ef.covered, 1) })),
-      h('small', {}, tr('din {n} luni țintă', { n: ef.months })),
-      progress(ef.pct)),
-    widget(tr('Datorii rămase'), () => go('#/datorii'),
-      h('b', { class: 'w-big' }, money(debts.remaining)),
-      h('small', {}, debts.monthly > 0 ? tr('Rate: {sum}/lună', { sum: money(debts.monthly) }) : tr('Nicio rată activă'))),
-    widget(tr('Abonamente · 7 zile'), () => go('#/abonamente'),
-      subs.length
-        ? subs.slice(0, 3).map(sub => h('span', { class: 'w-row' }, h('small', {}, `${sub.name} · ${inDays(sub.nextPayment)}`), h('b', {}, money(sub.amount))))
-        : h('small', {}, tr('Nicio plată în următoarele 7 zile'))));
+  const live = m === cm && !isEmpty;
+  const welcome = isEmpty ? card(
+    h('h2', {}, tr('Bun venit! 👋')),
+    h('p', { class: 'muted' }, tr('Adaugă prima tranzacție cu butonul +, sau încarcă date demo ca să vezi cum arată aplicația.')),
+    h('div', { class: 'btn-row' }, btn(tr('Încarcă date demo'), loadDemo, 'secondary'), btn(tr('Adaugă tranzacție'), () => openTxForm()))) : null;
+  const chart = cleanChart(m, upTo, {
+    onCat: it => openCategoryTxSheet(it.id, m), onInc: it => openCategoryTxSheet(it.id, m, 'venit'), savingsIcons,
+  });
 
-  const node = h('div', { class: 'page' },
-    monthChip(),
-    hero,
-    quick,
-    m === cm && !isEmpty ? allowanceCard() : null,
-    isEmpty ? card(
-      h('h2', {}, tr('Bun venit! 👋')),
-      h('p', { class: 'muted' }, tr('Adaugă prima tranzacție cu butonul +, sau încarcă date demo ca să vezi cum arată aplicația.')),
-      h('div', { class: 'btn-row' }, btn(tr('Încarcă date demo'), loadDemo, 'secondary'), btn(tr('Adaugă tranzacție'), () => openTxForm()))) : null,
-    chartCard,
-    ...goals,
-    sectionHead(tr('Pe scurt')),
-    widgets);
-  return { title: `${greeting()} 👋`, subtitle: longDate(today()), node };
+  // Plăcile (4, alese din Setări → Aspect și limbă) vin după „Azi mai poți cheltui”.
+  const node = h('div', { class: 'page home-tablou' },
+    hero, pills, monthChip(),
+    live ? allowanceCard() : null,
+    welcome,
+    live ? tilesGrid() : null,
+    chart,
+    ...goals);
+  return { title: `${greeting()} 👋`, subtitle: longDate(today()), node, bleed: true };
 }
-

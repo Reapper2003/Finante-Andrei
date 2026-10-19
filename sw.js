@@ -1,15 +1,15 @@
 // Service worker: aplicația funcționează și fără internet.
 // La fiecare modificare a fișierelor, crește VERSION (și APP_VERSION din js/store.js) ca telefoanele să ia versiunea nouă.
 
-const VERSION = 'finante-v29';
+const VERSION = 'finante-v32';
 const FILES = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
   './js/app.js', './js/store.js', './js/db.js', './js/dates.js', './js/fmt.js', './js/calc.js', './js/actions.js', './js/ui.js', './js/charts.js',
-  './js/xlsx.js', './js/exporter.js', './js/demo.js', './js/forms.js', './js/components.js', './js/confetti.js', './js/i18n.js', './js/i18n-en.js', './js/heroArt.js', './js/menu.js',
+  './js/xlsx.js', './js/exporter.js', './js/demo.js', './js/forms.js', './js/components.js', './js/confetti.js', './js/i18n.js', './js/i18n-en.js', './js/heroArt.js', './js/heroColors.js', './js/catIcons.js', './js/menu.js',
   './js/pages/dashboard.js', './js/pages/transactions.js', './js/pages/investments.js', './js/pages/reports.js',
   './js/pages/subscriptions.js', './js/pages/networth.js', './js/pages/emergency.js', './js/pages/debts.js', './js/pages/settings.js',
-  './js/pages/categories.js', './js/pages/savings.js', './js/pages/calculator.js', './js/pages/wishlist.js',
+  './js/pages/categories.js', './js/pages/savings.js', './js/pages/calculator.js', './js/pages/wishlist.js', './js/pages/start.js', './js/pages/homeParts.js',
 ];
 
 self.addEventListener('install', e => {

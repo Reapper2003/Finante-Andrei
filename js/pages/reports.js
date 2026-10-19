@@ -2,7 +2,7 @@ import { state, save, catById } from '../store.js';
 import { currentMonth, monthLabel, monthAbbr, fmtDate } from '../dates.js';
 import { money, pct, num } from '../fmt.js';
 import { buildReport, buildYearReport, availableYears } from '../calc.js';
-import { h, card, stat, btn, app, signCls, progress, selectInput, toast, catIcon, emptyState, segmented } from '../ui.js';
+import { h, card, stat, btn, app, signCls, progress, selectInput, toast, catIcon, emptyState, segmented, withEmoji } from '../ui.js';
 import { donut, barChart } from '../charts.js';
 import { exportReport, exportYearReport } from '../exporter.js';
 import { t as tr, catName } from '../i18n.js';
@@ -150,7 +150,7 @@ export function reportsPage() {
           const ch = c.prev > 0 ? (c.cur - c.prev) / c.prev : null;
           const cls = ch == null ? 'muted' : ch > 0.005 ? 'neg' : ch < -0.005 ? 'pos' : 'muted';
           return h('div', { class: 'cmp-row' },
-            h('span', { class: 'cmp-name' }, `${c.icon} ${lbl(c)}`),
+            h('span', { class: 'cmp-name' }, withEmoji(c.icon, lbl(c))),
             h('span', { class: 'cmp-val' }, money(c.cur)),
             h('span', { class: `cmp-ch ${cls}` }, ch == null ? tr('nou') : `${ch > 0.005 ? '↑' : ch < -0.005 ? '↓' : '='} ${pct(Math.abs(ch), 0)}`));
         }))) : null,

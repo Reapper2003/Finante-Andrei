@@ -2,7 +2,7 @@ import { state, commit, save } from '../store.js';
 import { currentMonth, addMonths, monthShort } from '../dates.js';
 import { money, pct } from '../fmt.js';
 import { netWorth, netWorthSeries, snapshotFor, rebuildSnapshots } from '../calc.js';
-import { h, card, signCls, switchRow, app, toast, linkBtn } from '../ui.js';
+import { h, card, signCls, switchRow, app, toast, linkBtn, helpBtn } from '../ui.js';
 import { lineChart } from '../charts.js';
 import { exportButton } from '../components.js';
 import { t as tr } from '../i18n.js';
@@ -23,7 +23,7 @@ export function networthPage() {
 
   const node = h('div', { class: 'page' },
     h('section', { class: 'card summary' },
-      h('span', { class: 'label' }, tr('Fără investiții')),
+      h('span', { class: 'label' }, tr('Fără investiții'), helpBtn('avere')),
       h('strong', { class: 'big ' + (nw.without < 0 ? 'neg' : '') }, money(nw.without)),
       diff(nw.without, prev?.without)),
     h('section', { class: 'card summary' },
@@ -54,7 +54,6 @@ export function networthPage() {
         format: v => money(v),
       }))
       : card(h('h2', {}, tr('Evoluție lunară')), h('p', { class: 'muted' }, tr('Graficul apare după prima lună încheiată. La finalul fiecărei luni se salvează automat un snapshot.'))),
-    h('div', { class: 'center' }, linkBtn(tr('Recalculează istoricul'), () => { rebuildSnapshots(); save(); app.rerender(); toast(tr('Istoric recalculat')); }, 'refresh')),
-    exportButton());
+    h('div', { class: 'center' }, linkBtn(tr('Recalculează istoricul'), () => { rebuildSnapshots(); save(); app.rerender(); toast(tr('Istoric recalculat')); }, 'refresh')));
   return { title: tr('Avere netă'), back: '#/acasa', node };
 }

@@ -3,6 +3,7 @@
 import { currentMonth, monthLabel, monthAbbr } from './dates.js';
 import { h, icon, openSheet, go, app, btn } from './ui.js';
 import { t as tr } from './i18n.js';
+import { modOn } from './store.js';
 
 // Implicit e luna curentă; o lună aleasă din meniu rămâne până o schimbi sau redeschizi aplicația.
 let viewMonth = null;
@@ -47,23 +48,29 @@ function monthPicker(close) {
 export function openMainMenu() {
   const item = (ico, label, hash) => h('button', { type: 'button', class: 'menu-item', onclick: () => go(hash) },
     h('span', { class: 'cat-ic neutral' }, icon(ico, 20)), h('span', {}, label), icon('chevR', 18));
+  // Secțiune cu titlu; dispare dacă toate rândurile ei sunt ascunse.
+  const group = (title, rows) => {
+    const vis = rows.filter(Boolean);
+    return vis.length ? [h('div', { class: 'menu-sec' }, title), h('div', { class: 'list' }, vis)] : [];
+  };
   const sh = openSheet({
     title: tr('Meniu'),
     body: h('div', {},
       h('div', { class: 'menu-sec' }, tr('Luna afișată')),
       monthPicker(() => sh.close()),
       isCurrentMonth() ? null : btn(tr('Luna curentă'), () => { sh.close(); setMonth(currentMonth()); }, 'secondary'),
-      h('div', { class: 'menu-sec' }, tr('Mergi la')),
-      h('div', { class: 'list' },
-        item('settings', tr('Setări'), '#/setari'),
-        item('report', tr('Rapoarte'), '#/rapoarte'),
-        item('repeat', tr('Abonamente'), '#/abonamente'),
-        item('gift', tr('Listă de dorințe'), '#/dorinte'),
-        item('scale', tr('Avere netă'), '#/avere'),
+      ...group(tr('Analiză'), [
+        modOn('investitii') && item('report', tr('Rapoarte'), '#/rapoarte'),
+        modOn('avere') && item('scale', tr('Avere netă'), '#/avere')]),
+      ...group(tr('Planificare'), [
+        modOn('abonamente') && item('repeat', tr('Abonamente'), '#/abonamente'),
+        modOn('datorii') && item('card', tr('Datorii'), '#/datorii'),
         item('shield', tr('Fond de urgență'), '#/fond'),
-        item('card', tr('Datorii'), '#/datorii'),
-        item('tag', tr('Categorii'), '#/categorii'),
-        item('trend', tr('Calculator investiții'), '#/calculator'))),
+        modOn('dorinte') && item('gift', tr('Listă de dorințe'), '#/dorinte')]),
+      ...group(tr('Unelte'), [
+        item('trend', tr('Calculator investiții'), '#/calculator'),
+        item('tag', tr('Categorii'), '#/categorii')]),
+      h('div', { class: 'list menu-settings' }, item('settings', tr('Setări'), '#/setari'))),
   });
 }
 

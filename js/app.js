@@ -1,6 +1,6 @@
 // Pornirea aplicației: rutare, header, bara de jos, butonul +, pull-to-refresh, PWA.
 
-import { state, load, save, subscribe, onSaveError, commit, APP_VERSION } from './store.js';
+import { state, load, save, subscribe, onSaveError, commit, APP_VERSION, modOn, slotTab } from './store.js';
 import { h, icon, app, toast, applyTheme, sheetOpen } from './ui.js';
 import { runAutomations } from './actions.js';
 import { openTxForm } from './forms.js';
@@ -19,13 +19,15 @@ import { settingsPage } from './pages/settings.js';
 import { categoriesPage } from './pages/categories.js';
 import { calculatorPage } from './pages/calculator.js';
 import { wishlistPage } from './pages/wishlist.js';
+import { startPage, needsOnboarding } from './pages/start.js';
 
 // Bara de jos: două tab-uri, butonul + la mijloc, alte două tab-uri. „Mai mult” e butonul rotund din header.
-const TABS = [
+// Dacă Investițiile sunt ascunse (Setări → Module), în locul lor apare pagina aleasă acolo (implicit Rapoarte).
+const tabs = () => [
   ['acasa', 'Acasă', 'home'],
   ['tranzactii', 'Tranzacții', 'list'],
   ['economii', 'Economii', 'wallet'],
-  ['investitii', 'Investiții', 'trend'],
+  modOn('investitii') ? ['investitii', 'Investiții', 'trend'] : slotTab().slice(0, 3),
 ];
 
 const ROUTES = [
@@ -33,19 +35,20 @@ const ROUTES = [
   [/^tranzactii$/, transactionsPage, 'tranzactii'],
   [/^economii$/, savingsPage, 'economii'],
   [/^economii\/f\/([\w-]+)$/, fundPage, 'economii'],
-  [/^investitii$/, investmentsPage, 'investitii'],
-  [/^investitii\/b\/([\w-]+)$/, brokerPage, 'investitii'],
-  [/^investitii\/a\/([\w-]+)$/, assetPage, 'investitii'],
-  [/^rapoarte$/, reportsPage, 'mai-mult'],
-  [/^abonamente$/, subscriptionsPage, 'mai-mult'],
-  [/^avere$/, networthPage, 'mai-mult'],
-  [/^fond$/, emergencyPage, 'economii'],
-  [/^datorii$/, debtsPage, 'mai-mult'],
-  [/^datorii\/([\w-]+)$/, debtPage, 'mai-mult'],
-  [/^setari$/, settingsPage, 'mai-mult'],
+  [/^investitii$/, investmentsPage, 'investitii', 'investitii'],
+  [/^investitii\/b\/([\w-]+)$/, brokerPage, 'investitii', 'investitii'],
+  [/^investitii\/a\/([\w-]+)$/, assetPage, 'investitii', 'investitii'],
+  [/^rapoarte$/, reportsPage, 'rapoarte'],
+  [/^abonamente$/, subscriptionsPage, 'abonamente', 'abonamente'],
+  [/^avere$/, networthPage, 'avere', 'avere'],
+  [/^fond$/, emergencyPage, 'fond', null, 'economii'],
+  [/^datorii$/, debtsPage, 'datorii', 'datorii'],
+  [/^datorii\/([\w-]+)$/, debtPage, 'datorii', 'datorii'],
+  [/^setari(?:\/(\w+))?$/, settingsPage, 'mai-mult'],
   [/^categorii$/, categoriesPage, 'mai-mult'],
-  [/^calculator$/, calculatorPage, 'mai-mult'],
-  [/^dorinte$/, wishlistPage, 'mai-mult'],
+  [/^calculator$/, calculatorPage, 'calculator'],
+  [/^dorinte$/, wishlistPage, 'dorinte', 'dorinte'],
+  [/^start$/, startPage, 'start'],
 ];
 
 const view = document.getElementById('view');
@@ -65,13 +68,18 @@ function render() {
     match = path.match(r[0]);
     if (match) { route = r; break; }
   }
+  if (route && route[3] && !modOn(route[3])) route = null;
   const res = route && route[1](...match.slice(1));
   if (!res) { location.replace('#/acasa'); return; }
+  const TABS = tabs();
+  document.body.classList.toggle('onboarding', route[2] === 'start');
 
   titleEl.textContent = res.title;
   subtitleEl.hidden = !res.subtitle;
   subtitleEl.textContent = res.subtitle || '';
-  moreEl.classList.toggle('on', route[2] === 'mai-mult');
+  const inBar = id => TABS.some(t => t[0] === id);
+  const tabKey = inBar(route[2]) ? route[2] : inBar(route[4]) ? route[4] : null;
+  moreEl.classList.toggle('on', route[2] !== 'start' && !tabKey);
   moreEl.setAttribute('aria-label', tr('Meniu'));
   document.title = `${res.title} · ${tr('Finanțe')}`;
   document.documentElement.lang = state.settings.lang === 'en' ? 'en' : 'ro';
@@ -84,8 +92,9 @@ function render() {
   backEl.setAttribute('aria-label', tr('Înapoi'));
   fab.setAttribute('aria-label', tr('Adaugă tranzacție'));
   tabsEl.setAttribute('aria-label', tr('Navigare principală'));
+  if (tabsEl.dataset.key !== TABS.map(t => t[0]).join()) buildTabs(TABS);
   for (const a of tabsEl.querySelectorAll('a[data-tab]')) {
-    const on = a.dataset.tab === route[2];
+    const on = a.dataset.tab === tabKey;
     a.lastChild.textContent = tr(TABS.find(x => x[0] === a.dataset.tab)[1]);
     a.classList.toggle('on', on);
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
@@ -95,12 +104,38 @@ function render() {
     window.scrollTo(0, 0);
     lastPath = path;
   }
+  syncBleed(!!res.bleed);
+}
+
+// Pagini cu cardul mare pe toată lățimea (Acasă, Investiții): antetul stă transparent peste card
+// și capătă fundal abia când cardul iese din ecran la derulare.
+function syncBleed(on) {
+  document.body.classList.toggle('bleed', on);
+  const top = document.querySelector('.top');
+  if (!on) { top.style.removeProperty('--top-fg'); document.body.classList.remove('scrolled'); return; }
+  document.documentElement.style.setProperty('--top-h', `${top.offsetHeight}px`);
+  const hero = document.querySelector('.bleed-hero');
+  const fg = hero && getComputedStyle(hero).getPropertyValue('--on-hero').trim();
+  top.style.setProperty('--top-fg', fg || '#fff');
+  const tint = hero && getComputedStyle(hero).getPropertyValue('--tint').trim();
+  if (tint) document.body.style.setProperty('--bleed-tint', tint); else document.body.style.removeProperty('--bleed-tint');
+  onBleedScroll();
+}
+function onBleedScroll() {
+  if (!document.body.classList.contains('bleed')) return;
+  const hero = document.querySelector('.bleed-hero');
+  const top = document.querySelector('.top');
+  document.body.classList.toggle('scrolled', !hero || hero.getBoundingClientRect().bottom < top.offsetHeight + 8);
 }
 app.rerender = render;
 
-function buildNav() {
+function buildTabs(TABS) {
   const tab = ([id, label, ico]) => h('a', { href: `#/${id}`, 'data-tab': id }, icon(ico, 24), h('span', {}, label));
   tabsEl.replaceChildren(...TABS.slice(0, 2).map(tab), fab, ...TABS.slice(2).map(tab));
+  tabsEl.dataset.key = TABS.map(t => t[0]).join();
+}
+
+function buildNav() {
   moreEl.replaceChildren(icon('more'));
   moreEl.addEventListener('click', openMainMenu);
   backEl.replaceChildren(icon('back'));
@@ -167,10 +202,13 @@ async function start() {
   // Cere telefonului să nu șteargă datele aplicației când rămâne fără spațiu.
   navigator.storage?.persist?.().catch(() => {});
   window.addEventListener('hashchange', render);
+  window.addEventListener('scroll', onBleedScroll, { passive: true });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && runAutomations()) render();
   });
   setupPullToRefresh();
+  // Prima pornire, fără date: configurarea în 3 pași.
+  if (needsOnboarding()) location.replace('#/start');
   render();
 
   // După o actualizare automată, confirmă versiunea nouă.

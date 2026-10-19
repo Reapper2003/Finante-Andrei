@@ -2,9 +2,36 @@
 
 import { t as tr } from './i18n.js';
 import { idbGet, idbSet, idbDelete } from './db.js';
+import { effectiveAccent } from './heroColors.js';
+
+// Module care pot fi ascunse din Setări → Module (implicit toate sunt vizibile).
+export const MODULES = [
+  ['investitii', 'Investiții', 'Brokeri, active și evoluția portofoliului'],
+  ['abonamente', 'Abonamente', 'Plăți lunare sau anuale care se repetă'],
+  ['datorii', 'Datorii', 'Credite, rate și bani împrumutați'],
+  ['avere', 'Avere netă', 'Tot ce ai minus tot ce datorezi'],
+  ['dorinte', 'Listă de dorințe', 'Lucruri pe care ți le dorești și idei de cadouri'],
+];
+export const modOn = k => state.settings.modules?.[k] !== false;
+
+// Ce poate sta în bara de jos în locul Investițiilor, când le ascunzi: [id, nume scurt, iconiță, modul].
+export const TAB_SLOTS = [
+  ['rapoarte', 'Rapoarte', 'report', null],
+  ['abonamente', 'Abonamente', 'repeat', 'abonamente'],
+  ['datorii', 'Datorii', 'card', 'datorii'],
+  ['avere', 'Avere', 'scale', 'avere'],
+  ['dorinte', 'Dorințe', 'gift', 'dorinte'],
+  ['fond', 'Urgență', 'shield', null],
+  ['calculator', 'Calculator', 'trend', null],
+];
+export function slotTab() {
+  const ok = x => x && (!x[3] || modOn(x[3]));
+  const pick = TAB_SLOTS.find(x => x[0] === state.settings.tabSlot);
+  return ok(pick) ? pick : TAB_SLOTS[0];
+}
 
 // Crește odată cu VERSION din sw.js; apare în Setări ca să vezi ce versiune rulează.
-export const APP_VERSION = 29;
+export const APP_VERSION = 32;
 
 const KEY = 'finante.data.v1';
 // Tema și culoarea, păstrate și separat ca pagina să le aplice înainte de afișare (vezi index.html).
@@ -109,7 +136,7 @@ const lsRemove = k => { try { localStorage.removeItem(k); } catch { /* ignorat *
 let backend = 'idb';
 
 function writePrefs() {
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ theme: state.settings.theme, accent: state.settings.accent })); } catch { /* ignorat */ }
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ theme: state.settings.theme, accent: effectiveAccent(state.settings) })); } catch { /* ignorat */ }
 }
 
 export async function load() {

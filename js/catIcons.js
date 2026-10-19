@@ -1,0 +1,41 @@
+// Iconițe desenate cu linie pentru emoji-urile categoriilor (stilul „Linie” din Setări → Aspect și limbă).
+// Cheia e emoji-ul fără selectorul de variantă (U+FE0F).
+
+const P = {
+  '🛒': '<path d="M3 4h2l2.4 11h10.2L20 8H6.2"/><circle cx="9" cy="19" r="1.4"/><circle cx="17" cy="19" r="1.4"/>',
+  '🍽': '<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10"/><path d="M17 3c-2 2-3 5-3 8h3v10"/>',
+  '☕': '<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10h2a2.5 2.5 0 0 1 0 5h-2"/><path d="M8 3c-1 1.5 1 2.5 0 4M12 3c-1 1.5 1 2.5 0 4"/>',
+  '🚌': '<rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 18v2M16 18v2"/><circle cx="8" cy="14.5" r=".8"/><circle cx="16" cy="14.5" r=".8"/>',
+  '🚗': '<path d="M5 16v-4l2-5h10l2 5v4M5 12h14"/><path d="M3 16h18v2H3z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/>',
+  '⛽': '<path d="M5 20V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15M4 20h12M7 8h6"/><path d="M15 9l3 2v6a1.5 1.5 0 0 0 3 0V9l-3-3"/>',
+  '🏠': '<path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>',
+  '💡': '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/>',
+  '📱': '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+  '💊': '<path d="M10.5 20.5a4.95 4.95 0 0 1-7-7l6-6a4.95 4.95 0 0 1 7 7z"/><path d="M7 10.5l6.5 6.5"/>',
+  '🎬': '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9.5h4M3 14.5h4M17 9.5h4M17 14.5h4"/>',
+  '🎮': '<path d="M6 8h12a4 4 0 0 1 3.9 4.8l-.8 4a2.5 2.5 0 0 1-4.3 1.2L15 16H9l-1.8 2a2.5 2.5 0 0 1-4.3-1.2l-.8-4A4 4 0 0 1 6 8z"/><path d="M8 11v3M6.5 12.5h3"/><circle cx="15.5" cy="11.5" r=".9"/><circle cx="17.5" cy="13.5" r=".9"/>',
+  '🛍': '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+  '👕': '<path d="M8 3 3 6l2 4 2-1v12h10V9l2 1 2-4-5-3a4 4 0 0 1-8 0z"/>',
+  '🔁': '<path d="m17 2 4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
+  '📚': '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21a2 2 0 0 1 2-2h13v2"/><path d="M9 7h6"/>',
+  '🎁': '<rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v8.5h14V12M12 8v12.5"/><path d="M12 8C10.5 4 6.5 4.2 7 6.6 7.4 8 12 8 12 8zM12 8c1.5-4 5.5-3.8 5-1.4C16.6 8 12 8 12 8z"/>',
+  '✈': '<path d="M2.5 13.5 21 6l-4.5 13-4-5.5z"/><path d="M12.5 13.5 21 6"/>',
+  '🐶': '<circle cx="7" cy="10" r="1.8"/><circle cx="11" cy="6.5" r="1.8"/><circle cx="15.5" cy="7" r="1.8"/><circle cx="18" cy="11" r="1.8"/><path d="M12 12c-3 0-6 4-5 6.5 1 2 3.5 1 5 1s4 1 5-1c1-2.5-2-6.5-5-6.5z"/>',
+  '👶': '<circle cx="12" cy="12" r="8.5"/><circle cx="9" cy="11" r=".9"/><circle cx="15" cy="11" r=".9"/><path d="M9.5 15a3.5 3.5 0 0 0 5 0M12 3.5c-1 1.5 0 3 1.5 2.5"/>',
+  '💇': '<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8 8.5 20 17M8 15.5 20 7"/>',
+  '🏋': '<path d="M6 8v8M3.5 10v4M18 8v8M20.5 10v4M6 12h12"/>',
+  '🍺': '<path d="M6 8h10v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"/><path d="M16 10h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"/><path d="M6 8a3 3 0 0 1 3-4 3 3 0 0 1 4 0 3 3 0 0 1 3 4"/><path d="M9.5 12v6M12.5 12v6"/>',
+  '🧾': '<path d="M6 3h12v18l-2.5-1.5L13 21l-2-1.5L9 21l-3-1.5z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+  '🏦': '<path d="M3 9 12 4l9 5"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
+  '💼': '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/>',
+  '💻': '<rect x="5" y="5" width="14" height="10" rx="1.5"/><path d="M2.5 19h19l-2-4h-15z"/>',
+  '⭐': '<path d="m12 3 2.7 5.6 6.1.8-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.8z"/>',
+  '🏷': '<path d="M3 12.5V4h8.5L21 13.5 13.5 21z"/><circle cx="7.5" cy="8.5" r="1.3"/>',
+  '📈': '<path d="m3 16 6-6 4 4 8-8"/><path d="M15 6h6v6"/>',
+  '💰': '<path d="M9 3.5h6l-1.5 3h-3z"/><path d="M10.5 6.5C6 8.5 4 12.5 4 15.5a5 5 0 0 0 5 5h6a5 5 0 0 0 5-5c0-3-2-7-6.5-9z"/><path d="M14 11.5c-.5-.8-1.2-1-2-1-1.2 0-2 .6-2 1.5 0 2 4 1 4 3 0 .9-.8 1.5-2 1.5-.8 0-1.6-.3-2-1M12 9.5v1M12 16.5v1"/>',
+  '📦': '<path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/>',
+  '➕': '<path d="M12 5v14M5 12h14"/>',
+  '🎓': '<path d="M2 9 12 4l10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5M22 9v6"/>',
+};
+
+export const lineIcon = emoji => P[String(emoji || '').replace(/️/g, '')] || null;

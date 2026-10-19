@@ -2,16 +2,17 @@ import { state, uid, commit } from '../store.js';
 import { today, fmtDate, monthShort } from '../dates.js';
 import { money, pct, parseAmount, CURRENCIES, plural, forInput } from '../fmt.js';
 import {
-  round2, assetStats, brokerStats, portfolioStats, portfolioSeries, allocation, assetTypeOptions, assetTypeLabel, brokerOfAsset,
+  round2, assetStats, brokerStats, portfolioStats, portfolioSeries, allocation, assetTypeOptions, assetTypeLabel, brokerOfAsset, convert,
 } from '../calc.js';
 import {
   h, card, sectionHead, linkBtn, stat, btn, go, app, signCls, emptyState, openSheet, field, textInput, amountInput, dateInput,
-  segmented, selectInput, switchRow, invalid, toast, confirmDialog, swipeRow,
+  segmented, selectInput, switchRow, invalid, toast, confirmDialog, swipeRow, icon,
 } from '../ui.js';
-import { donut, lineChart } from '../charts.js';
+import { donut, lineChart, barBreakdown } from '../charts.js';
 import { listRow, exportButton } from '../components.js';
 import { saveContribution, deleteContribution, deleteAsset, deleteBroker } from '../actions.js';
 import { t as tr } from '../i18n.js';
+import { INV_ART, INV_PLAIN } from '../heroArt.js';
 
 const CUR_OPTS = Object.keys(CURRENCIES).map(c => ({ value: c, label: c }));
 let allocBy = 'tip';
@@ -119,6 +120,9 @@ function openValueForm(asset, existing) {
 
 /* ---------- Pagini ---------- */
 
+const TYPE_ICON = { etf: '📊', actiune: '📈', crypto: '🪙', obligatiuni: '🏛️', titluri: '🇷🇴', altele: '💼' };
+let period = 'all';
+
 export function investmentsPage() {
   if (!state.brokers.length) {
     return {
@@ -132,37 +136,78 @@ export function investmentsPage() {
   const base = state.settings.currency;
   const p = portfolioStats();
   const series = portfolioSeries();
-  const alloc = allocation(allocBy === 'broker' ? 'broker' : 'tip');
+  // „1L” = luna asta față de cea trecută (2 puncte), „3L” = ultimele 3 luni (4 puncte) etc.
+  const shown = period === 'all' ? series : series.slice(-(Number(period) + 1));
+  const up = p.profit >= 0;
 
-  const node = h('div', { class: 'page' },
-    statsCard(tr('Valoare portofoliu'), p, base),
-    series.length > 1 ? card(h('h2', {}, tr('Evoluție')), lineChart({
-      labels: series.map(x => monthShort(x.m)),
+  // Cardul principal: valoarea, câștigul și graficul, împreună.
+  const invStyle = INV_ART[state.settings.invStyle] || INV_PLAIN.includes(state.settings.invStyle) ? state.settings.invStyle : 'implicit';
+  const art = INV_ART[invStyle] ? h('div', { class: 'hero-art' }) : null;
+  if (art) art.innerHTML = INV_ART[invStyle];
+  const PERIODS = [['1', '1L'], ['3', '3L'], ['6', '6L'], ['12', '1A'], ['36', '3A'], ['all', tr('Tot')]];
+  const periods = series.length > 1 ? h('div', { class: 'inv-periods', role: 'radiogroup' }, PERIODS.map(([v, label]) => h('button', {
+    type: 'button', role: 'radio', class: period === v ? 'on' : '', 'aria-checked': String(period === v), onclick: () => { period = v; app.rerender(); },
+  }, label))) : null;
+  const hero = h('section', { class: `card inv-hero inv-bg-${invStyle}${art ? ' has-art' : ''} bleed-hero hl-mixt` },
+    art,
+    h('div', { class: 'inv-top' },
+      h('span', { class: 'label' }, tr('Valoare portofoliu'))),
+    h('strong', { class: 'big' }, money(p.value)),
+    h('span', { class: 'inv-pill ' + (up ? 'up' : 'down') }, up ? '▲' : '▼', ` ${money(p.profit, { sign: true })} · ${pct(p.pct, 1, true)}`),
+    shown.length > 1 ? lineChart({
+      labels: shown.map(x => monthShort(x.m)), bare: true, height: 130,
       series: [
-        { name: tr('Valoare'), color: 'var(--accent)', values: series.map(x => x.value) },
-        { name: tr('Total depus'), color: 'var(--chart2)', values: series.map(x => x.deposited), dashed: true },
+        { name: tr('Valoare'), color: '#FFFFFF', values: shown.map(x => x.value), area: true },
+        { name: tr('Total depus'), color: 'rgba(255,255,255,.55)', values: shown.map(x => x.deposited), dashed: true },
       ],
       format: v => money(v),
-    })) : null,
+    }) : null,
+    periods);
+  const stats = h('div', { class: 'pill-strip' },
+    h('div', { class: 'pill' }, h('small', {}, tr('Total depus')), h('b', {}, money(p.deposited))),
+    h('div', { class: 'pill' }, h('small', {}, tr('Câștig')), h('b', { class: signCls(p.profit) }, money(p.profit, { sign: true }))),
+    h('div', { class: 'pill' }, h('small', {}, tr('Randament')), h('b', { class: signCls(p.profit) }, pct(p.pct, 1, true))));
+
+  // Fiecare broker cu activele lui dedesubt (cele mai mari primele), ca să se vadă că țin împreună.
+  const assetCard = (a, b) => {
+    const st = assetStats(a), baseValue = convert(st.value, b.currency, base);
+    return h('button', { type: 'button', class: 'asset-card', onclick: () => go(`#/investitii/a/${a.id}`) },
+      h('div', { class: 'ac-top' }, h('span', { class: 'ac-ic' }, TYPE_ICON[a.type] || '💼'), h('span', { class: 'ac-pct ' + signCls(st.profit) }, pct(st.pct, 1, true))),
+      h('b', { class: 'ac-name' }, a.symbol || a.name),
+      h('small', {}, a.symbol ? a.name : assetTypeLabel(a.type)),
+      h('strong', {}, money(st.value, { cur: b.currency })),
+      h('div', { class: 'bar' }, h('i', { style: { width: `${p.value ? Math.min(100, (baseValue / p.value) * 100) : 0}%` } })),
+      h('small', { class: 'ac-share' }, tr('{p} din portofoliu', { p: pct(p.value ? baseValue / p.value : 0, 0) })));
+  };
+  const groups = state.brokers.map(b => {
+    const bs = brokerStats(b);
+    const list = state.assets.filter(x => x.brokerId === b.id)
+      .sort((x, y) => assetStats(y).value - assetStats(x).value);
+    return h('section', { class: 'brk' },
+      h('button', { type: 'button', class: 'brk-head', onclick: () => go(`#/investitii/b/${b.id}`) },
+        h('span', { class: 'cat-ic neutral initial' }, b.name.slice(0, 1).toUpperCase()),
+        h('span', { class: 'brk-main' }, h('b', {}, b.name), h('small', {}, `${plural(bs.count, tr('activ'), tr('active'))} · ${b.currency}`)),
+        h('span', { class: 'brk-right' }, h('b', {}, money(bs.value, { cur: b.currency })), h('small', { class: signCls(bs.profit) }, pct(bs.pct, 1, true))),
+        h('span', { class: 'chev' }, icon('chevR', 18))),
+      h('div', { class: 'chips-scroll asset-cards' },
+        list.map(x => assetCard(x, b)),
+        h('button', { type: 'button', class: 'asset-card add', onclick: () => openAssetForm(b.id) }, icon('plus', 22), tr('Activ nou'))));
+  });
+
+  const alloc = allocation(allocBy === 'broker' ? 'broker' : 'tip').map(x => ({ ...x, icon: allocBy === 'broker' ? x.label.slice(0, 1).toUpperCase() : TYPE_ICON[x.id] || '💼' }));
+
+  const node = h('div', { class: 'page' },
+    hero,
+    stats,
+    sectionHead(tr('Brokeri și active'), linkBtn(tr('Broker nou'), () => openBrokerForm())),
+    ...groups,
     alloc.length ? card(
       h('div', { class: 'card-head' }, h('h2', {}, tr('Alocare')),
-        segmented([{ value: 'tip', label: tr('Pe tip') }, { value: 'broker', label: tr('Pe broker') }], allocBy, v => { allocBy = v; app.rerender(); })),
-      donut({ items: alloc, title: tr('Total'), format: v => money(v) })) : null,
-    sectionHead(tr('Brokeri'), linkBtn(tr('Adaugă'), () => openBrokerForm())),
-    h('div', { class: 'list' }, state.brokers.map(b => {
-      const s = brokerStats(b);
-      return listRow({
-        iconEl: h('span', { class: 'cat-ic neutral initial' }, b.name.slice(0, 1).toUpperCase()),
-        title: b.name, sub: `${plural(s.count, tr('activ'), tr('active'))} · ${b.currency}`,
-        right: money(s.value, { cur: b.currency }),
-        rightSub: h('span', { class: 'row-sub ' + signCls(s.profit) }, pct(s.pct, 1, true)),
-        onTap: () => go(`#/investitii/b/${b.id}`), chevron: true,
-      });
-    })),
-    h('p', { class: 'hint center' }, base !== 'RON' || state.brokers.some(b => b.currency !== base) ? tr('Totalurile sunt convertite cu cursul din Setări.') : ''),
-    h('div', { class: 'center' }, linkBtn(tr('Calculator investiții'), () => go('#/calculator'), 'trend')),
-    exportButton());
-  return { title: tr('Investiții'), node };
+        segmented([{ value: 'tip', label: tr('Pe tip') }, { value: 'broker', label: tr('Pe broker') }], allocBy, v => { allocBy = v; app.rerender(); }, 'seg-sm')),
+      barBreakdown({ items: alloc, format: v => `${money(v)} · ${pct(v / (p.value || 1), 0)}` })) : null,
+    base !== 'RON' || state.brokers.some(b => b.currency !== base) ? h('p', { class: 'hint center' }, tr('Totalurile sunt convertite cu cursul din Setări.')) : null,
+    h('div', { class: 'center' }, linkBtn(tr('Calculator investiții'), () => go('#/calculator'), 'trend')));
+  return { title: tr('Investiții'), node, bleed: true };
 }
 
 export function brokerPage(id) {

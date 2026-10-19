@@ -917,3 +917,544 @@ button.pill:active { transform: scale(0.97); }
 @media (prefers-reduced-motion: reduce) {
   .hero-art [class^="ha-"], .hero-art [class*=" ha-"] { animation: none !important; }
 }
+
+/* ===================== Propunere: aplicație mai aerisită ===================== */
+
+/* „?” lângă termenii mai greu de înțeles */
+.help-btn { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 6px; padding: 0; vertical-align: middle;
+  border: 0; border-radius: 50%; background: color-mix(in srgb, currentColor 14%, transparent); color: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.help-text { margin: 0 0 8px; line-height: 1.55; }
+
+/* „Azi mai poți cheltui” compact */
+.allow2 { display: flex; flex-direction: column; gap: 8px; cursor: pointer; }
+.allow2-top { display: flex; align-items: center; color: var(--muted); font-weight: 600; font-size: 14px; }
+.allow2-top .chev { margin-left: auto; display: inline-flex; }
+.allow2 .mid { font-size: 28px; }
+.allow2 .bar { height: 8px; }
+.allow2-sub { margin: 0; color: var(--muted); font-size: 13.5px; }
+.allow2.over .allow2-sub { color: var(--warn); font-weight: 600; }
+
+/* Tranzacții: Listă | Calendar */
+.view-seg { margin-top: 2px; }
+
+/* Meniu: Setări separat, la final */
+.menu-settings { margin-top: 16px; }
+
+/* Prima pornire */
+body.onboarding .tabs, body.onboarding #eye, body.onboarding #more { display: none; }
+.start { padding-top: 8px; }
+.start-dots { display: flex; justify-content: center; gap: 8px; }
+.start-dots i { width: 28px; height: 6px; border-radius: 99px; background: var(--line); }
+.start-dots i.on { background: var(--accent); }
+.start-dots i.done { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+.start-card { display: flex; flex-direction: column; gap: 12px; padding: 22px 20px; }
+.start-card h2 { margin: 0; font-size: 24px; letter-spacing: -0.02em; }
+.start-card p { margin: 0; }
+.start-q { font-weight: 600; margin-bottom: 8px !important; }
+.start-card .link-btn { margin-top: 8px; }
+.start-foot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+/* 17. Puțin mai mult aer între secțiuni */
+.page { gap: 16px; }
+
+/* ===================== Propunere, runda 2 ===================== */
+
+/* Plățile care urmează, în cardul „Azi mai poți cheltui” */
+.up-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; padding-top: 10px; border-top: 1px solid var(--line); min-width: 0; }
+.up-label { flex: none; color: var(--muted); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.up-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.up-chips::-webkit-scrollbar { display: none; }
+.up-chip { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; background: var(--soft); font-size: 12.5px; white-space: nowrap; }
+.up-chip .ic { color: var(--accent); }
+.up-chip b { font-weight: 650; }
+.up-chip small { color: var(--muted); font-size: 12px; }
+.up-chip.more { color: var(--muted); font-weight: 700; }
+.up-none { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.up-none .ic { color: var(--pos); }
+
+/* Săptămâna pe zile */
+.wk { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; height: 132px; margin-top: 8px; }
+.wk.compact { height: 52px; gap: 4px; margin-top: auto; }
+.wk-col { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.wk-bar { flex: 1; width: 100%; max-width: 28px; border-radius: 8px; background: var(--soft); display: flex; align-items: flex-end; overflow: hidden; }
+.wk-bar i { width: 100%; border-radius: 8px; background: color-mix(in srgb, var(--accent) 45%, transparent); }
+.wk-col.today .wk-bar i { background: var(--accent); }
+.wk-col.future { opacity: .45; }
+.wk-day { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.wk-col.today .wk-day { color: var(--accent); }
+.wk.compact .wk-day { font-size: 10px; }
+
+/* Tablou (plăci) */
+.bento { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tile { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; min-height: 132px; padding: 14px; border: 0; border-radius: 22px;
+  background: var(--card); box-shadow: var(--shadow); color: inherit; text-align: left; }
+.tile.wide { grid-column: span 2; min-height: 0; }
+.tile:active { transform: scale(.98); }
+.t-label { color: var(--muted); font-size: 12.5px; font-weight: 650; }
+.t-val { display: flex; align-items: center; font-size: 19px; font-weight: 750; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.t-name { max-width: 100%; font-size: 14.5px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile small { color: var(--muted); font-size: 12.5px; }
+.t-ic { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); margin: 2px 0; }
+.t-ic.ok { background: color-mix(in srgb, var(--pos) 16%, var(--card)); color: var(--pos); }
+.tile .bar { width: 100%; margin-top: auto; }
+.t-goal .ring { margin: 2px 0; }
+.t-week .wk { width: 100%; }
+
+/* Cerc de progres */
+.ring { position: relative; flex: none; }
+.ring svg { display: block; }
+.ring-in { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 750; }
+
+.asset-cards { padding-top: 4px; padding-bottom: 10px; }
+
+/* Setări → Module: ce apare în bara de jos */
+.slot-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.slot { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 2px; border: 2px solid transparent; border-radius: 14px;
+  background: var(--soft); color: var(--muted); font-size: 11.5px; font-weight: 650; }
+.slot.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+
+/* Investiții */
+.inv-hero { display: flex; flex-direction: column; gap: 6px; color: #fff; border: 0;
+  background: radial-gradient(90% 80% at 100% 0%, color-mix(in srgb, var(--accent) 60%, #fff) 0%, transparent 60%),
+    linear-gradient(155deg, color-mix(in srgb, var(--accent) 90%, #000), color-mix(in srgb, var(--accent) 30%, #0B0820)); }
+.inv-hero .label { color: rgba(255, 255, 255, .78); }
+.inv-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.inv-hero .big { color: #fff; font-size: 36px; }
+.inv-pill { align-self: flex-start; padding: 5px 11px; border-radius: 999px; background: rgba(255, 255, 255, .16); font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.inv-pill.up { color: #B8F7D9; }
+.inv-pill.down { color: #FFD0D0; }
+.inv-hero .line-chart { margin: 4px -6px 0; }
+.inv-hero .line-svg .grid { stroke: rgba(255, 255, 255, .1); }
+.inv-hero .line-svg .guide { stroke: rgba(255, 255, 255, .7); }
+.inv-hero .line-legend { color: rgba(255, 255, 255, .8); font-size: 12.5px; }
+.asset-card { flex: none; width: 152px; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 14px; border: 0; border-radius: 20px;
+  background: var(--card); box-shadow: var(--shadow); color: inherit; text-align: left; }
+.ac-top { width: 100%; display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.ac-ic { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: var(--soft); font-size: 18px; }
+.ac-pct { padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--soft); }
+.ac-pct.pos { background: color-mix(in srgb, var(--pos) 14%, var(--card)); }
+.ac-pct.neg { background: color-mix(in srgb, var(--neg) 12%, var(--card)); }
+.ac-name { max-width: 100%; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.asset-card small { max-width: 100%; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.asset-card strong { margin-top: 4px; font-size: 16px; font-variant-numeric: tabular-nums; }
+.asset-card .bar { width: 100%; height: 6px; margin-top: 4px; }
+.ac-share { font-size: 11.5px !important; }
+
+/* ===================== Propunere, runda 3 ===================== */
+
+/* Cardul mare pe toată lățimea; antetul stă transparent peste el până îl derulezi */
+body.bleed .top { background: transparent; transition: background-color .2s ease; }
+body.bleed.scrolled .top { background: var(--bg); }
+body.bleed:not(.scrolled) .top .titles small,
+body.bleed:not(.scrolled) .top h1,
+body.bleed:not(.scrolled) .top .back { color: var(--top-fg, #fff); }
+body.bleed:not(.scrolled) .top .titles small { opacity: .8; }
+body.bleed:not(.scrolled) .top .icon-btn.round {
+  background: color-mix(in srgb, var(--top-fg, #fff) 18%, transparent); color: var(--top-fg, #fff); box-shadow: none;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.bleed-hero {
+  margin: calc(-1 * var(--top-h, 70px) - 4px) -16px 0;
+  padding-top: calc(var(--top-h, 70px) + 16px) !important;
+  padding-left: 20px; padding-right: 20px;
+  border-radius: 0 0 34px 34px !important;
+}
+.bleed-hero .spark, .bleed-hero .hero-art { top: calc(var(--top-h, 70px) + 10px); }
+.bleed-hero.hero-bg-glass { border-bottom: 1px solid var(--line); }
+
+/* Plăci */
+.t-emoji { font-size: 26px; line-height: 1; margin: 2px 0; }
+.tile small.pos { color: var(--pos); font-weight: 650; }
+.tile small.neg { color: var(--neg); font-weight: 650; }
+.t-rata .ring, .t-goal .ring { margin: 2px 0; }
+
+/* Editorul de plăci */
+.te-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 14px 0 16px; }
+.te-slot { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px; border: 2px solid transparent; border-radius: 16px;
+  background: var(--soft); color: inherit; text-align: left; min-width: 0; }
+.te-slot.on { border-color: var(--accent); background: var(--accent-soft); }
+.te-slot small { color: var(--muted); font-size: 11.5px; font-weight: 650; }
+.te-slot b { font-size: 14px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.te-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.te-opt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 4px; border: 0; border-radius: 14px;
+  background: var(--soft); color: var(--text); font-size: 12px; font-weight: 650; text-align: center; }
+.te-opt .ic { color: var(--accent); }
+.te-opt.on { background: var(--accent); color: var(--on-accent, #fff); }
+.te-opt.on .ic { color: inherit; }
+.te-opt.used { opacity: .55; }
+
+/* Graficul curat: file de tab, inel cu total, primele 4 */
+.cc-tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--line); }
+.cc-tabs button { position: relative; padding: 2px 0 11px; border: 0; background: none; color: var(--muted); font-size: 15px; font-weight: 650; }
+.cc-tabs button.on { color: var(--text); }
+.cc-tabs button.on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--accent); }
+.cc-body { display: flex; align-items: center; gap: 18px; padding-top: 16px; }
+.cc-ring { position: relative; flex: none; width: 124px; height: 124px; }
+.cc-ring svg { display: block; }
+.cc-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.cc-center small { color: var(--muted); font-size: 11.5px; font-weight: 600; }
+.cc-center b { font-size: 17px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.cc-legend { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cc-row { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; padding: 7px 0; border: 0; background: none; color: inherit; text-align: left; }
+.cc-row i { width: 10px; height: 10px; border-radius: 3px; }
+.cc-name { min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc-row b { color: var(--muted); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.cc-more { color: var(--muted); font-size: 12.5px; padding-left: 20px; }
+.cc-empty { margin: 16px 0 4px; }
+
+/* Investiții: brokerul și activele lui, împreună */
+.inv-hero.bleed-hero { padding-bottom: 22px; }
+.brk { display: flex; flex-direction: column; gap: 6px; }
+.brk-head { display: grid; grid-template-columns: 40px 1fr auto 18px; gap: 12px; align-items: center; padding: 2px; border: 0; background: none; color: inherit; text-align: left; }
+.brk-main { min-width: 0; display: flex; flex-direction: column; }
+.brk-main b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brk-main small, .brk-right small { color: var(--muted); font-size: 12.5px; }
+.brk-right { display: flex; flex-direction: column; align-items: flex-end; }
+.brk-right b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.brk-right small.pos { color: var(--pos); }
+.brk-right small.neg { color: var(--neg); }
+.brk-head .chev { display: inline-flex; color: var(--muted); }
+.asset-card.add { align-items: center; justify-content: center; gap: 6px; min-height: 170px; background: transparent; box-shadow: none;
+  border: 2px dashed var(--line); color: var(--accent); font-weight: 650; font-size: 13px; }
+
+/* ===================== Propunere, runda 4: aspectul cardului de sus ===================== */
+
+/* Drept (implicit): margine de jos dreaptă, fără colțuri rotunjite */
+.bleed-hero { border-radius: 0 !important; box-shadow: none !important; }
+
+/* Venituri / Cheltuieli / Economisit (și la Investiții: Total depus / Câștig / Randament), ca plăci la trecere */
+.pill-strip { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: -42px; }
+.pill-strip .pill { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 11px 12px; border: 0; border-radius: 18px;
+  background: var(--card); box-shadow: 0 10px 28px rgba(15, 17, 21, .12); color: var(--text); text-align: left; }
+.pill-strip .pill small { color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill-strip .pill b { font-size: 15.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Desenul stă lângă sold, între titlu și pastile (nu coboară în spatele lor) */
+.bleed-hero .hero-art { top: calc(var(--top-h, 70px) + 4px); height: 96px; width: 42%; max-width: 180px; }
+
+/* ===================== Mixt, trecere curată ===================== */
+.bleed-hero.hl-mixt {
+  --fade: 170px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - var(--fade)),
+    rgba(0,0,0,.97) calc(100% - var(--fade) * .88), rgba(0,0,0,.9) calc(100% - var(--fade) * .76), rgba(0,0,0,.79) calc(100% - var(--fade) * .64),
+    rgba(0,0,0,.64) calc(100% - var(--fade) * .52), rgba(0,0,0,.47) calc(100% - var(--fade) * .4), rgba(0,0,0,.3) calc(100% - var(--fade) * .28),
+    rgba(0,0,0,.15) calc(100% - var(--fade) * .16), rgba(0,0,0,.05) calc(100% - var(--fade) * .06), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - var(--fade)),
+    rgba(0,0,0,.97) calc(100% - var(--fade) * .88), rgba(0,0,0,.9) calc(100% - var(--fade) * .76), rgba(0,0,0,.79) calc(100% - var(--fade) * .64),
+    rgba(0,0,0,.64) calc(100% - var(--fade) * .52), rgba(0,0,0,.47) calc(100% - var(--fade) * .4), rgba(0,0,0,.3) calc(100% - var(--fade) * .28),
+    rgba(0,0,0,.15) calc(100% - var(--fade) * .16), rgba(0,0,0,.05) calc(100% - var(--fade) * .06), transparent 100%);
+}
+.home-tablou .bleed-hero.hl-mixt { padding-bottom: 118px; }
+.inv-hero.bleed-hero.hl-mixt { padding-bottom: 112px !important; }
+.bleed-hero.hl-mixt + .pill-strip { margin-top: -78px; }
+.bleed-hero.hl-mixt + .pill-strip .pill { box-shadow: 0 10px 30px rgba(15, 17, 21, .13); }
+:root[data-theme="dark"] .bleed-hero.hl-mixt + .pill-strip .pill { box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
+.pill-strip b.pos { color: var(--pos); }
+.pill-strip b.neg { color: var(--neg); }
+/* Graficul de la Investiții nu mai are legenda în zona care se estompează */
+.inv-hero.hl-mixt .line-legend { margin-bottom: 0; }
+
+/* ===================== Mixt pe modul luminos ===================== */
+/* Partea de sus a paginii primește o nuanță foarte pală a culorii cardului, așa că estomparea trece
+   prin tonuri tot mai deschise ale aceleiași culori, nu printr-un gri „spălat”. */
+.hero-bg-aurora { --tint: var(--hero, #6C47FF); }
+.hero-bg-solid { --tint: var(--hero, #6C47FF); }
+.hero-bg-glow { --tint: var(--hero, #6C47FF); }
+.hero-bg-pattern { --tint: var(--hero, #6C47FF); }
+.hero-bg-glass { --tint: var(--hero, #6C47FF); }
+.hero-bg-sunset { --tint: #FF8A62; }
+.hero-bg-ocean { --tint: #1677C9; }
+.hero-bg-forest { --tint: #0B6E4F; }
+.hero-bg-midnight { --tint: #2B3A7A; }
+.hero-bg-gold { --tint: #B8892B; }
+.hero-bg-bear { --tint: #B65AB9; }
+.hero-bg-car { --tint: #3A3E48; }
+.hero-bg-mountains { --tint: #8DA6EA; }
+.hero-bg-space { --tint: #2A2370; }
+.hero-bg-piggy { --tint: #1FB98E; }
+.hero-bg-cat { --tint: #8B6BE6; }
+.hero-bg-beach { --tint: #36C2D6; }
+.hero-bg-aquarium { --tint: #0A5C8A; }
+.hero-bg-balloons { --tint: #E9A9C8; }
+.hero-bg-winter { --tint: #5F95DA; }
+.hero-bg-city { --tint: #6A3596; }
+.hero-bg-sailboat { --tint: #6CC4F0; }
+.hero-bg-fireflies { --tint: #1F5A42; }
+.hero-bg-rocket { --tint: #4D2A86; }
+/* Antetul, după ce derulezi, e din „sticlă”, ca să se potrivească peste nuanță */
+body.bleed.scrolled .top { background: color-mix(in srgb, var(--bg) 82%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4); }
+
+/* ===================== Mixt luminos, v2 ===================== */
+:root[data-theme="light"] .bleed-hero.hl-mixt { --fade: 104px; }
+:root[data-theme="light"] .home-tablou .bleed-hero.hl-mixt { padding-bottom: 112px; }
+:root[data-theme="light"] .inv-hero.bleed-hero.hl-mixt { padding-bottom: 106px !important; }
+:root[data-theme="light"] .bleed-hero.hl-mixt + .pill-strip { margin-top: -74px; }
+:root[data-theme="light"] body.bleed {
+  background:
+    linear-gradient(to bottom,
+      color-mix(in srgb, var(--bleed-tint, var(--accent)) 30%, var(--bg)) 0,
+      color-mix(in srgb, var(--bleed-tint, var(--accent)) 22%, var(--bg)) 250px,
+      color-mix(in srgb, var(--bleed-tint, var(--accent)) 11%, var(--bg)) 400px,
+      color-mix(in srgb, var(--bleed-tint, var(--accent)) 4%, var(--bg)) 540px,
+      var(--bg) 680px) no-repeat,
+    var(--bg);
+}
+.accent-follow { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.accent-follow .accent-sw { width: 44px; height: 44px; min-height: 0; flex: none; cursor: default; }
+
+/* ===================== Fundaluri animate noi (Acasă) ===================== */
+.hero-bg-autumn { --on-hero: #FFFFFF; --hero-pos: #FFF1B8; --hero-neg: #3A0A0A; --tint: #C8662A;
+  background: radial-gradient(80% 90% at 90% 0%, rgba(255, 214, 120, .45) 0%, transparent 60%), linear-gradient(165deg, #9C3F1E, #C8662A 55%, #E39A45); }
+.hero-bg-coffee { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FFD0D0; --tint: #8B5A3A;
+  background: radial-gradient(80% 90% at 85% 10%, rgba(255, 230, 200, .25) 0%, transparent 60%), linear-gradient(160deg, #5A3620, #8B5A3A 60%, #B98A63); }
+.hero-bg-kite { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #6B0F2A; --tint: #7CC3F5;
+  background: linear-gradient(170deg, #3E9BE8, #7CC3F5 60%, #BFE6FF); }
+.hero-bg-rain { --on-hero: #FFFFFF; --hero-pos: #BBF7D0; --hero-neg: #FECACA; --tint: #5C6E92;
+  background: linear-gradient(170deg, #3E4C68, #5C6E92 60%, #8796B6); }
+.hero-bg-aurora2 { --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5; --tint: #0F4A52;
+  background: radial-gradient(70% 80% at 70% 30%, rgba(75, 240, 166, .18) 0%, transparent 65%), linear-gradient(170deg, #061626, #0B2E40 60%, #0F4A52); }
+.hero-bg-puppy { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #5A0E1E; --tint: #F2B066;
+  background: radial-gradient(80% 90% at 90% 10%, rgba(255, 240, 210, .35) 0%, transparent 60%), linear-gradient(135deg, #E0803C, #EFA45A 60%, #FFCB85); }
+.hero-bg-garden { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #6B0F2A; --tint: #9ED8F2;
+  background: linear-gradient(170deg, #4FA8DE, #8FD0EF 55%, #C2EBBE); }
+.hero-bg-xmas { --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5; --tint: #1B3768;
+  background: radial-gradient(70% 90% at 75% 20%, rgba(255, 212, 59, .16) 0%, transparent 60%), linear-gradient(165deg, #0F1F3D, #1B3768 60%, #2C5794); }
+
+/* ===================== Fundaluri pentru Investiții ===================== */
+.inv-bg-implicit { background: radial-gradient(90% 80% at 100% 0%, color-mix(in srgb, var(--accent) 60%, #fff) 0%, transparent 60%),
+  linear-gradient(155deg, color-mix(in srgb, var(--accent) 90%, #000), color-mix(in srgb, var(--accent) 30%, #0B0820)); --tint: var(--accent); }
+.inv-bg-coins { background: radial-gradient(70% 80% at 85% 20%, rgba(255, 209, 102, .22) 0%, transparent 60%), linear-gradient(155deg, #1D2B53, #2B3F7A 60%, #3D56A3); --tint: #2B3F7A; }
+.inv-bg-tree { background: radial-gradient(70% 80% at 80% 20%, rgba(79, 211, 139, .2) 0%, transparent 60%), linear-gradient(160deg, #0E3A2B, #155C45 60%, #1F7D5B); --tint: #155C45; }
+.inv-bg-growth { background: radial-gradient(70% 80% at 85% 25%, rgba(124, 240, 184, .16) 0%, transparent 60%), linear-gradient(160deg, #1A1442, #2B1E6E 60%, #44299A); --tint: #2B1E6E; }
+.inv-bg-candles { background: linear-gradient(160deg, #0D1C29, #143047 60%, #1B4766); --tint: #143047; }
+.inv-bg-vault { background: radial-gradient(70% 80% at 80% 20%, rgba(255, 209, 102, .14) 0%, transparent 60%), linear-gradient(160deg, #262B35, #363E4C 60%, #4F596C); --tint: #363E4C; }
+.inv-bg-globe { background: radial-gradient(70% 80% at 80% 30%, rgba(46, 134, 222, .3) 0%, transparent 60%), linear-gradient(160deg, #0A2944, #0E416B 60%, #145E9A); --tint: #0E416B; }
+.inv-hero .hero-art { position: absolute; right: 10px; top: 8px; width: 42%; max-width: 170px; height: 64%; pointer-events: none; }
+.inv-hero.has-art > :not(.hero-art) { position: relative; z-index: 1; }
+.bg-tile[class*="inv-bg-"] { color: #fff; }
+
+/* Perioadele graficului de la Investiții: un rând compact sub grafic */
+.inv-periods { display: flex; gap: 4px; padding: 3px; margin-top: 2px; border-radius: 999px; background: rgba(255, 255, 255, .12); }
+.inv-periods button { flex: 1; min-height: 28px; border: 0; border-radius: 999px; background: none; color: rgba(255, 255, 255, .82); font-size: 12.5px; font-weight: 650; }
+.inv-periods button.on { background: #fff; color: var(--accent); }
+
+/* Animațiile desenelor noi */
+.hero-art .ha-leaf { animation: ha-leaf 6.5s ease-in infinite; }
+.hero-art .ha-steam { animation: ha-steam 3.3s ease-out infinite; }
+.hero-art .ha-kite { transform-origin: 0% 100%; animation: ha-kite 4s ease-in-out infinite alternate; }
+.hero-art .ha-tail { transform-origin: 50% 0%; animation: ha-sway 1.6s ease-in-out infinite alternate; }
+.hero-art .ha-rain { animation: ha-rain 1s linear infinite; }
+.hero-art .ha-ripple { animation: ha-ripple 1.6s ease-out infinite; }
+.hero-art .ha-aurora { animation: ha-aurora 6s ease-in-out infinite; filter: blur(2.5px); opacity: .6; }
+.hero-art .ha-wag { transform-origin: 0% 100%; animation: ha-wag .5s ease-in-out infinite; }
+.hero-art .ha-pant { transform-origin: 50% 0%; animation: ha-pant .5s ease-in-out infinite; }
+.hero-art .ha-heart { animation: ha-heart 3.2s ease-out infinite; }
+.hero-art .ha-fly { animation: ha-fly 9s ease-in-out infinite; }
+.hero-art .ha-wings { animation: ha-wings .35s ease-in-out infinite; }
+.hero-art .ha-coin { animation: ha-coin 3.4s ease-in infinite; }
+.hero-art .ha-draw { stroke-dasharray: 100; animation: ha-draw 4s ease-out infinite; }
+.hero-art .ha-arrow { animation: ha-arrow 4s ease-out infinite; }
+.hero-art .ha-candle { transform-origin: 50% 100%; animation: ha-candle 2.8s ease-in-out infinite; }
+.hero-art .ha-spin { animation: ha-spin 6s ease-in-out infinite; }
+.hero-art .ha-lands { animation: ha-lands 10s linear infinite; }
+.hero-art .ha-orbit { animation: ha-orbit 9s linear infinite; }
+
+@keyframes ha-leaf { 0% { transform: translate(0, 0) rotate(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translate(-16px, 46px) rotate(320deg); opacity: 0; } }
+@keyframes ha-steam { 0% { transform: translateY(6px) scaleX(1); opacity: 0; } 30% { opacity: .8; } 100% { transform: translateY(-12px) scaleX(1.3); opacity: 0; } }
+@keyframes ha-kite { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
+@keyframes ha-rain { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(-6px, 58px); opacity: 0; } }
+@keyframes ha-ripple { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+@keyframes ha-aurora { 0%, 100% { transform: translateX(0) scaleY(1); opacity: .45; } 50% { transform: translateX(-8px) scaleY(1.3); opacity: .85; } }
+@keyframes ha-wag { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(16deg); } }
+@keyframes ha-pant { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.35); } }
+@keyframes ha-heart { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-30px) scale(1); opacity: 0; } }
+@keyframes ha-fly { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(14px, -6px); } 50% { transform: translate(26px, 8px); } 75% { transform: translate(10px, 14px); } }
+@keyframes ha-wings { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(.35); } }
+@keyframes ha-coin { 0% { transform: translateY(-34px); opacity: 0; } 20% { opacity: 1; } 45% { transform: translateY(0); } 52% { transform: translateY(-4px); } 58% { transform: translateY(0); } 85% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(0); opacity: 0; } }
+@keyframes ha-draw { 0% { stroke-dashoffset: 100; opacity: 1; } 55% { stroke-dashoffset: 0; } 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes ha-arrow { 0%, 50% { opacity: 0; transform: scale(.4); } 60%, 85% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+@keyframes ha-candle { 0%, 100% { transform: scaleY(.85); } 50% { transform: scaleY(1.08); } }
+@keyframes ha-spin { 0% { transform: rotate(0); } 30% { transform: rotate(120deg); } 45% { transform: rotate(80deg); } 75% { transform: rotate(250deg); } 100% { transform: rotate(360deg); } }
+@keyframes ha-lands { from { transform: translateX(0); } to { transform: translateX(-48px); } }
+@keyframes ha-orbit { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+/* Desenul de la Investiții stă sus, lângă valoare (nu peste grafic) */
+.inv-hero.bleed-hero .hero-art { top: calc(var(--top-h, 70px) + 2px); height: 92px; width: 40%; max-width: 160px; }
+
+/* ===================== Și mai multe fundaluri (Acasă) ===================== */
+.hero-bg-night { --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5; --tint: #2A3A86;
+  background: radial-gradient(60% 80% at 80% 25%, rgba(255, 244, 204, .16) 0%, transparent 60%), linear-gradient(170deg, #0B1340, #1B2A6B 60%, #3B4A9A); }
+.hero-bg-fox { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FFD0D0; --tint: #4C8A50;
+  background: radial-gradient(70% 80% at 85% 15%, rgba(255, 230, 160, .22) 0%, transparent 60%), linear-gradient(160deg, #24502F, #3D7A45 60%, #78B05E); }
+.hero-bg-penguin { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #6B0F2A; --tint: #8FC2EF;
+  background: linear-gradient(170deg, #4F98DE, #86BDEE 60%, #CBE5FB); }
+.hero-bg-plane { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #6B0F2A; --tint: #5FA8EC;
+  background: linear-gradient(170deg, #2A74CF, #559FE6 60%, #9FCDF5); }
+.hero-bg-lighthouse { --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5; --tint: #1F4777;
+  background: linear-gradient(175deg, #0E2240, #1B3A66 60%, #2C5A8E); }
+.hero-bg-panda { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #5A0E1E; --tint: #5BA868;
+  background: radial-gradient(70% 80% at 85% 15%, rgba(255, 255, 220, .25) 0%, transparent 60%), linear-gradient(160deg, #2F7A4A, #56A466 60%, #A6D58E); }
+.hero-bg-bike { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #5A0E1E; --tint: #F2A65A;
+  background: linear-gradient(170deg, #E6803A, #F2A65A 55%, #F9CF8E); }
+.hero-bg-music { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FFD0D0; --tint: #8A43D6;
+  background: radial-gradient(70% 80% at 85% 20%, rgba(255, 107, 181, .3) 0%, transparent 60%), linear-gradient(160deg, #5B26AE, #8A43D6 60%, #C46FEA); }
+
+/* ===================== Și mai multe fundaluri (Investiții) ===================== */
+.inv-bg-bull { background: radial-gradient(70% 80% at 80% 25%, rgba(124, 240, 184, .18) 0%, transparent 60%), linear-gradient(160deg, #0F3D2E, #146B4A 60%, #1E9B63); --tint: #146B4A; }
+.inv-bg-diamond { background: radial-gradient(70% 80% at 80% 30%, rgba(92, 203, 240, .25) 0%, transparent 60%), linear-gradient(160deg, #1A1446, #2B2270 60%, #3F3196); --tint: #2B2270; }
+.inv-bg-goldbars { background: radial-gradient(70% 80% at 80% 30%, rgba(255, 209, 102, .2) 0%, transparent 60%), linear-gradient(160deg, #33240C, #554016 60%, #7E5D22); --tint: #554016; }
+.inv-bg-sprout { background: radial-gradient(70% 80% at 80% 25%, rgba(74, 222, 128, .18) 0%, transparent 60%), linear-gradient(165deg, #12402F, #1B5E43 60%, #2A7F57); --tint: #1B5E43; }
+.inv-bg-compass { background: linear-gradient(160deg, #1D2A3A, #2C4058 60%, #3E5878); --tint: #2C4058; }
+.inv-bg-target { background: radial-gradient(70% 80% at 80% 30%, rgba(226, 68, 74, .25) 0%, transparent 60%), linear-gradient(160deg, #351020, #561A33 60%, #7E2849); --tint: #561A33; }
+
+/* Animațiile lor */
+.hero-art .ha-halo { animation: ha-halo 4s ease-in-out infinite; }
+.hero-art .ha-eyes { animation: ha-eyes 4.5s ease-in-out infinite; }
+.hero-art .ha-foxtail { transform-origin: 0% 100%; animation: ha-foxtail 2.6s ease-in-out infinite alternate; }
+.hero-art .ha-waddle { transform-origin: 50% 100%; animation: ha-waddle 1.2s ease-in-out infinite; }
+.hero-art .ha-drift2 { animation: ha-drift2 7s linear infinite; }
+.hero-art .ha-trail { animation: ha-trail .9s linear infinite; }
+.hero-art .ha-beam { transform-origin: 100% 50%; animation: ha-beam 4s ease-in-out infinite alternate; }
+.hero-art .ha-chew { transform-origin: 50% 0%; animation: ha-chew .7s ease-in-out infinite; }
+.hero-art .ha-wheel { animation: ha-orbit 1.4s linear infinite; }
+.hero-art .ha-road { animation: ha-road .7s linear infinite; }
+.hero-art .ha-note { animation: ha-note 4.2s ease-out infinite; }
+.hero-art .ha-eq { transform-origin: 50% 100%; animation: ha-eq .9s ease-in-out infinite alternate; }
+.hero-art .ha-puff-l { animation: ha-puff-l 2.4s ease-out infinite; }
+.hero-art .ha-puff-r { animation: ha-puff-r 2.4s ease-out infinite; animation-delay: -1.2s; }
+.hero-art .ha-shine { animation: ha-shine 3.2s ease-in-out infinite; }
+.hero-art .ha-grow { transform-origin: 50% 100%; animation: ha-grow 5s ease-out infinite; }
+.hero-art .ha-pop { animation: ha-pop 5s ease-out infinite; }
+.hero-art .ha-needle { animation: ha-needle 5s ease-in-out infinite; }
+.hero-art .ha-dart { animation: ha-dart 3.6s ease-out infinite; }
+
+@keyframes ha-halo { 0%, 100% { transform: scale(1); opacity: .14; } 50% { transform: scale(1.12); opacity: .26; } }
+@keyframes ha-eyes { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes ha-foxtail { from { transform: rotate(-6deg); } to { transform: rotate(8deg); } }
+@keyframes ha-waddle { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+@keyframes ha-drift2 { from { transform: translateX(40px); } to { transform: translateX(-70px); } }
+@keyframes ha-trail { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 16; } }
+@keyframes ha-beam { from { transform: rotate(-12deg); } to { transform: rotate(12deg); } }
+@keyframes ha-chew { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(-.6); } }
+@keyframes ha-road { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 16; } }
+@keyframes ha-note { 0% { transform: translate(0, 6px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(8px, -26px); opacity: 0; } }
+@keyframes ha-eq { from { transform: scaleY(.3); } to { transform: scaleY(1.1); } }
+@keyframes ha-puff-l { 0% { transform: translate(0, 0) scale(.5); opacity: 0; } 25% { opacity: .85; } 100% { transform: translate(-12px, 6px) scale(1.4); opacity: 0; } }
+@keyframes ha-puff-r { 0% { transform: translate(0, 0) scale(.5); opacity: 0; } 25% { opacity: .85; } 100% { transform: translate(12px, 6px) scale(1.4); opacity: 0; } }
+@keyframes ha-shine { 0%, 15% { transform: translateX(-10px); } 70%, 100% { transform: translateX(110px); } }
+@keyframes ha-grow { 0% { transform: scaleY(.15); opacity: .4; } 35% { transform: scaleY(1); opacity: 1; } 85% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+@keyframes ha-pop { 0%, 30% { transform: scale(0); } 45% { transform: scale(1.15); } 55%, 100% { transform: scale(1); } }
+@keyframes ha-needle { 0% { transform: rotate(-35deg); } 20% { transform: rotate(25deg); } 35% { transform: rotate(-14deg); } 50% { transform: rotate(8deg); } 62%, 100% { transform: rotate(0deg); } }
+@keyframes ha-dart { 0% { transform: translate(-46px, -18px); opacity: 0; } 15% { opacity: 1; } 30% { transform: translate(0, 0); } 36% { transform: translate(-2px, -1px); } 42%, 85% { transform: translate(0, 0); opacity: 1; } 100% { transform: translate(0, 0); opacity: 0; } }
+
+/* Setări: fundalul ales, într-un rând compact; alegerea, într-un panou cu categorii */
+.bg-row .bg-tile.mini { flex: none; width: 74px; min-height: 0; height: 48px; aspect-ratio: auto; padding: 0; border-radius: 12px; pointer-events: none; }
+.bg-row .bg-tile.mini::before { display: none; }
+.bg-row .bg-tile.mini .hero-art { right: 3px; top: 3px; width: 64%; height: 86%; }
+.bg-tabs { padding-bottom: 6px; margin-bottom: 10px; }
+.bg-sheet .bg-grid { margin-top: 2px; }
+.bg-anim { position: absolute; left: calc(40% + 14px); top: 3px; font-style: normal; font-size: 11px; opacity: .85; }
+.bg-tile.mini .bg-anim { display: none; }
+
+/* ===================== Fundaluri noi: simple (în culoarea aplicației) ===================== */
+.hero-bg-dots { --tint: var(--hero, #6C47FF);
+  background: radial-gradient(circle at 1.5px 1.5px, rgba(255, 255, 255, .2) 1.3px, transparent 1.8px) 0 0 / 14px 14px,
+    linear-gradient(135deg, color-mix(in srgb, var(--hero, #6C47FF) 82%, #000), var(--hero, #6C47FF)); }
+.hero-bg-rings { --tint: var(--hero, #6C47FF);
+  background: repeating-radial-gradient(circle at 110% -10%, rgba(255, 255, 255, .1) 0 2px, transparent 2px 22px),
+    linear-gradient(150deg, color-mix(in srgb, var(--hero, #6C47FF) 80%, #000), var(--hero, #6C47FF)); }
+.hero-bg-mesh { --tint: var(--hero, #6C47FF);
+  background: radial-gradient(60% 70% at 15% 15%, color-mix(in srgb, var(--hero, #6C47FF) 45%, #FF7AB6) 0%, transparent 60%),
+    radial-gradient(60% 70% at 90% 25%, color-mix(in srgb, var(--hero, #6C47FF) 45%, #4FD1DC) 0%, transparent 60%),
+    radial-gradient(70% 80% at 50% 110%, color-mix(in srgb, var(--hero, #6C47FF) 55%, #FFD166) 0%, transparent 60%), var(--hero, #6C47FF); }
+.hero-bg-split { --tint: var(--hero, #6C47FF);
+  background: linear-gradient(115deg, color-mix(in srgb, var(--hero, #6C47FF) 78%, #000) 0 52%, var(--hero, #6C47FF) 52%); }
+
+/* ===================== Fundaluri noi: culori ===================== */
+.hero-bg-lavender { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #5A0E2E; --tint: #B08BE6; background: linear-gradient(135deg, #7E5FD6, #B08BE6 55%, #EFA6D2); }
+.hero-bg-mint { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FFD0D0; --tint: #2DB8A0; background: linear-gradient(135deg, #0C7F72, #24AD96 55%, #7FDDBE); }
+.hero-bg-cherry { --on-hero: #FFFFFF; --hero-pos: #BBF7D0; --hero-neg: #FFD0D0; --tint: #9B1B3D; background: radial-gradient(80% 90% at 100% 0%, rgba(255, 120, 150, .3) 0%, transparent 60%), linear-gradient(135deg, #4E0C20, #8E1838 55%, #C93857); }
+.hero-bg-peach { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #5A0E1E; --tint: #F59A76; background: linear-gradient(135deg, #EC6E4E, #F59A76 55%, #FFC9A2); }
+.hero-bg-slate { --on-hero: #FFFFFF; --hero-pos: #A7F3D0; --hero-neg: #FECACA; --tint: #4C566A; background: radial-gradient(80% 90% at 100% 0%, rgba(136, 192, 208, .25) 0%, transparent 60%), linear-gradient(135deg, #2A303B, #47506A 55%, #737F96); }
+
+/* ===================== Fundaluri noi: desene ===================== */
+.hero-bg-galaxy { --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5; --tint: #2A1B5E; background: radial-gradient(60% 80% at 80% 40%, rgba(176, 124, 255, .25) 0%, transparent 65%), linear-gradient(160deg, #0A0820, #1C1446 60%, #2E1F6A); }
+.hero-bg-saturn { --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5; --tint: #1E2A55; background: radial-gradient(60% 80% at 80% 40%, rgba(233, 168, 91, .18) 0%, transparent 65%), linear-gradient(160deg, #0B1026, #16214A 60%, #253670); }
+.hero-bg-astronaut { --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5; --tint: #1D2458; background: radial-gradient(60% 80% at 20% 100%, rgba(124, 58, 237, .35) 0%, transparent 65%), linear-gradient(160deg, #0B0F2A, #171D4A 60%, #28307A); }
+.hero-bg-spring { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #6B0F2A; --tint: #E7A3C6; background: linear-gradient(165deg, #D9779E, #EBA1C0 55%, #A9D8F2); }
+.hero-bg-summer { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #5A0E1E; --tint: #4FB3E8; background: linear-gradient(175deg, #FF9E3D, #FFC15E 45%, #7FD0F5 46%, #4FB3E8); }
+.hero-bg-halloween { --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5; --tint: #4A1F5E; background: radial-gradient(70% 80% at 85% 20%, rgba(255, 140, 40, .25) 0%, transparent 60%), linear-gradient(165deg, #1E0C2C, #3A1A4E 60%, #5E2A5A); }
+.hero-bg-gaming { --on-hero: #FFFFFF; --hero-pos: #86EFAC; --hero-neg: #FCA5A5; --tint: #3B2B8A; background: radial-gradient(70% 80% at 85% 30%, rgba(79, 168, 240, .3) 0%, transparent 60%), linear-gradient(160deg, #191245, #2E2273 60%, #4A35A8); }
+.hero-bg-football { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FFD0D0; --tint: #2F8A3E; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .2) 0%, transparent 60%), linear-gradient(170deg, #1F6E31, #2F8A3E 60%, #5DB36A); }
+
+/* ===================== Investiții: simple + desene noi ===================== */
+.inv-bg-graphite { background: linear-gradient(155deg, #1C1F26, #2D323C 60%, #444B58); --tint: #2D323C; }
+.inv-bg-navy { background: radial-gradient(70% 80% at 85% 20%, rgba(79, 168, 240, .2) 0%, transparent 60%), linear-gradient(155deg, #0A1430, #142650 60%, #213C7C); --tint: #142650; }
+.inv-bg-emerald { background: radial-gradient(70% 80% at 85% 20%, rgba(74, 222, 128, .18) 0%, transparent 60%), linear-gradient(155deg, #053A2C, #0A5A44 60%, #12805F); --tint: #0A5A44; }
+.inv-bg-burgundy { background: radial-gradient(70% 80% at 85% 20%, rgba(255, 120, 150, .2) 0%, transparent 60%), linear-gradient(155deg, #380C1D, #5A1530 60%, #84214A); --tint: #5A1530; }
+.inv-bg-crypto { background: radial-gradient(70% 80% at 80% 30%, rgba(247, 165, 49, .25) 0%, transparent 60%), linear-gradient(160deg, #1B1408, #36280F 60%, #5A4115); --tint: #36280F; }
+.inv-bg-map { background: radial-gradient(70% 80% at 80% 30%, rgba(124, 240, 184, .14) 0%, transparent 60%), linear-gradient(160deg, #0B1E33, #12325A 60%, #1B4A80); --tint: #12325A; }
+.inv-bg-realestate { background: radial-gradient(70% 80% at 85% 20%, rgba(255, 211, 110, .18) 0%, transparent 60%), linear-gradient(160deg, #16243A, #24385A 60%, #36507E); --tint: #24385A; }
+
+/* Animațiile lor */
+.hero-art .ha-galaxy { animation: ha-orbit 26s linear infinite; }
+.hero-art .ha-floaty { animation: ha-floaty 6s ease-in-out infinite; }
+.hero-art .ha-flicker { animation: ha-flicker 2.4s linear infinite; }
+.hero-art .ha-glide { animation: ha-glide 11s linear infinite; }
+.hero-art .ha-bounce { animation: ha-bounce 1.3s cubic-bezier(.3, 0, .7, 1) infinite; }
+.hero-art .ha-shadow { animation: ha-shadow 1.3s cubic-bezier(.3, 0, .7, 1) infinite; }
+.hero-art .ha-flip { animation: ha-flip 3.2s ease-in-out infinite; }
+.hero-art .ha-ping { animation: ha-ping 3.2s ease-out infinite; }
+@keyframes ha-floaty { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-6px) rotate(6deg); } }
+@keyframes ha-flicker { 0%, 100% { opacity: 1; } 8% { opacity: .45; } 16% { opacity: 1; } 42% { opacity: .7; } 50% { opacity: 1; } 70% { opacity: .5; } 78% { opacity: 1; } }
+@keyframes ha-bounce { 0%, 100% { transform: translateY(0) scale(1.06, .92); } 12% { transform: translateY(-4px) scale(1); } 50% { transform: translateY(-34px) rotate(180deg); } 88% { transform: translateY(-4px) rotate(360deg); } }
+@keyframes ha-shadow { 0%, 100% { transform: scale(1); opacity: .25; } 50% { transform: scale(.5); opacity: .1; } }
+@keyframes ha-flip { 0%, 100% { transform: scaleX(1); } 40% { transform: scaleX(1); } 50% { transform: scaleX(.08); } 60% { transform: scaleX(1); } }
+@keyframes ha-ping { 0% { transform: scale(.4); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
+
+/* ===================== Opțiuni de afișare ===================== */
+/* Variante de temă */
+:root[data-theme="light"][data-variant="alb"] { --bg: #FFFFFF; --card: #F4F5F7; --soft: #EBEDF1; --line: #E3E6EB; --glass: rgba(255, 255, 255, .82); }
+:root[data-theme="light"][data-variant="hartie"] { --bg: #F5EFE3; --card: #FFFCF6; --soft: #EEE6D6; --line: #E4DAC7; --glass: rgba(255, 252, 246, .8);
+  --shadow: 0 1px 2px rgba(60, 40, 10, .05), 0 8px 24px rgba(60, 40, 10, .07); }
+:root[data-theme="dark"][data-variant="negru"] { --bg: #000000; --card: #0F1013; --soft: #1A1C21; --line: rgba(255, 255, 255, .08); --glass: rgba(18, 18, 22, .8); }
+:root[data-theme="dark"][data-variant="albastru"] { --bg: #0A1020; --card: #121A2E; --soft: #1B2540; --line: rgba(160, 190, 255, .09); --glass: rgba(18, 26, 46, .8); }
+.variant-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.variant-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.variant { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: var(--muted); text-align: center; }
+.variant small { font-size: 11.5px; font-weight: 600; line-height: 1.2; }
+.variant.on { color: var(--accent); }
+.variant-prev { width: 100%; aspect-ratio: 1.2; border-radius: 12px; padding: 7px; display: flex; flex-direction: column; gap: 5px;
+  box-shadow: inset 0 0 0 1px var(--line); outline: 2px solid transparent; outline-offset: 2px; }
+.variant-prev i { flex: 1; border-radius: 5px; box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.variant.on .variant-prev, .variant.on .icon-prev { outline-color: var(--accent); }
+.icon-prev { width: 100%; display: flex; justify-content: center; gap: 4px; padding: 8px 4px; border-radius: 12px; background: var(--soft); outline: 2px solid transparent; outline-offset: 2px; }
+.icon-prev .cat-ic { border-radius: 9px; }
+
+/* Iconițele categoriilor: linie / inițială */
+.cat-ic-plain svg { display: block; }
+.cat-initial { font-weight: 750; line-height: 1; }
+.t-emoji svg { width: 30px; height: 30px; }
+.t-emoji .cat-initial { font-size: 26px !important; }
+
+/* Densitate compactă */
+body.dens-compact .page { gap: 10px; }
+body.dens-compact .card { padding: 14px; }
+body.dens-compact .row { min-height: 50px; padding-top: 7px; padding-bottom: 7px; }
+body.dens-compact .tile { min-height: 112px; padding: 12px; }
+body.dens-compact .sec-head { min-height: 36px; margin-top: 2px; }
+body.dens-compact .sec-head h2 { font-size: 18px; }
+body.dens-compact .hero .big { font-size: 34px; }
+body.dens-compact .pill-strip .pill { padding: 8px 11px; }
+body.dens-compact .gcard { width: 150px; padding: 12px; }
+body.dens-compact .cc-ring { width: 106px; height: 106px; }
+body.dens-compact .cc-ring svg { width: 100%; height: 100%; }
+body.dens-compact .asset-card { width: 140px; padding: 12px; }
+
+/* Bara de jos pe toată lățimea */
+body.nav-plina .tabs { bottom: 0; width: 100%; max-width: 480px; height: calc(var(--nav-h) + var(--safe-b)); padding: 0 6px var(--safe-b);
+  border-radius: 0; box-shadow: 0 -1px 0 var(--line); }
+body.nav-plina main { padding-bottom: calc(var(--nav-h) + var(--safe-b) + 24px); }
+/* Bara de jos fără text sub iconițe */
+body.nav-fara-text .tabs a span:last-child { display: none; }
+body.nav-fara-text .tabs a { height: 48px; }

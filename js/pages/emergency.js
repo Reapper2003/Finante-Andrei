@@ -1,7 +1,7 @@
 import { state, commit } from '../store.js';
 import { money, num, pct, parseAmount, forInput } from '../fmt.js';
 import { round2, efStats, avgMonthlyExpense } from '../calc.js';
-import { h, card, sectionHead, stat, btn, progress, openSheet, field, amountInput, invalid, toast, icon } from '../ui.js';
+import { h, card, sectionHead, stat, btn, progress, openSheet, field, amountInput, invalid, toast, icon, helpBtn } from '../ui.js';
 import { openBucketMove } from '../forms.js';
 import { exportButton, movesList } from '../components.js';
 import { t as tr } from '../i18n.js';
@@ -50,7 +50,7 @@ export function emergencyPage() {
 
   const node = h('div', { class: 'page' },
     h('section', { class: 'card summary' },
-      h('span', { class: 'label' }, tr('Sold fond de urgență')),
+      h('span', { class: 'label' }, tr('Sold fond de urgență'), helpBtn('fond')),
       h('strong', { class: 'big' }, money(ef.balance)),
       h('p', { class: 'ef-line' }, h('i', { class: `dot-${ef.level}` }), h('b', {}, tr('{n} luni din {m}', { n: num(ef.covered, 1), m: ef.months })), h('span', { class: 'muted' }, ` · ${tr(LEVEL_TEXT[ef.level])}`)),
       progress(ef.pct, `var(--${ef.level})`),
@@ -65,7 +65,6 @@ export function emergencyPage() {
       ef.balance > 0 ? btn(tr('Retrage'), () => openBucketMove({ bucket: 'urgenta', dir: 'out' }), 'secondary') : null,
       btn(tr('Adaugă bani'), () => openBucketMove({ bucket: 'urgenta', dir: 'in' }))),
     sectionHead(tr('Istoric mișcări')),
-    movesList('urgenta'),
-    exportButton());
+    movesList('urgenta'));
   return { title: tr('Fond de urgență'), back: '#/economii', node };
 }

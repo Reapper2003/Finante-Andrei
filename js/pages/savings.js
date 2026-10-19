@@ -8,7 +8,7 @@ import {
 } from '../calc.js';
 import {
   h, icon, card, sectionHead, linkBtn, stat, btn, go, app, emptyState, openSheet, field, textInput, amountInput,
-  segmented, invalid, toast, confirmDialog, emojiPicker, colorPicker, swipeRow,
+  segmented, invalid, toast, confirmDialog, emojiPicker, colorPicker, swipeRow, onceHint
 } from '../ui.js';
 import { barBreakdown } from '../charts.js';
 import { listRow, exportButton, movesList } from '../components.js';
@@ -162,8 +162,7 @@ export function savingsPage() {
     goals.length ? null : card(emptyState(tr('Niciun goal în această monedă.'))),
     ...active.map(g => goalCard(g, removeGoal)),
     done.length ? h('details', { class: 'done-goals' }, h('summary', {}, tr('Finalizate ({n})', { n: done.length })), h('div', { class: 'stack' }, done.map(g => goalCard(g, removeGoal)))) : null,
-    h('p', { class: 'hint center' }, tr('Glisează spre stânga pe un fond sau goal ca să-l ștergi.')),
-    exportButton());
+    onceHint('swipe-sav', tr('Glisează spre stânga pe un fond sau goal ca să-l ștergi.')));
   return { title: tr('Economii'), node };
 }
 

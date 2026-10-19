@@ -2,7 +2,7 @@ import { state, uid, commit, PALETTE } from '../store.js';
 import { plural } from '../fmt.js';
 import {
   h, sectionHead, linkBtn, segmented, app, openSheet, field, textInput, btn, invalid, toast, confirmDialog, swipeRow, catIcon,
-  emojiPicker, colorPicker,
+  emojiPicker, colorPicker, onceHint
 } from '../ui.js';
 import { listRow } from '../components.js';
 import { deleteCategory } from '../actions.js';
@@ -67,6 +67,6 @@ export function categoriesPage() {
         onTap: () => openCatForm(c), onEdit: () => openCatForm(c), onDelete: () => confirmDel(c, used),
       });
     })),
-    h('p', { class: 'hint center' }, tr('Glisează spre stânga pentru Editează / Șterge.')));
+    onceHint('swipe-cat', tr('Glisează spre stânga pentru Editează / Șterge.')));
   return { title: tr('Categorii'), back: '#/setari', node };
 }

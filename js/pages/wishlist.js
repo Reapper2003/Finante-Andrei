@@ -6,7 +6,7 @@ import { money, parseAmount } from '../fmt.js';
 import { round2, convert } from '../calc.js';
 import {
   h, icon, card, sectionHead, linkBtn, btn, app, emptyState, openSheet, field, textInput, amountInput, segmented,
-  switchRow, invalid, toast, confirmDialog, emojiPicker, swipeRow,
+  switchRow, invalid, toast, confirmDialog, emojiPicker, swipeRow, onceHint
 } from '../ui.js';
 import { currencySeg } from '../forms.js';
 import { t as tr } from '../i18n.js';
@@ -119,7 +119,7 @@ export function wishlistPage() {
     open.length
       ? h('div', { class: 'list' }, open.map(wishRow))
       : card(emptyState(tr('Lista e goală. Adaugă lucruri pe care ți le dorești sau idei de cadouri.'), tr('Adaugă'), () => openWishForm())),
-    open.length ? h('p', { class: 'hint center' }, tr('Apasă pe un rând ca să-l editezi. Glisează spre stânga ca să-l ștergi.')) : null,
+    open.length ? onceHint('swipe-wish', tr('Apasă pe un rând ca să-l editezi. Glisează spre stânga ca să-l ștergi.')) : null,
     done.length ? h('details', { class: 'done-goals' }, h('summary', {}, tr('Luate ({n})', { n: done.length })), h('div', { class: 'list' }, done.map(wishRow))) : null);
   return { title: tr('Listă de dorințe'), back: '#/acasa', node };
 }

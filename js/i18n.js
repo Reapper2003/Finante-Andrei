@@ -6,8 +6,15 @@ import { EN } from './i18n-en.js';
 
 export const isEn = () => state.settings.lang === 'en';
 
+// În română spunem „obiectiv”, nu „goal”. Se aplică doar textelor aplicației, nu numelor scrise de tine.
+const RO_WORDS = { 'goal-urile': 'obiectivele', 'goal-uri': 'obiective', 'goal-ul': 'obiectivul', goal: 'obiectiv' };
+const roWords = s => s.replace(/\b([Gg])oal(-urile|-uri|-ul)?(?![a-zăâîșț])/g, (m, g, suf = '') => {
+  const w = RO_WORDS['goal' + suf];
+  return g === 'G' ? w[0].toUpperCase() + w.slice(1) : w;
+});
+
 export function t(text, vars) {
-  let out = isEn() ? EN[text] ?? text : text;
+  let out = isEn() ? EN[text] ?? text : roWords(text);
   if (vars) out = out.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
   return out;
 }

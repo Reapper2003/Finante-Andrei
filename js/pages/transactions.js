@@ -10,6 +10,7 @@ import { t as tr, catName } from '../i18n.js';
 
 // cur = doar tranzacțiile în această monedă; min / max = interval de sumă, în moneda rangeCur.
 const f = { type: '', cat: '', acc: '', q: '', cur: '', min: null, max: null, rangeCur: '' };
+let view = 'list';
 const curLabel = c => (c === 'RON' ? 'lei' : CURRENCIES[c]);
 const rangeCur = () => f.rangeCur || f.cur || state.settings.currency;
 
@@ -218,8 +219,7 @@ export function transactionsPage() {
     h('div', { class: 'sum2' },
       sumCard('venit', 'plus', 'pos', tr('Venituri'), money(tot.income, { sign: true }), tot.income > 0 ? 'pos' : ''),
       sumCard('cheltuiala', 'minus', 'neg', tr('Cheltuieli'), money(-tot.expense), '')),
-    calendar(getMonth()),
-    listBox,
-    exportButton());
+    segmented([{ value: 'list', label: tr('Listă') }, { value: 'cal', label: tr('Calendar') }], view, v => { view = v; app.rerender(); }, 'view-seg'),
+    view === 'cal' ? calendar(getMonth()) : listBox);
   return { title: tr('Tranzacții'), subtitle: monthLabel(getMonth()), node };
 }
