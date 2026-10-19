@@ -112,30 +112,14 @@ function render() {
 function syncBleed(on) {
   document.body.classList.toggle('bleed', on);
   const top = document.querySelector('.top');
-  if (!on) { top.style.removeProperty('--top-fg'); document.body.classList.remove('scrolled'); bleedTop = null; setStatusColor(null); return; }
+  if (!on) { top.style.removeProperty('--top-fg'); document.body.classList.remove('scrolled'); return; }
   document.documentElement.style.setProperty('--top-h', `${top.offsetHeight}px`);
   const hero = document.querySelector('.bleed-hero');
   const fg = hero && getComputedStyle(hero).getPropertyValue('--on-hero').trim();
   top.style.setProperty('--top-fg', fg || '#fff');
   const tint = hero && getComputedStyle(hero).getPropertyValue('--tint').trim();
   if (tint) document.body.style.setProperty('--bleed-tint', tint); else document.body.style.removeProperty('--bleed-tint');
-  bleedTop = hero ? cssColor(hero, 'var(--top)') : null;
   onBleedScroll();
-}
-
-// Culoarea reală (rgb) a unei expresii CSS, calculată în contextul unui element (ex. „var(--top)” cu color-mix).
-function cssColor(el, expr) {
-  const probe = document.createElement('i');
-  probe.style.cssText = `position:absolute;width:0;height:0;color:${expr}`;
-  el.append(probe);
-  const c = getComputedStyle(probe).color;
-  probe.remove();
-  return c;
-}
-let bleedTop = null;
-// Bara de stare a iPhone-ului urmează culoarea `theme-color`: sus pe pagină = culoarea cardului, după derulare = fundalul paginii.
-function setStatusColor(c) {
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', c || getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
 }
 function onBleedScroll() {
   if (!document.body.classList.contains('bleed')) return;
@@ -143,8 +127,7 @@ function onBleedScroll() {
   const top = document.querySelector('.top');
   const scrolled = !hero || hero.getBoundingClientRect().bottom < top.offsetHeight + 8;
   document.body.classList.toggle('scrolled', scrolled);
-  // Când antetul devine opac (după ce derulezi), bara de stare ia culoarea lui; altfel culoarea de sus a cardului.
-  setStatusColor(!scrolled ? bleedTop : null);
+
 }
 app.rerender = render;
 
