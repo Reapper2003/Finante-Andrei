@@ -1548,3 +1548,13 @@ body.nav-fara-text .tabs a { height: 48px; }
 /* Desenele, mai mari pe cardul de pe toată lățimea (se topesc jos odată cu cardul) */
 .bleed-hero .hero-art { top: calc(var(--top-h, 70px) - 6px); height: 132px; width: 50%; max-width: 220px; right: 8px; }
 .inv-hero.bleed-hero .hero-art { top: calc(var(--top-h, 70px) - 4px); height: 110px; width: 44%; max-width: 190px; }
+
+/* ===================== Bara de stare a iPhone-ului (ora, bateria) ===================== */
+/* Aplicația merge pe sub ea. Pe Acasă și Investiții, cât ești sus, se vede cardul până la marginea ecranului.
+   Altfel, fâșia de sub oră are culoarea paginii (întunecat) sau culoarea aplicației (luminos), ca textul alb să se vadă. */
+.status-strip { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); z-index: 45; pointer-events: none;
+  background: var(--bg); transition: background-color .2s ease; }
+:root[data-theme="light"] .status-strip { background: color-mix(in srgb, var(--hero, #6C47FF) 82%, #000); }
+body.bleed:not(.scrolled) .status-strip { background: transparent; }
+/* Sticlă pe luminos: partea de sus a cardului e închisă, ca ora să se vadă peste ea */
+:root[data-theme="light"] .hero-bg-glass { --top: color-mix(in srgb, var(--hero, #6C47FF) 82%, #000); }
