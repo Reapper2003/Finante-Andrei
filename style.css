@@ -1458,3 +1458,93 @@ body.nav-plina main { padding-bottom: calc(var(--nav-h) + var(--safe-b) + 24px);
 /* Bara de jos fără text sub iconițe */
 body.nav-fara-text .tabs a span:last-child { display: none; }
 body.nav-fara-text .tabs a { height: 48px; }
+
+/* ===================== Trecerea în bara de stare a iPhone-ului ===================== */
+/* Cât ești sus pe Acasă / Investiții, bara de stare are culoarea de sus a cardului (vezi app.js),
+   iar cardul pornește din aceeași culoare și abia apoi se deschide în gradientul lui: nicio linie între ele. */
+.hero-bg-aurora { --top: color-mix(in srgb, var(--hero, #6C47FF) 85%, #000); }
+.hero-bg-solid { --top: var(--hero, #6C47FF); }
+.hero-bg-glow { --top: #0E0F14; }
+.hero-bg-pattern { --top: color-mix(in srgb, var(--hero, #6C47FF) 85%, #000); }
+.hero-bg-glass { --top: var(--card); }
+.hero-bg-dots { --top: color-mix(in srgb, var(--hero, #6C47FF) 85%, #000); }
+.hero-bg-rings { --top: color-mix(in srgb, var(--hero, #6C47FF) 85%, #000); }
+.hero-bg-mesh { --top: color-mix(in srgb, var(--hero, #6C47FF) 60%, #FF7AB6); }
+.hero-bg-split { --top: color-mix(in srgb, var(--hero, #6C47FF) 78%, #000); }
+.hero-bg-sunset { --top: #E8436E; }
+.hero-bg-ocean { --top: #0B3D91; }
+.hero-bg-forest { --top: #064E3B; }
+.hero-bg-midnight { --top: #0B1026; }
+.hero-bg-gold { --top: #7A5A12; }
+.hero-bg-lavender { --top: #7E5FD6; }
+.hero-bg-mint { --top: #0C7F72; }
+.hero-bg-cherry { --top: #4E0C20; }
+.hero-bg-peach { --top: #EC6E4E; }
+.hero-bg-slate { --top: #2A303B; }
+.hero-bg-bear { --top: #D9578A; }
+.hero-bg-car { --top: #0F1115; }
+.hero-bg-mountains { --top: #6C6FD8; }
+.hero-bg-space { --top: #0B1026; }
+.hero-bg-piggy { --top: #0B7E74; }
+.hero-bg-cat { --top: #5B4BD8; }
+.hero-bg-beach { --top: #F06A4D; }
+.hero-bg-aquarium { --top: #0B6E99; }
+.hero-bg-balloons { --top: #5AA9F0; }
+.hero-bg-winter { --top: #1E3A6E; }
+.hero-bg-city { --top: #1B1035; }
+.hero-bg-sailboat { --top: #2C7BE5; }
+.hero-bg-fireflies { --top: #0E2A22; }
+.hero-bg-rocket { --top: #12123A; }
+.hero-bg-autumn { --top: #9C3F1E; }
+.hero-bg-coffee { --top: #5A3620; }
+.hero-bg-kite { --top: #3E9BE8; }
+.hero-bg-rain { --top: #3E4C68; }
+.hero-bg-aurora2 { --top: #061626; }
+.hero-bg-puppy { --top: #E0803C; }
+.hero-bg-garden { --top: #4FA8DE; }
+.hero-bg-xmas { --top: #0F1F3D; }
+.hero-bg-night { --top: #0B1340; }
+.hero-bg-fox { --top: #24502F; }
+.hero-bg-penguin { --top: #4F98DE; }
+.hero-bg-plane { --top: #2A74CF; }
+.hero-bg-lighthouse { --top: #0E2240; }
+.hero-bg-panda { --top: #2F7A4A; }
+.hero-bg-bike { --top: #E6803A; }
+.hero-bg-music { --top: #5B26AE; }
+.hero-bg-galaxy { --top: #0A0820; }
+.hero-bg-saturn { --top: #0B1026; }
+.hero-bg-astronaut { --top: #0B0F2A; }
+.hero-bg-spring { --top: #D9779E; }
+.hero-bg-summer { --top: #FF9E3D; }
+.hero-bg-halloween { --top: #1E0C2C; }
+.hero-bg-gaming { --top: #191245; }
+.hero-bg-football { --top: #1F6E31; }
+.inv-bg-implicit { --top: color-mix(in srgb, var(--accent) 90%, #000); }
+.inv-bg-graphite { --top: #1C1F26; }
+.inv-bg-navy { --top: #0A1430; }
+.inv-bg-emerald { --top: #053A2C; }
+.inv-bg-burgundy { --top: #380C1D; }
+.inv-bg-coins { --top: #1D2B53; }
+.inv-bg-tree { --top: #0E3A2B; }
+.inv-bg-growth { --top: #1A1442; }
+.inv-bg-candles { --top: #0D1C29; }
+.inv-bg-vault { --top: #262B35; }
+.inv-bg-globe { --top: #0A2944; }
+.inv-bg-bull { --top: #0F3D2E; }
+.inv-bg-diamond { --top: #1A1446; }
+.inv-bg-goldbars { --top: #33240C; }
+.inv-bg-sprout { --top: #12402F; }
+.inv-bg-compass { --top: #1D2A3A; }
+.inv-bg-target { --top: #351020; }
+.inv-bg-crypto { --top: #1B1408; }
+.inv-bg-map { --top: #0B1E33; }
+.inv-bg-realestate { --top: #16243A; }
+.bleed-hero::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: calc(var(--top-h, 70px) + 40px); z-index: -1; pointer-events: none;
+  background: linear-gradient(to bottom, var(--top, transparent) 0, var(--top, transparent) 18px, color-mix(in srgb, var(--top, transparent) 55%, transparent) 55%, transparent 100%);
+}
+.bleed-hero { isolation: isolate; }
+
+/* Desenele, mai mari pe cardul de pe toată lățimea (se topesc jos odată cu cardul) */
+.bleed-hero .hero-art { top: calc(var(--top-h, 70px) - 6px); height: 132px; width: 50%; max-width: 220px; right: 8px; }
+.inv-hero.bleed-hero .hero-art { top: calc(var(--top-h, 70px) - 4px); height: 110px; width: 44%; max-width: 190px; }
