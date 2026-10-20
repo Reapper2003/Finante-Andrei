@@ -25,22 +25,22 @@ const HERO_GROUPS = [
   ['culori', 'Culori', [['sunset', 'Apus'], ['ocean', 'Ocean'], ['forest', 'Pădure'], ['midnight', 'Noapte'], ['gold', 'Auriu'],
     ['lavender', 'Lavandă'], ['mint', 'Mentă'], ['cherry', 'Cireașă'], ['peach', 'Piersică'], ['slate', 'Ardezie']]],
   ['natura', 'Natură', [['mountains', 'Munți'], ['beach', 'Plajă'], ['sailboat', 'Velier'], ['garden', 'Grădină'], ['rain', 'Ploaie'],
-    ['aurora2', 'Aurora boreală'], ['lighthouse', 'Far'], ['fireflies', 'Licurici']]],
+    ['aurora2', 'Aurora boreală'], ['lighthouse', 'Far'], ['fireflies', 'Licurici'], ['butterfly', 'Fluturi'], ['desert', 'Deșert'], ['rainbow', 'Curcubeu']]],
   ['animale', 'Animale', [['bear', 'Ursuleț'], ['cat', 'Pisică'], ['puppy', 'Cățel'], ['fox', 'Vulpe'], ['panda', 'Panda'],
-    ['penguin', 'Pinguin'], ['aquarium', 'Acvariu']]],
+    ['penguin', 'Pinguin'], ['aquarium', 'Acvariu'], ['owl', 'Bufniță'], ['bunny', 'Iepuraș'], ['whale', 'Balenă']]],
   ['noapte', 'Noapte și spațiu', [['night', 'Noapte senină'], ['city', 'Oraș noaptea'], ['space', 'Spațiu'], ['rocket', 'Rachetă'],
-    ['galaxy', 'Galaxie'], ['saturn', 'Saturn'], ['astronaut', 'Astronaut']]],
+    ['galaxy', 'Galaxie'], ['saturn', 'Saturn'], ['astronaut', 'Astronaut'], ['camping', 'Camping'], ['ufo', 'OZN']]],
   ['sezoane', 'Anotimpuri', [['spring', 'Primăvară'], ['summer', 'Vară'], ['autumn', 'Toamnă'], ['winter', 'Iarnă'], ['halloween', 'Halloween'],
     ['xmas', 'Crăciun'], ['kite', 'Zmeu']]],
   ['hobby', 'Hobby și călătorii', [['car', 'Mașină sport'], ['plane', 'Avion'], ['bike', 'Bicicletă'], ['balloons', 'Baloane'],
-    ['coffee', 'Cafea'], ['music', 'Muzică'], ['gaming', 'Gaming'], ['football', 'Fotbal'], ['piggy', 'Pușculiță']]],
+    ['coffee', 'Cafea'], ['music', 'Muzică'], ['gaming', 'Gaming'], ['football', 'Fotbal'], ['piggy', 'Pușculiță'], ['books', 'Cărți'], ['camera', 'Fotografie'], ['icecream', 'Înghețată'], ['train', 'Tren']]],
 ];
 // Fundalurile cardului de la Investiții (separate de Acasă), pe categorii.
 const INV_GROUPS = [
   ['simple', 'Simple', [['implicit', 'Simplu'], ['graphite', 'Grafit'], ['navy', 'Bleumarin'], ['emerald', 'Smarald'], ['burgundy', 'Bordo']]],
-  ['bani', 'Bani', [['coins', 'Monede'], ['tree', 'Copacul cu bani'], ['goldbars', 'Lingouri'], ['diamond', 'Diamant'], ['vault', 'Seif'], ['sprout', 'Răsad']]],
-  ['bursa', 'Bursă', [['growth', 'Creștere'], ['candles', 'Bursă'], ['bull', 'Taur'], ['target', 'Țintă'], ['crypto', 'Crypto']]],
-  ['lume', 'Lume', [['globe', 'Glob'], ['compass', 'Busolă'], ['map', 'Hartă'], ['realestate', 'Imobiliare']]],
+  ['bani', 'Bani', [['coins', 'Monede'], ['tree', 'Copacul cu bani'], ['goldbars', 'Lingouri'], ['diamond', 'Diamant'], ['vault', 'Seif'], ['sprout', 'Răsad'], ['wallet', 'Portofel'], ['jar', 'Borcan cu bani'], ['card', 'Card bancar'], ['calculator', 'Calculator'], ['hourglass', 'Clepsidră'], ['umbrella', 'Protecție']]],
+  ['bursa', 'Bursă', [['growth', 'Creștere'], ['candles', 'Bursă'], ['bull', 'Taur'], ['target', 'Țintă'], ['crypto', 'Crypto'], ['pie', 'Diversificare'], ['moonshot', 'Spre Lună'], ['bars', 'Grafic cu bare'], ['magnifier', 'Analiză'], ['scale', 'Balanță']]],
+  ['lume', 'Lume', [['globe', 'Glob'], ['compass', 'Busolă'], ['map', 'Hartă'], ['realestate', 'Imobiliare'], ['skyline', 'Centru financiar'], ['summit', 'Vârf'], ['ship', 'Comerț'], ['windturbine', 'Energie verde']]],
 ];
 
 // Plăcuța unui fundal (aceeași în rândul din Setări și în panoul de alegere). Cele animate au un mic ✦.

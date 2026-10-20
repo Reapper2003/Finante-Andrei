@@ -5,7 +5,7 @@ const svg = body => `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/sv
 
 // Peisaje (cu sol, apă sau orizont jos): pe cardul de sus partea din stânga se estompează, ca solul să nu se oprească brusc.
 export const HERO_SCENES = new Set(['mountains', 'beach', 'aquarium', 'winter', 'city', 'sailboat', 'fireflies', 'autumn', 'aurora2',
-  'garden', 'fox', 'lighthouse', 'bike', 'summer', 'football']);
+  'garden', 'fox', 'lighthouse', 'bike', 'summer', 'football', 'whale', 'desert', 'camping', 'train']);
 
 export const HERO_ART = {
   bear: svg(`
@@ -630,6 +630,273 @@ Object.assign(INV_ART, {
       `<rect class="ha-win" x="${x}" y="${y}" width="6" height="6" rx="1" fill="#FFD36E" ${t(-i * 0.6, 3 + (i % 3))}/>`).join('')}
     <rect x="90" y="80" width="12" height="12" rx="1.5" fill="#8A5A3C"/>
     <g class="ha-sway" ${t(0, 2.4)}><path d="M114 30v10" stroke="#FFF" stroke-width="1"/><path d="M106 40h16l-2 10h-12z" fill="#4ADE80"/><path d="M114 43v4M112 45h4" stroke="#0F3D2E" stroke-width="1.2"/></g>`),
+});
+
+/* ---------- Încă 12 fundaluri desenate pentru Acasă ---------- */
+
+const stars = list => list.map(([x, y, d, dur, r = 1]) => `<circle class="ha-star" cx="${x}" cy="${y}" r="${r}" fill="#FFF" ${t(d, dur)}/>`).join('');
+const cloud = (x, y, s = 1, fill = '#FFF', d = 0) => `<g class="ha-cloud" ${t(d, 9)}><path d="M${x} ${y}h${26 * s}a${6 * s} ${6 * s} 0 0 0 -${4 * s} -${10 * s}a${8 * s} ${8 * s} 0 0 0 -${14 * s} -${3 * s}a${6 * s} ${6 * s} 0 0 0 -${8 * s} ${13 * s}z" fill="${fill}"/></g>`;
+const butterfly = (x, y, c1, c2, d) => `<g class="ha-fly" ${t(d, 9)}><g transform="translate(${x} ${y})">
+  <g class="ha-wings" ${t(d, 0.35)}><path d="M0 0c-4-9-14-11-14-3s8 6 14 3z" fill="${c1}"/><path d="M0 0c4-9 14-11 14-3s-8 6-14 3z" fill="${c1}"/>
+    <path d="M0 1c-3 5-10 8-10 3s6-4 10-3z" fill="${c2}"/><path d="M0 1c3 5 10 8 10 3s-6-4-10-3z" fill="${c2}"/></g>
+  <rect x="-1" y="-6" width="2" height="11" rx="1" fill="#3A2A3E"/><path d="M0-6l-3-4M0-6l3-4" stroke="#3A2A3E" stroke-width=".8" stroke-linecap="round"/></g></g>`;
+
+Object.assign(HERO_ART, {
+  owl: svg(`
+    ${stars([[14, 16, 0, 2.6], [40, 70, -1.2, 3.2], [58, 12, -2, 2.4], [24, 48, -0.6, 3.4]])}
+    <circle cx="106" cy="16" r="9" fill="#FFF3C4"/><circle cx="110" cy="13" r="8" fill="#163A4A" opacity=".55"/>
+    <path d="M44 86q30-6 76 2" stroke="#6B4A2E" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M58 84q-6-8 2-12q2 8-2 12zM110 86q8-6 4-14q-8 6-4 14z" fill="#3E8E5A"/>
+    <path d="M70 34l4-10 6 8zM98 34l-4-10-6 8z" fill="#7A5A40"/>
+    <ellipse cx="84" cy="58" rx="19" ry="25" fill="#8A6A4F"/>
+    <ellipse cx="84" cy="66" rx="12" ry="15" fill="#E9D7B8"/>
+    <path d="M78 62q3 2 6 0q3 2 6 0M78 69q3 2 6 0q3 2 6 0M80 76q2 2 4 0q2 2 4 0" stroke="#C9AE86" stroke-width="1.2" fill="none"/>
+    <circle cx="76" cy="46" r="8" fill="#FFF"/><circle cx="92" cy="46" r="8" fill="#FFF"/>
+    <g class="ha-eyes"><circle cx="77" cy="47" r="4" fill="#2B1E14"/><circle cx="91" cy="47" r="4" fill="#2B1E14"/>
+      <circle cx="78.4" cy="45.6" r="1.3" fill="#FFF"/><circle cx="92.4" cy="45.6" r="1.3" fill="#FFF"/></g>
+    <path d="M84 52l-3 4h6z" fill="#F2A33A"/>
+    <path d="M66 58q-6 10 2 20M102 58q6 10-2 20" stroke="#6E5038" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M78 82v4M82 82v4M86 82v4M90 82v4" stroke="#F2A33A" stroke-width="2" stroke-linecap="round"/>`),
+
+  bunny: svg(`
+    <path d="M30 94q45-10 90 0v6H30z" fill="#6FCF7F" opacity=".7"/>
+    <g transform="rotate(-24 54 84)"><path d="M48 84l12-1-6 14z" fill="#FF8A3D"/><path d="M54 84c-2-6 0-9 2-10M54 84c2-5 6-6 8-5" stroke="#3CB55A" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>
+    <g class="ha-hover" ${t(0, 1.4)}>
+      <circle cx="70" cy="76" r="5" fill="#FFF"/>
+      <ellipse cx="86" cy="76" rx="18" ry="14" fill="#F4F1F6"/>
+      <g class="ha-tail" ${t(0, 2.4)}><ellipse cx="94" cy="32" rx="4.4" ry="14" fill="#F4F1F6"/><ellipse cx="94" cy="33" rx="2" ry="10" fill="#FFB3C8"/></g>
+      <g class="ha-tail" ${t(-0.8, 2.8)}><ellipse cx="104" cy="34" rx="4.4" ry="14" fill="#F4F1F6"/><ellipse cx="104" cy="35" rx="2" ry="10" fill="#FFB3C8"/></g>
+      <circle cx="100" cy="56" r="13" fill="#F4F1F6"/>
+      <g class="ha-eyes"><circle cx="104" cy="53" r="2.2" fill="#2B2230"/></g>
+      <circle cx="110" cy="59" r="2" fill="#FF7AA8"/><circle cx="104" cy="61" r="2.6" fill="#FFC9DA" opacity=".8"/>
+      <ellipse cx="98" cy="88" rx="7" ry="3" fill="#E6E1EA"/>
+    </g>
+    <path class="ha-heart" d="M72 46c-2-3-6-1-4 2l4 3 4-3c2-3-2-5-4-2z" fill="#FF7AA8" ${t(0, 3.2)}/>`),
+
+  whale: svg(`
+    <g class="ha-steam" ${t(0, 2.6)}><path d="M92 36c-2-6-8-9-11-7M92 36c2-6 8-9 11-7M92 36v-9" stroke="#CDEBFF" stroke-width="2.4" fill="none" stroke-linecap="round"/></g>
+    <g class="ha-bob" ${t(0, 4)}>
+      <path d="M56 66c0-15 15-26 34-26s28 12 28 24c0 7-5 12-12 12H66c-6 0-10-4-10-10z" fill="#3A73C4"/>
+      <path d="M62 70c8 6 30 8 48 2c-2 3-4 4-8 4H66c-2 0-3-1-4-6z" fill="#BFE0FF"/>
+      <path d="M58 62L44 50q4 8 0 18z" fill="#2F62AC"/><path d="M56 64L44 74q6-2 10 4z" fill="#2F62AC"/>
+      <circle cx="104" cy="58" r="2.4" fill="#0F1F3A"/><path d="M106 66q-4 3-8 1" stroke="#0F1F3A" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      <path d="M86 70q-6 6-12 4" stroke="#2F62AC" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </g>
+    ${wave(78, 3, '#5CB8F0', 'ha-wave')}${wave(86, 3.5, '#2E86D8', 'ha-wave r')}`),
+
+  butterfly: svg(`
+    ${flower(76, 100, 24, '#FF8AC6', 0)}${flower(98, 100, 34, '#FFFFFF', -1.2)}${flower(114, 100, 18, '#FFB547', -2.2)}
+    ${butterfly(66, 34, '#FFB547', '#FF7A59', 0)}${butterfly(84, 16, '#8C9EFF', '#C9B8FF', -4.5)}`),
+
+  desert: svg(`
+    <circle class="ha-halo" cx="96" cy="26" r="20" fill="#FFF3C4"/><circle cx="96" cy="26" r="13" fill="#FFE27A"/>
+    <path d="M-10 84q30-16 64-6t76-4v26H-10z" fill="#E9A75A"/>
+    <path d="M30 92q40-12 90-4v12H30z" fill="#D88A3E"/>
+    <g fill="#3E9E58"><rect x="80" y="46" width="9" height="42" rx="4.5"/><path d="M80 66h-6a4 4 0 0 1-4-4v-8a3 3 0 0 1 6 0v6h4z"/><path d="M89 60h6v-10a3 3 0 0 1 6 0v12a4 4 0 0 1-4 4h-8z"/></g>
+    <path d="M83 52v30M86 50v32" stroke="#2E7D45" stroke-width=".8"/>
+    <g class="ha-sway" ${t(0, 2)}><circle cx="84.5" cy="44" r="3" fill="#FF7AA8"/></g>
+    <g class="ha-gull" ${t(-3, 14)}><path d="M40 30q4-4 8 0q4-4 8 0" stroke="#7A4A33" stroke-width="1.6" fill="none" stroke-linecap="round"/></g>`),
+
+  camping: svg(`
+    ${stars([[12, 14, 0, 2.6], [34, 30, -1.1, 3.1], [56, 10, -2, 2.4], [80, 22, -0.4, 3.6], [110, 12, -1.6, 2.8], [100, 34, -2.6, 3.3]])}
+    <path d="M-10 86q50-14 130-4v18H-10z" fill="#1E2B3E"/>
+    ${pine(40, 88, 34, '#16324A')}${pine(52, 90, 26, '#1B3A55')}
+    <path d="M60 88l18-30 18 30z" fill="#F29F3D"/><path d="M78 58l-6 30h12z" fill="#C9772A"/><path d="M78 58v30" stroke="#8A4E1A" stroke-width="1.2"/>
+    <g opacity=".3"><circle class="ha-glow" cx="106" cy="84" r="14" fill="#FFB347" ${t(0, 2)}/></g>
+    <path d="M98 90l16-6M98 84l16 6" stroke="#6B4A2E" stroke-width="3" stroke-linecap="round"/>
+    <path class="ha-flame" d="M106 86c-6-4-5-12 0-18c1 5 6 7 4 13c3-2 3-5 3-7c3 5 1 12-7 12z" fill="#FF8A3D"/>
+    <path class="ha-flame" d="M106 86c-3-2-3-7 0-10c1 3 4 4 2 8z" fill="#FFE27A" ${t(-0.08, 0.2)}/>`),
+
+  ufo: svg(`
+    ${stars([[14, 16, 0, 2.6], [36, 60, -1.3, 3.1], [58, 14, -2.1, 2.4], [112, 20, -0.7, 3.5], [24, 84, -1.8, 2.9]])}
+    <circle cx="26" cy="34" r="6" fill="#F2B5FF" opacity=".5"/>
+    <g opacity=".35"><path class="ha-glow" d="M74 50h20l14 40H60z" fill="#B8FFE0" ${t(0, 2.4)}/></g>
+    <g class="ha-float" ${t(0, 3)}><ellipse cx="84" cy="80" rx="7" ry="5" fill="#FFF"/><circle cx="81" cy="79" r="1.8" fill="#2B2230"/><circle cx="87" cy="81" r="1.6" fill="#2B2230"/>
+      <path d="M78 84v3M90 84v3" stroke="#FFF" stroke-width="1.6" stroke-linecap="round"/></g>
+    <g class="ha-hover" ${t(0, 1.6)}>
+      <ellipse cx="84" cy="38" rx="14" ry="12" fill="#9EE7FF" opacity=".85"/>
+      <ellipse cx="84" cy="46" rx="30" ry="9" fill="#C3CCDA"/><ellipse cx="84" cy="44" rx="30" ry="6" fill="#E3E8F0"/>
+      <circle class="ha-blink" cx="64" cy="47" r="2.2" fill="#FFD166"/><circle class="ha-blink" cx="76" cy="49" r="2.2" fill="#7CF0B8" ${t(-0.5, 1.6)}/>
+      <circle class="ha-blink" cx="92" cy="49" r="2.2" fill="#FF7AA8" ${t(-1, 1.6)}/><circle class="ha-blink" cx="104" cy="47" r="2.2" fill="#FFD166" ${t(-0.3, 1.6)}/>
+    </g>`),
+
+  books: svg(`
+    <rect x="58" y="78" width="56" height="12" rx="2" fill="#E2444A"/><rect x="58" y="78" width="6" height="12" fill="#B92F35"/><path d="M68 84h42" stroke="#FFF" stroke-width="1" opacity=".6"/>
+    <rect x="64" y="66" width="48" height="12" rx="2" fill="#2F7FD0"/><rect x="64" y="66" width="6" height="12" fill="#225F9E"/><path d="M74 72h34" stroke="#FFF" stroke-width="1" opacity=".6"/>
+    <rect x="56" y="54" width="52" height="12" rx="2" fill="#F2B33D"/><rect x="56" y="54" width="6" height="12" fill="#C98F22"/><path d="M66 60h38" stroke="#FFF" stroke-width="1" opacity=".6"/>
+    <path d="M62 54q12-8 24 0q12-8 24 0v-2q-12-8-24 0q-12-8-24 0z" fill="#FFF"/><path d="M86 52v-6" stroke="#D7DEE8" stroke-width="1"/>
+    <path d="M62 52q12-8 24 0q12-8 24 0" stroke="#D7DEE8" stroke-width="1" fill="none"/>
+    <g class="ha-sway" ${t(0, 2.6)}><circle cx="98" cy="36" r="7" fill="#E2444A"/><path d="M98 29q1-4 4-5" stroke="#6B4A2E" stroke-width="1.4" fill="none"/><path d="M99 27q5-4 8 0q-5 3-8 0z" fill="#3CB55A"/></g>
+    <path class="ha-star" d="M70 26l1.4 3.4 3.4 1.4-3.4 1.4-1.4 3.4-1.4-3.4-3.4-1.4 3.4-1.4z" fill="#FFF" ${t(0, 2.4)}/>
+    <path class="ha-star" d="M114 22l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z" fill="#FFF" ${t(-1.2, 2.8)}/>`),
+
+  camera: svg(`
+    <g class="ha-floaty" ${t(0, 6)}><rect x="34" y="24" width="20" height="24" rx="2" fill="#FFF"/><rect x="37" y="27" width="14" height="13" fill="#7FB6F2"/><path d="M37 40l5-6 4 4 5-5v7z" fill="#3E9E58"/></g>
+    <g class="ha-floaty" ${t(-3, 6)}><rect x="40" y="58" width="18" height="22" rx="2" fill="#FFF"/><rect x="43" y="61" width="12" height="12" fill="#FFB547"/><circle cx="49" cy="67" r="3" fill="#FFF3C4"/></g>
+    <rect x="62" y="40" width="54" height="38" rx="8" fill="#2B2F3A"/><rect x="62" y="48" width="54" height="22" fill="#3A3F4D"/>
+    <path d="M74 40l5-7h16l5 7z" fill="#2B2F3A"/>
+    <circle cx="89" cy="59" r="15" fill="#1A1D24"/><circle cx="89" cy="59" r="11" fill="#3F6FB5"/><circle cx="89" cy="59" r="6" fill="#16263F"/><circle cx="85" cy="55" r="2.4" fill="#FFF" opacity=".7"/>
+    <rect class="ha-glow" x="104" y="44" width="8" height="5" rx="1" fill="#FFF3C4" ${t(0, 2.2)}/>
+    <circle cx="70" cy="45" r="2" fill="#E2444A"/>`),
+
+  icecream: svg(`
+    <g class="ha-float" ${t(0, 3.2)}>
+      <path d="M72 54h28l-14 40z" fill="#E8B26A"/>
+      <path d="M75 60l18 18M81 56l16 16M74 66l14 14M88 56l8 8M98 58l-20 20M92 56l-18 18M98 66l-12 12" stroke="#C98F45" stroke-width="1.2"/>
+      <circle cx="78" cy="50" r="11" fill="#9EE6C8"/><circle cx="94" cy="50" r="11" fill="#FFB3C8"/><circle cx="86" cy="38" r="12" fill="#FFF3DA"/>
+      <path d="M74 56q2 6 4 0M96 56q2 5 4 0" stroke="#FFB3C8" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M80 34l3-1M90 32l2 2M84 42l3 1M92 40l-2 2M78 40l2-2" stroke="#7A5AF8" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="88" cy="25" r="4" fill="#E2444A"/><path d="M88 21q2-5 6-6" stroke="#3E8E3A" stroke-width="1.4" fill="none"/>
+    </g>
+    <path class="ha-star" d="M56 36l1.4 3.4 3.4 1.4-3.4 1.4-1.4 3.4-1.4-3.4-3.4-1.4 3.4-1.4z" fill="#FFF" ${t(0, 2.4)}/>
+    <path class="ha-star" d="M112 66l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z" fill="#FFF" ${t(-1.2, 2.8)}/>`),
+
+  rainbow: svg(`
+    <circle cx="104" cy="22" r="9" fill="#FFE27A"/>
+    <g fill="none" stroke-width="5">
+      <path d="M50 88a36 36 0 0 1 72 0" stroke="#FF6B6B"/><path d="M55 88a31 31 0 0 1 62 0" stroke="#FFA94D"/>
+      <path d="M60 88a26 26 0 0 1 52 0" stroke="#FFE066"/><path d="M65 88a21 21 0 0 1 42 0" stroke="#69DB7C"/>
+      <path d="M70 88a16 16 0 0 1 32 0" stroke="#4DABF7"/><path d="M75 88a11 11 0 0 1 22 0" stroke="#9775FA"/>
+    </g>
+    ${cloud(40, 92, 1.1, '#FFF', 0)}${cloud(98, 94, 1, '#F1F5FF', -4)}${cloud(30, 34, .7, '#FFF', -2)}`),
+
+  train: svg(`
+    <path d="M-10 70q30-16 60-6t70-8v44H-10z" fill="#7FC28A" opacity=".55"/>
+    <path class="ha-road" d="M0 96h120" stroke="#6B4A2E" stroke-width="3" stroke-dasharray="4 4"/>
+    <path d="M0 93h120" stroke="#8C97A8" stroke-width="1.6"/>
+    <g class="ha-steam" ${t(0, 2.2)}><circle cx="98" cy="40" r="5" fill="#FFF" opacity=".9"/></g>
+    <g class="ha-steam" ${t(-1.1, 2.2)}><circle cx="90" cy="31" r="6.5" fill="#FFF" opacity=".75"/></g>
+    <rect x="96" y="46" width="8" height="12" fill="#2B2F3A"/>
+    <rect x="70" y="58" width="44" height="26" rx="4" fill="#E2444A"/><rect x="50" y="44" width="26" height="40" rx="4" fill="#C9363C"/>
+    <rect x="55" y="50" width="16" height="12" rx="2" fill="#BFE0FF"/><path d="M50 84h66" stroke="#2B2F3A" stroke-width="3"/>
+    <path d="M120 84l-6-8v8z" fill="#FFD166"/><circle cx="108" cy="66" r="3" fill="#FFE27A"/>
+    ${[60, 84, 104].map(x => `<g class="ha-wheel"><circle cx="${x}" cy="88" r="6" fill="#2B2F3A"/><path d="M${x - 5} 88h10M${x} 83v10" stroke="#8C97A8" stroke-width="1.4"/></g>`).join('')}`),
+});
+
+/* ---------- Încă 15 fundaluri desenate pentru Investiții ---------- */
+
+Object.assign(INV_ART, {
+  wallet: svg(`
+    <g class="ha-coin"><ellipse cx="94" cy="34" rx="9" ry="3.4" fill="#C9902A"/><ellipse cx="94" cy="32" rx="9" ry="3.4" fill="#FFE08A"/></g>
+    <rect x="66" y="36" width="34" height="22" rx="3" fill="#5BA3F0" transform="rotate(-10 83 47)"/><rect x="68" y="42" width="30" height="4" fill="#2B5E9E" transform="rotate(-10 83 47)"/>
+    <rect x="58" y="46" width="58" height="40" rx="8" fill="#8A5A3C"/><rect x="58" y="46" width="58" height="10" rx="5" fill="#A8714D"/>
+    <path d="M94 62h22v16H94a8 8 0 0 1 0-16z" fill="#6E4630"/><circle cx="96" cy="70" r="3" fill="#FFD166"/>
+    <path d="M64 80h22" stroke="#6E4630" stroke-width="1.4" stroke-dasharray="2 2"/>`),
+
+  jar: svg(`
+    <g class="ha-coin" ${t(-1, 3.4)}><ellipse cx="86" cy="22" rx="8" ry="3" fill="#C9902A"/><ellipse cx="86" cy="20" rx="8" ry="3" fill="#FFE08A"/></g>
+    <rect x="68" y="30" width="36" height="8" rx="3" fill="#C9D4E2"/>
+    <path d="M70 38h32q6 4 6 12v34q0 8-8 8H72q-8 0-8-8V50q0-8 6-12z" fill="#DDEBFA" opacity=".3"/>
+    ${coinStack(78, 4, 86)}${coinStack(94, 6, 86)}
+    <path d="M70 38h32q6 4 6 12v34q0 8-8 8H72q-8 0-8-8V50q0-8 6-12z" fill="none" stroke="#DDEBFA" stroke-width="2.4"/>
+    <path d="M70 48v30" stroke="#FFF" stroke-width="2" opacity=".5" stroke-linecap="round"/>
+    <rect x="72" y="52" width="28" height="12" rx="2" fill="#FFF" opacity=".9"/><path d="M78 58h16" stroke="#2F8A3E" stroke-width="2.4" stroke-linecap="round"/>`),
+
+  card: svg(`
+    <g class="ha-hover" ${t(0, 2.2)}><g transform="rotate(-12 86 56)">
+      <rect x="56" y="36" width="60" height="40" rx="6" fill="#6C47FF"/><circle cx="104" cy="44" r="5" fill="#FF7AA8" opacity=".9"/><circle cx="98" cy="44" r="5" fill="#FFD166" opacity=".9"/>
+      <rect x="62" y="50" width="11" height="8" rx="1.6" fill="#FFD36E"/><path d="M62 54h11M67.5 50v8" stroke="#C9902A" stroke-width=".7"/>
+      <path d="M62 66h8M73 66h8M84 66h8M95 66h8" stroke="#FFF" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
+      <g opacity=".25"><path class="ha-glow" d="M60 76l24-40h8l-24 40z" fill="#FFF" ${t(0, 3)}/></g>
+    </g></g>
+    ${[0, -1, -2].map(d => `<path class="ha-ping" d="M52 36a8 8 0 0 1 0 12" stroke="#BFE0FF" stroke-width="2" fill="none" stroke-linecap="round" ${t(d, 3)}/>`).join('')}`),
+
+  calculator: svg(`
+    <rect x="66" y="22" width="44" height="66" rx="7" fill="#2B2F3A"/>
+    <rect x="71" y="27" width="34" height="14" rx="2" fill="#B8F0C8"/><text x="102" y="38" text-anchor="end" font-size="10" font-weight="700" fill="#1F4D2C" font-family="monospace">+12%</text>
+    ${[0, 1, 2, 3].map(r => [0, 1, 2].map(c => `<rect class="${(r * 3 + c) % 4 === 1 ? 'ha-win' : ''}" x="${71 + c * 12}" y="${46 + r * 10}" width="9" height="7" rx="1.6" fill="${c === 2 ? '#F29F3D' : '#4A5060'}" ${t(-(r * 3 + c) * 0.7, 4)}/>`).join('')).join('')}
+    <path class="ha-note" d="M50 54h6M53 51v6" stroke="#7CF0B8" stroke-width="2" stroke-linecap="round" ${t(0, 3.6)}/>
+    <path class="ha-note" d="M46 72h6" stroke="#FF8A80" stroke-width="2" stroke-linecap="round" ${t(-1.8, 3.6)}/>`),
+
+  pie: svg(`
+    <circle cx="84" cy="54" r="26" fill="#5BA3F0"/>
+    <path d="M84 54V28a26 26 0 0 1 24.7 18z" fill="#7CF0B8"/>
+    <path d="M84 54l24.7-8A26 26 0 0 1 98 76z" fill="#FFD166"/>
+    <path d="M84 54l14 22a26 26 0 0 1-26 2z" fill="#FF8A80"/>
+    <g class="ha-hover" ${t(0, 1.6)}><path d="M80 50V24a26 26 0 0 0-24 30z" fill="#B48CFF" transform="translate(-4 -3)"/></g>
+    <circle cx="84" cy="54" r="10" fill="none"/>
+    ${[['#7CF0B8', 30], ['#FFD166', 40], ['#FF8A80', 50], ['#B48CFF', 60]].map(([c, y]) => `<rect x="114" y="${y}" width="4" height="4" rx="1" fill="${c}"/>`).join('')}`),
+
+  umbrella: svg(`
+    ${[[60, 0], [74, -0.4], [100, -0.7], [114, -0.2], [66, -0.9], [108, -0.5]].map(([x, d]) => `<path class="ha-rain" d="M${x} 6l-2 6" stroke="#9FC9FF" stroke-width="1.6" stroke-linecap="round" ${t(d, 1)}/>`).join('')}
+    <g class="ha-sway" ${t(0, 3.6)}><path d="M54 52a32 26 0 0 1 64 0q-5-5-10.7 0q-5.3-5-10.6 0q-5.4-5-10.7 0q-5.3-5-10.7 0q-5.3-5-10.6 0q-5.4-5-10.7 0z" fill="#E2444A"/>
+      <path d="M86 26v-4" stroke="#C9D4E2" stroke-width="2"/><path d="M86 52v28q0 6-6 6t-6-6" stroke="#C9D4E2" stroke-width="2.4" fill="none" stroke-linecap="round"/></g>
+    ${coinStack(98, 3, 92)}${coinStack(72, 2, 92)}`),
+
+  moonshot: svg(`
+    ${[[20, 20, 0, 2.6], [46, 12, -1.4, 3], [60, 50, -2, 2.4], [112, 60, -0.8, 3.4]].map(([x, y, d, dur]) => `<circle class="ha-star" cx="${x}" cy="${y}" r="1" fill="#FFF" ${t(d, dur)}/>`).join('')}
+    <circle cx="104" cy="20" r="11" fill="#F1E6C8"/><circle cx="100" cy="17" r="2.4" fill="#D8CBA6"/><circle cx="108" cy="24" r="1.8" fill="#D8CBA6"/>
+    <path class="ha-trail" d="M30 92Q56 84 70 62" stroke="#FFF" stroke-width="1.6" stroke-dasharray="3 5" fill="none" opacity=".6"/>
+    <g class="ha-hover" ${t(0, 1.4)}><g transform="rotate(40 80 50)">
+      <path d="M80 26c8 8 10 22 6 34H74c-4-12-2-26 6-34z" fill="#F4F6FA"/>
+      <circle cx="80" cy="40" r="4" fill="#5BA3F0"/><path d="M74 54l-6 8h7zM86 54l6 8h-7z" fill="#E2444A"/>
+      <path class="ha-flame" d="M76 60h8l-4 10z" fill="#FFB347"/></g></g>`),
+
+  bars: svg(`
+    <path d="M56 90h62" stroke="#FFF" stroke-width="1.4" opacity=".5"/>
+    ${[[60, 20, '#5BA3F0'], [72, 30, '#5BA3F0'], [84, 26, '#5BA3F0'], [96, 44, '#7CF0B8'], [108, 58, '#7CF0B8']].map(([x, hh, c], i) =>
+      `<rect class="ha-grow" x="${x}" y="${90 - hh}" width="8" height="${hh}" rx="2" fill="${c}" ${t(-i * 0.25, 5)}/>`).join('')}
+    <g class="ha-arrow" ${t(0, 5)}><path d="M58 64l14-10 12 4 26-26" stroke="#FFD166" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M104 30h8v8" stroke="#FFD166" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>`),
+
+  magnifier: svg(`
+    <path d="M52 78l14-12 12 6 14-18 12 4 12-20" stroke="#7CF0B8" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M52 78l14-12 12 6 14-18 12 4 12-20V90H52z" fill="#7CF0B8" opacity=".12"/>
+    <g class="ha-wander" ${t(0, 7)}><circle cx="86" cy="50" r="14" fill="#BFE0FF" opacity=".25"/><circle cx="86" cy="50" r="14" fill="none" stroke="#E3E8F0" stroke-width="4"/>
+      <path d="M96 60l12 12" stroke="#C9902A" stroke-width="6" stroke-linecap="round"/><path d="M80 44q4-4 9-3" stroke="#FFF" stroke-width="2" fill="none" stroke-linecap="round"/></g>`),
+
+  hourglass: svg(`
+    <rect x="68" y="18" width="36" height="6" rx="3" fill="#C98F45"/><rect x="68" y="84" width="36" height="6" rx="3" fill="#C98F45"/>
+    <path d="M72 24h28q0 18-14 30q14 12 14 30H72q0-18 14-30q-14-12-14-30z" fill="#DDEBFA" opacity=".25" stroke="#DDEBFA" stroke-width="2"/>
+    <path d="M77 30h18q-2 10-9 16q-7-6-9-16z" fill="#FFD166"/>
+    <path d="M76 84q2-12 10-14q8 2 10 14z" fill="#FFD166"/>
+    <path class="ha-road" d="M86 48v24" stroke="#FFD166" stroke-width="2" stroke-dasharray="2 3"/>
+    <path d="M66 24v60M106 24v60" stroke="#A8714D" stroke-width="2.4"/>`),
+
+  scale: svg(`
+    <path d="M86 30v54M74 88h24" stroke="#E3E8F0" stroke-width="3.4" stroke-linecap="round"/><circle cx="86" cy="28" r="3.4" fill="#FFD166"/>
+    <g class="ha-sway" ${t(0, 3.6)}>
+      <path d="M58 32h56" stroke="#E3E8F0" stroke-width="3" stroke-linecap="round"/>
+      <path d="M60 32l-8 22M60 32l8 22M112 32l-8 22M112 32l8 22" stroke="#C9D4E2" stroke-width="1"/>
+      <path d="M50 54h20a10 6 0 0 1-20 0zM102 54h20a10 6 0 0 1-20 0z" fill="#C9D4E2"/>
+      <ellipse cx="60" cy="52" rx="6" ry="2.4" fill="#FFD166"/><ellipse cx="60" cy="49" rx="6" ry="2.4" fill="#FFE08A"/>
+      <path d="M106 52l6-8 6 8z" fill="#7CF0B8"/>
+    </g>`),
+
+  skyline: svg(`
+    <rect x="52" y="44" width="16" height="48" fill="#2F3B57"/>${windows(55, 48, 2, 5, 1)}
+    <rect x="70" y="24" width="18" height="68" fill="#3A4A6E"/><path d="M79 14v10" stroke="#C9D4E2" stroke-width="1.4"/><circle class="ha-blink" cx="79" cy="14" r="1.6" fill="#FF5D6C"/>${windows(73, 28, 2, 7, 3)}
+    <rect x="90" y="36" width="14" height="56" fill="#2A3550"/>${windows(92, 40, 2, 6, 5)}
+    <rect x="106" y="52" width="12" height="40" fill="#34446A"/>${windows(108, 56, 1, 4, 7)}
+    <rect x="48" y="90" width="72" height="8" fill="#0F1626"/>
+    <path class="ha-draw" d="M52 18l10-6 8 4 10-8" stroke="#7CF0B8" stroke-width="1.6" fill="none" stroke-linecap="round" ${t(0, 4)}/>`),
+
+  summit: svg(`
+    <path d="M40 94l30-40 10 10 16-30 26 60z" fill="#5A6E8C"/>
+    <path d="M96 34l-8 15 5-2 3 5 4-6 4 4z" fill="#FFF"/><path d="M70 54l-6 8 4-1 2 3 3-4z" fill="#E3E8F0"/>
+    <path class="ha-trail" d="M52 92q14-6 22-14t14-16 8-26" stroke="#FFD166" stroke-width="1.6" stroke-dasharray="3 4" fill="none"/>
+    <path d="M96 34V14" stroke="#E3E8F0" stroke-width="1.6"/>
+    <g class="ha-sway" ${t(0, 1.8)}><path d="M96 14h14l-4 5 4 5H96z" fill="#E2444A"/></g>`),
+
+  ship: svg(`
+    <g class="ha-gull" ${t(-2, 12)}><path d="M30 20q3-3 6 0q3-3 6 0" stroke="#E3E8F0" stroke-width="1.4" fill="none" stroke-linecap="round"/></g>
+    <g class="ha-bob" ${t(0, 3.8)}>
+      <path d="M48 70h70l-8 16H58z" fill="#E2444A"/><path d="M48 70h70v4H48z" fill="#2B2F3A"/>
+      <rect x="100" y="48" width="12" height="22" rx="1" fill="#F4F6FA"/><rect x="102" y="52" width="8" height="4" fill="#5BA3F0"/>
+      ${[[56, 58, '#2F7FD0'], [70, 58, '#F2B33D'], [84, 58, '#3E9E58'], [63, 46, '#E2444A'], [77, 46, '#2F7FD0']].map(([x, y, c]) =>
+        `<rect x="${x}" y="${y}" width="13" height="11" fill="${c}"/><path d="M${x + 3} ${y + 2}v7M${x + 6.5} ${y + 2}v7M${x + 10} ${y + 2}v7" stroke="#000" stroke-width=".6" opacity=".25"/>`).join('')}
+    </g>
+    ${wave(84, 2.6, '#3A7BC8', 'ha-wave')}${wave(90, 3, '#2A5EA0', 'ha-wave r')}`),
+
+  windturbine: svg(`
+    <path d="M30 94q45-12 90-2v8H30z" fill="#3E9E58" opacity=".6"/>
+    <path d="M88 94l2-56h2l2 56z" fill="#E3E8F0"/><path d="M60 94l1.4-36h1.6l1.4 36z" fill="#C9D4E2"/>
+    <g class="ha-orbit" ${t(0, 4)}><circle cx="91" cy="38" r="22" fill="none"/>
+      ${[0, 120, 240].map(a => `<path d="M91 38l-2-21q2-3 4 0z" fill="#F4F6FA" transform="rotate(${a} 91 38)"/>`).join('')}</g>
+    <circle cx="91" cy="38" r="3" fill="#C9D4E2"/>
+    <g class="ha-orbit" ${t(-1, 3)}><circle cx="62.6" cy="58" r="15" fill="none"/>
+      ${[0, 120, 240].map(a => `<path d="M62.6 58l-1.4-14q1.4-2 2.8 0z" fill="#E3E8F0" transform="rotate(${a} 62.6 58)"/>`).join('')}</g>
+    <circle cx="62.6" cy="58" r="2.2" fill="#C9D4E2"/>
+    <circle cx="110" cy="20" r="7" fill="#FFE27A"/>`),
 });
 
 // Fundaluri de la Investiții fără desen (doar culori).

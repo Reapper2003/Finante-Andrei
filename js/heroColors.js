@@ -10,6 +10,7 @@ export const HERO_ACCENT = {
   night: '#4A5BC4', fox: '#E06A1E', penguin: '#2F7FD0', plane: '#2A74CF', lighthouse: '#E2444A', panda: '#3E9E58', bike: '#E2444A', music: '#9B3FD6',
   lavender: '#8E6FE0', mint: '#0E9A88', cherry: '#C2274A', peach: '#E8663F', slate: '#5E81AC', galaxy: '#8B5CF6', saturn: '#D98A3A',
   astronaut: '#4F6BE8', spring: '#E0679A', summer: '#F08A24', halloween: '#E2701E', gaming: '#5B4BE0', football: '#2F8A3E',
+  owl: '#2E8FA8', bunny: '#3E9E6A', whale: '#1C7BC9', butterfly: '#8A5CD6', desert: '#E2703A', rainbow: '#2F86D8', camping: '#5B6BE0', ufo: '#8B4FE0', books: '#C46A3E', camera: '#2E7C96', icecream: '#D9568C', train: '#2C7E9E',
 };
 
 export const followsHero = settings => !!(settings.accentFromHero && HERO_ACCENT[settings.heroStyle]);

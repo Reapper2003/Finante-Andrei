@@ -1403,6 +1403,35 @@ body.bleed.scrolled .top { background: color-mix(in srgb, var(--bg) 82%, transpa
 .inv-bg-map { background: radial-gradient(70% 80% at 80% 30%, rgba(124, 240, 184, .14) 0%, transparent 60%), linear-gradient(160deg, #0B1E33, #12325A 60%, #1B4A80); --tint: #12325A; }
 .inv-bg-realestate { background: radial-gradient(70% 80% at 85% 20%, rgba(255, 211, 110, .18) 0%, transparent 60%), linear-gradient(160deg, #16243A, #24385A 60%, #36507E); --tint: #24385A; }
 
+/* ===================== Încă 12 fundaluri pentru Acasă și 15 pentru Investiții ===================== */
+.hero-bg-owl { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FFD0D0; --tint: #163A4A; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .16) 0%, transparent 60%), linear-gradient(168deg, #0E2A3A, #163A4A 58%, #23566A); }
+.hero-bg-bunny { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #6B0F2A; --tint: #6CC08A; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .16) 0%, transparent 60%), linear-gradient(168deg, #3E9E6A, #6CC08A 58%, #B5E3A8); }
+.hero-bg-whale { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FFD0D0; --tint: #1C7BC9; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .16) 0%, transparent 60%), linear-gradient(168deg, #0F5A9E, #1C7BC9 58%, #6EC1F0); }
+.hero-bg-butterfly { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #6B0F2A; --tint: #B48CFF; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .16) 0%, transparent 60%), linear-gradient(168deg, #8A5CD6, #B48CFF 58%, #FFC2E0); }
+.hero-bg-desert { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #6B0F2A; --tint: #F2A65A; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .16) 0%, transparent 60%), linear-gradient(168deg, #E2703A, #F2A65A 58%, #FFD9A0); }
+.hero-bg-rainbow { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #6B0F2A; --tint: #6CB4F2; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .16) 0%, transparent 60%), linear-gradient(168deg, #3B8FE0, #6CB4F2 58%, #BFE3FF); }
+.hero-bg-camping { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FFD0D0; --tint: #232E57; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .16) 0%, transparent 60%), linear-gradient(168deg, #141B33, #232E57 58%, #3A3F78); }
+.hero-bg-ufo { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FFD0D0; --tint: #2A1350; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .16) 0%, transparent 60%), linear-gradient(168deg, #12082A, #2A1350 58%, #44207A); }
+.hero-bg-books { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FFD0D0; --tint: #C46A3E; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .16) 0%, transparent 60%), linear-gradient(168deg, #9A4E2E, #C46A3E 58%, #E0A070); }
+.hero-bg-camera { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FFD0D0; --tint: #3F7C96; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .16) 0%, transparent 60%), linear-gradient(168deg, #2E5C73, #3F7C96 58%, #8CC3D6); }
+.hero-bg-icecream { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #6B0F2A; --tint: #F08DB4; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .16) 0%, transparent 60%), linear-gradient(168deg, #E0679A, #F08DB4 58%, #9EE6C8); }
+.hero-bg-train { --on-hero: #FFFFFF; --hero-pos: #ECFCCB; --hero-neg: #FFD0D0; --tint: #4F9EB8; background: radial-gradient(80% 90% at 85% 10%, rgba(255, 255, 255, .16) 0%, transparent 60%), linear-gradient(168deg, #2C6E8E, #4F9EB8 58%, #F2C48A); }
+.inv-bg-wallet { background: radial-gradient(70% 80% at 82% 22%, rgba(255, 209, 102, .2) 0%, transparent 60%), linear-gradient(158deg, #2A1E14, #46301F 60%, #6B4A30); --tint: #46301F; }
+.inv-bg-jar { background: radial-gradient(70% 80% at 82% 22%, rgba(255, 209, 102, .16) 0%, transparent 60%), linear-gradient(158deg, #0E2F3A, #164A5A 60%, #22687E); --tint: #164A5A; }
+.inv-bg-card { background: radial-gradient(70% 80% at 82% 22%, rgba(255, 122, 168, .18) 0%, transparent 60%), linear-gradient(158deg, #17123D, #2A2070 60%, #3E2FA0); --tint: #2A2070; }
+.inv-bg-calculator { background: radial-gradient(70% 80% at 82% 22%, rgba(124, 240, 184, .14) 0%, transparent 60%), linear-gradient(158deg, #12261E, #1E3D30 60%, #2D5A47); --tint: #1E3D30; }
+.inv-bg-hourglass { background: radial-gradient(70% 80% at 82% 22%, rgba(255, 209, 102, .16) 0%, transparent 60%), linear-gradient(158deg, #2A1530, #44224E 60%, #63336F); --tint: #44224E; }
+.inv-bg-umbrella { background: radial-gradient(70% 80% at 82% 22%, rgba(159, 201, 255, .16) 0%, transparent 60%), linear-gradient(158deg, #1A2233, #27344E 60%, #3A4C70); --tint: #27344E; }
+.inv-bg-pie { background: radial-gradient(70% 80% at 82% 22%, rgba(180, 140, 255, .18) 0%, transparent 60%), linear-gradient(158deg, #141A3A, #222C5E 60%, #33418A); --tint: #222C5E; }
+.inv-bg-moonshot { background: radial-gradient(70% 80% at 82% 22%, rgba(241, 230, 200, .14) 0%, transparent 60%), linear-gradient(158deg, #0B0A24, #1A1748 60%, #2B2470); --tint: #1A1748; }
+.inv-bg-bars { background: radial-gradient(70% 80% at 82% 22%, rgba(124, 240, 184, .14) 0%, transparent 60%), linear-gradient(158deg, #0C1B33, #133057 60%, #1D4A80); --tint: #133057; }
+.inv-bg-magnifier { background: radial-gradient(70% 80% at 82% 22%, rgba(124, 240, 184, .14) 0%, transparent 60%), linear-gradient(158deg, #0D2329, #133841 60%, #1C525E); --tint: #133841; }
+.inv-bg-scale { background: radial-gradient(70% 80% at 82% 22%, rgba(255, 209, 102, .14) 0%, transparent 60%), linear-gradient(158deg, #1A1F2B, #2A3244 60%, #3E4A63); --tint: #2A3244; }
+.inv-bg-skyline { background: radial-gradient(70% 80% at 82% 22%, rgba(255, 211, 110, .14) 0%, transparent 60%), linear-gradient(158deg, #0B1020, #161F3C 60%, #24325E); --tint: #161F3C; }
+.inv-bg-summit { background: radial-gradient(70% 80% at 82% 22%, rgba(255, 209, 102, .14) 0%, transparent 60%), linear-gradient(158deg, #1E2A4A, #33466F 60%, #8C6A8E); --tint: #33466F; }
+.inv-bg-ship { background: radial-gradient(70% 80% at 82% 22%, rgba(159, 201, 255, .14) 0%, transparent 60%), linear-gradient(158deg, #0E2A4A, #174071 60%, #22599A); --tint: #174071; }
+.inv-bg-windturbine { background: radial-gradient(70% 80% at 82% 22%, rgba(255, 226, 122, .16) 0%, transparent 60%), linear-gradient(158deg, #0F3A4A, #1A5A6E 60%, #3C8A8E); --tint: #1A5A6E; }
+
 /* Animațiile lor */
 .hero-art .ha-galaxy { animation: ha-orbit 26s linear infinite; }
 .hero-art .ha-floaty { animation: ha-floaty 6s ease-in-out infinite; }
@@ -1563,15 +1592,18 @@ body.nav-fara-text .tabs a { height: 48px; }
 .inv-hero.top-card .hero-art { top: 10px; right: 10px; height: 100px; width: 42%; max-width: 180px; }
 
 /* Acasă: card compact; suma în stânga, centrată pe verticală, desenul în dreapta, cât mai mare deasupra plăcilor */
-.hero.top-card { justify-content: center; min-height: 140px; }
+.hero.top-card { justify-content: center; min-height: 162px; }
 .hero.top-card .big { margin: 2px 0 0; }
 .hero.top-card > .label, .hero.top-card > .big { position: relative; z-index: 1; }
-.hero.top-card .hero-art { top: 8px; right: 8px; width: 46%; max-width: 156px; height: calc(100% - 40px); max-height: 112px; }
-/* peisajele: solul se estompează spre stânga, ca să nu se oprească brusc */
-.hero.top-card.art-scene .hero-art svg { width: auto; aspect-ratio: 6 / 5; margin-left: auto;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 26%); mask-image: linear-gradient(to right, transparent, #000 26%); }
+/* desenul are exact mărimea lui (6:5) și stă la distanță de marginea din dreapta */
+.hero.top-card .hero-art { top: 12px; right: 20px; width: 46%; max-width: 156px; height: calc(100% - 50px); max-height: 116px; }
+.hero.top-card .hero-art svg { width: auto; aspect-ratio: 6 / 5; margin-left: auto; }
+.hero.top-card.art-scene .hero-art { right: 12px; }
+/* peisajele: solul se estompează la capete, ca să nu se oprească brusc */
+.hero.top-card.art-scene .hero-art svg {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 26%, #000 90%, transparent); mask-image: linear-gradient(to right, transparent, #000 26%, #000 90%, transparent); }
 /* desenele mici în pătratul lor: puțin mai mari */
-.hero.top-card:is(.hero-bg-spring, .hero-bg-galaxy, .hero-bg-saturn, .hero-bg-kite) .hero-art svg { transform: scale(1.18); transform-origin: 100% 40%; }
+.hero.top-card:is(.hero-bg-spring, .hero-bg-galaxy, .hero-bg-saturn, .hero-bg-kite) .hero-art svg { transform: scale(1.15); transform-origin: 70% 45%; }
 .hero.top-card .spark { top: 50%; right: 14px; transform: translateY(calc(-50% - 22px)); width: 38%; height: 44%; }
 .hero.top-card .spark path { vector-effect: non-scaling-stroke; }
 
