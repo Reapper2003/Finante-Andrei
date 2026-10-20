@@ -1555,10 +1555,12 @@ body.nav-fara-text .tabs a { height: 48px; }
 .status-strip { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); z-index: 45;
   pointer-events: none; background: var(--bg); transition: background-color .2s ease; }
 :root[data-theme="light"] .status-strip { background: color-mix(in srgb, var(--hero, #6C47FF) 82%, #000); }
-body.bleed:not(.scrolled) .status-strip { background: transparent; }
-/* Sticlă pe luminos: sus cardul e închis, ca ora albă să se vadă */
-:root[data-theme="light"] .bleed-hero.hero-bg-glass::before {
-  content: ""; position: absolute; left: 0; right: 0; top: 0; height: calc(var(--safe-t) + 50px); z-index: -1; pointer-events: none;
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--hero, #6C47FF) 82%, #000) 0, color-mix(in srgb, var(--hero, #6C47FF) 82%, #000) var(--safe-t), transparent 100%);
+/* Pe Acasă / Investiții, cât ești sus: zona din spatele orei are exact culoarea de sus a cardului (vezi app.js),
+   iar cardul pornește din aceeași culoare. Așa culoarea curge continuu de sub oră în card, oricum s-ar așeza cardul. */
+body.bleed:not(.scrolled) .status-strip { background: var(--bleed-top, transparent); height: calc(var(--safe-t) + 2px); }
+:root[data-theme="light"] .hero-bg-glass { --top: color-mix(in srgb, var(--hero, #6C47FF) 82%, #000); }
+.bleed-hero::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: calc(var(--top-h, 70px) + 24px); z-index: -1; pointer-events: none;
+  background: linear-gradient(to bottom, var(--top, transparent) 0, var(--top, transparent) calc(var(--safe-t) + 4px), transparent 100%);
 }
 

@@ -121,6 +121,14 @@ function syncBleed(on) {
   top.style.setProperty('--top-fg', fg || '#fff');
   const tint = hero && getComputedStyle(hero).getPropertyValue('--tint').trim();
   if (tint) document.body.style.setProperty('--bleed-tint', tint); else document.body.style.removeProperty('--bleed-tint');
+  // culoarea de sus a cardului (rgb), pentru zona din spatele orei
+  if (hero) {
+    const probe = document.createElement('i');
+    probe.style.cssText = 'position:absolute;width:0;height:0;color:var(--top, transparent)';
+    hero.append(probe);
+    document.body.style.setProperty('--bleed-top', getComputedStyle(probe).color);
+    probe.remove();
+  }
   onBleedScroll();
 }
 function measureTop() {
