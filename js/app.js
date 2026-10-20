@@ -113,35 +113,22 @@ function syncBleed(on) {
   document.body.classList.toggle('bleed', on);
   const top = document.querySelector('.top');
   if (!on) { top.style.removeProperty('--top-fg'); document.body.classList.remove('scrolled'); return; }
-  measureTop();
-  // încă o dată după ce pagina s-a așezat (fonturi, zona orei raportată mai târziu)
-  requestAnimationFrame(() => { if (document.body.classList.contains('bleed')) measureTop(); });
+  // Poziția cardului și înălțimea antetului sunt calculate în CSS (--top-h = zona orei + 72px), deci nu depind de
+  // momentul în care iPhone-ul raportează zona orei la pornire.
   const hero = document.querySelector('.bleed-hero');
   const fg = hero && getComputedStyle(hero).getPropertyValue('--on-hero').trim();
   top.style.setProperty('--top-fg', fg || '#fff');
   const tint = hero && getComputedStyle(hero).getPropertyValue('--tint').trim();
   if (tint) document.body.style.setProperty('--bleed-tint', tint); else document.body.style.removeProperty('--bleed-tint');
-  // culoarea de sus a cardului (rgb), pentru zona din spatele orei
-  if (hero) {
-    const probe = document.createElement('i');
-    probe.style.cssText = 'position:absolute;width:0;height:0;color:var(--top, transparent)';
-    hero.append(probe);
-    document.body.style.setProperty('--bleed-top', getComputedStyle(probe).color);
-    probe.remove();
-  }
   onBleedScroll();
 }
-function measureTop() {
-  document.documentElement.style.setProperty('--top-h', `${document.querySelector('.top').offsetHeight}px`);
-  onBleedScroll();
-}
+// „Ai derulat dincolo de card?” se decide după cât ai derulat efectiv: la deschidere ești sus, deci sub oră e cardul.
 function onBleedScroll() {
   if (!document.body.classList.contains('bleed')) return;
   const hero = document.querySelector('.bleed-hero');
   const top = document.querySelector('.top');
-  const scrolled = !hero || hero.getBoundingClientRect().bottom < top.offsetHeight + 8;
-  document.body.classList.toggle('scrolled', scrolled);
-
+  const limit = hero ? Math.max(60, hero.offsetHeight - top.offsetHeight - 8) : 60;
+  document.body.classList.toggle('scrolled', window.scrollY > limit);
 }
 app.rerender = render;
 
@@ -199,10 +186,9 @@ function setupPullToRefresh() {
 }
 
 async function start() {
-  // Antetul își schimbă înălțimea când iPhone-ul raportează zona orei (uneori după pornire) sau la rotire:
-  // cardul de sus se repoziționează de fiecare dată, ca să umple mereu până la marginea ecranului.
-  // (border-box: zona orei e padding, deci trebuie urmărită toată înălțimea, nu doar conținutul)
-  new ResizeObserver(() => { if (document.body.classList.contains('bleed')) measureTop(); }).observe(document.querySelector('.top'), { box: 'border-box' });
+  // La revenirea în aplicație sau după încărcarea completă, starea antetului se recalculează
+  for (const ev of ['load', 'pageshow', 'resize']) addEventListener(ev, onBleedScroll);
+  document.addEventListener('visibilitychange', onBleedScroll);
   await load();
   if (state.settings.privateOnStart) state.settings.privateMode = true;
   runAutomations();
