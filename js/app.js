@@ -113,12 +113,18 @@ function syncBleed(on) {
   document.body.classList.toggle('bleed', on);
   const top = document.querySelector('.top');
   if (!on) { top.style.removeProperty('--top-fg'); document.body.classList.remove('scrolled'); return; }
-  document.documentElement.style.setProperty('--top-h', `${top.offsetHeight}px`);
+  measureTop();
+  // încă o dată după ce pagina s-a așezat (fonturi, zona orei raportată mai târziu)
+  requestAnimationFrame(() => { if (document.body.classList.contains('bleed')) measureTop(); });
   const hero = document.querySelector('.bleed-hero');
   const fg = hero && getComputedStyle(hero).getPropertyValue('--on-hero').trim();
   top.style.setProperty('--top-fg', fg || '#fff');
   const tint = hero && getComputedStyle(hero).getPropertyValue('--tint').trim();
   if (tint) document.body.style.setProperty('--bleed-tint', tint); else document.body.style.removeProperty('--bleed-tint');
+  onBleedScroll();
+}
+function measureTop() {
+  document.documentElement.style.setProperty('--top-h', `${document.querySelector('.top').offsetHeight}px`);
   onBleedScroll();
 }
 function onBleedScroll() {
@@ -184,19 +190,11 @@ function setupPullToRefresh() {
   window.addEventListener('touchcancel', end);
 }
 
-// Dacă aplicația e întinsă sub bara de stare a iPhone-ului (instalată cu modul nou), cardul de sus merge până sus,
-// prin spatele orei. Altfel (instalare veche, Android, browser), cardul pornește lin din culoarea barei de stare.
-function detectUnderStatus() {
-  const probe = document.createElement('div');
-  probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:env(safe-area-inset-top, 0px);visibility:hidden;pointer-events:none';
-  document.body.append(probe);
-  document.documentElement.classList.toggle('under-status', probe.offsetHeight > 0);
-  probe.remove();
-}
-
 async function start() {
-  detectUnderStatus();
-  addEventListener('resize', detectUnderStatus);
+  // Antetul își schimbă înălțimea când iPhone-ul raportează zona orei (uneori după pornire) sau la rotire:
+  // cardul de sus se repoziționează de fiecare dată, ca să umple mereu până la marginea ecranului.
+  // (border-box: zona orei e padding, deci trebuie urmărită toată înălțimea, nu doar conținutul)
+  new ResizeObserver(() => { if (document.body.classList.contains('bleed')) measureTop(); }).observe(document.querySelector('.top'), { box: 'border-box' });
   await load();
   if (state.settings.privateOnStart) state.settings.privateMode = true;
   runAutomations();

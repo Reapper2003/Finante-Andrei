@@ -1539,16 +1539,9 @@ body.nav-fara-text .tabs a { height: 48px; }
 .inv-bg-crypto { --top: #1B1408; }
 .inv-bg-map { --top: #0B1E33; }
 .inv-bg-realestate { --top: #16243A; }
-/* Trecere ușoară de sus: cardul pornește din culoarea barei de stare a iPhone-ului (= fundalul paginii)
-   și se deschide treptat în culoarea și desenul lui, fără o linie între ele. */
-:root:not(.under-status) .bleed-hero::before {
-  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 44px; z-index: 2; pointer-events: none;
-  background: linear-gradient(to bottom, var(--bg) 0, color-mix(in srgb, var(--bg) 86%, transparent) 8px, color-mix(in srgb, var(--bg) 62%, transparent) 17px,
-    color-mix(in srgb, var(--bg) 36%, transparent) 26px, color-mix(in srgb, var(--bg) 14%, transparent) 35px, transparent 44px);
-}
-/* textul de sus coboară puțin, ca să nu stea în zona de trecere */
-:root:not(.under-status) body.bleed .top { padding-top: calc(var(--safe-t) + 30px); }
 .bleed-hero { isolation: isolate; }
+/* Cardul de la Investiții are mereu text alb (antetul de peste el îl preia) */
+.inv-hero { --on-hero: #FFFFFF; }
 
 /* Desenele, mai mari pe cardul de pe toată lățimea (se topesc jos odată cu cardul) */
 .bleed-hero .hero-art { top: calc(var(--top-h, 70px) - 6px); height: 132px; width: 50%; max-width: 220px; right: 8px; }
@@ -1558,13 +1551,13 @@ body.nav-fara-text .tabs a { height: 48px; }
 /* Pe Acasă și Investiții, cât ești sus, cardul trece prin spatele orei și al bateriei.
    Pe celelalte pagini (și după ce derulezi), sub oră e o fâșie: fundalul paginii pe întunecat,
    culoarea aplicației pe luminos (în acest mod iPhone scrie ora cu alb). */
-.status-strip { display: none; }
-:root.under-status .status-strip { display: block; position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); z-index: 45;
+/* Unde iPhone-ul nu pune ora peste aplicație (Android, browser), zona are înălțimea 0 și fâșia nu se vede. */
+.status-strip { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); z-index: 45;
   pointer-events: none; background: var(--bg); transition: background-color .2s ease; }
-:root.under-status[data-theme="light"] .status-strip { background: color-mix(in srgb, var(--hero, #6C47FF) 82%, #000); }
-:root.under-status body.bleed:not(.scrolled) .status-strip { background: transparent; }
+:root[data-theme="light"] .status-strip { background: color-mix(in srgb, var(--hero, #6C47FF) 82%, #000); }
+body.bleed:not(.scrolled) .status-strip { background: transparent; }
 /* Sticlă pe luminos: sus cardul e închis, ca ora albă să se vadă */
-:root.under-status[data-theme="light"] .bleed-hero.hero-bg-glass::before {
+:root[data-theme="light"] .bleed-hero.hero-bg-glass::before {
   content: ""; position: absolute; left: 0; right: 0; top: 0; height: calc(var(--safe-t) + 50px); z-index: -1; pointer-events: none;
   background: linear-gradient(to bottom, color-mix(in srgb, var(--hero, #6C47FF) 82%, #000) 0, color-mix(in srgb, var(--hero, #6C47FF) 82%, #000) var(--safe-t), transparent 100%);
 }
