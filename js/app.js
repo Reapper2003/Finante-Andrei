@@ -184,7 +184,19 @@ function setupPullToRefresh() {
   window.addEventListener('touchcancel', end);
 }
 
+// Dacă aplicația e întinsă sub bara de stare a iPhone-ului (instalată cu modul nou), cardul de sus merge până sus,
+// prin spatele orei. Altfel (instalare veche, Android, browser), cardul pornește lin din culoarea barei de stare.
+function detectUnderStatus() {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:env(safe-area-inset-top, 0px);visibility:hidden;pointer-events:none';
+  document.body.append(probe);
+  document.documentElement.classList.toggle('under-status', probe.offsetHeight > 0);
+  probe.remove();
+}
+
 async function start() {
+  detectUnderStatus();
+  addEventListener('resize', detectUnderStatus);
   await load();
   if (state.settings.privateOnStart) state.settings.privateMode = true;
   runAutomations();
