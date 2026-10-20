@@ -215,7 +215,8 @@ export const brokerOfAsset = a => state.brokers.find(b => b.id === a.brokerId);
 export function assetStats(a, upTo = null) {
   const contribs = state.contributions.filter(c => c.assetId === a.id && inRange(c.date, upTo));
   const deposited = round2(sum(contribs, c => c.amount));
-  const vals = state.assetValues.filter(v => v.assetId === a.id && inRange(v.date, upTo)).sort((x, y) => x.date.localeCompare(y.date));
+  // La aceeași dată contează valoarea salvată ultima (ts), nu ordinea din listă.
+  const vals = state.assetValues.filter(v => v.assetId === a.id && inRange(v.date, upTo)).sort((x, y) => x.date.localeCompare(y.date) || (x.ts || 0) - (y.ts || 0));
   const last = vals[vals.length - 1];
   // Fără valoare introdusă: valoarea = total depus. Contribuțiile de după ultima valoare se adaugă la ea.
   const value = round2(last ? last.value + sum(contribs.filter(c => c.date > last.date), c => c.amount) : deposited);
@@ -243,11 +244,28 @@ export function portfolioStats(upTo = null) {
   return { deposited, value, profit, pct: deposited > 0 ? profit / deposited : 0 };
 }
 
-export function portfolioSeries() {
+// Valoarea portofoliului pe perioada aleasă (în zile: 1, 7, 30, 365, 1095, 1825, sau 'all').
+// Până la ~2 luni: un punct pe zi; până la ~1 an: unul pe săptămână; peste: unul pe lună (la final de lună), plus azi.
+// Perioada nu începe înainte de prima investiție, ca graficul să nu pornească de la zero.
+export function portfolioSeriesFor(period) {
   const dates = [...state.contributions.map(c => c.date), ...state.assetValues.map(v => v.date)].filter(Boolean).sort();
-  if (!dates.length) return [];
-  const cm = currentMonth();
-  return monthsRange(dates[0].slice(0, 7), cm).map(m => ({ m, ...portfolioStats(m === cm ? null : monthEnd(m)) }));
+  if (!dates.length) return { points: [], step: 'day' };
+  const t = today();
+  let start = period === 'all' ? dates[0] : addDays(t, -Number(period));
+  if (start < dates[0]) start = dates[0];
+  if (start > t) start = t;
+  const span = daysBetween(start, t);
+  const step = span <= 62 ? 'day' : span <= 400 ? 'week' : 'month';
+  const list = [];
+  if (step === 'month') {
+    for (const m of monthsRange(start.slice(0, 7), t.slice(0, 7))) { const e = monthEnd(m); list.push(e < t ? e : t); }
+    if (list[0] > start) list.unshift(start);
+  } else {
+    const k = step === 'day' ? 1 : 7;
+    for (let d = t; d >= start; d = addDays(d, -k)) list.unshift(d);
+    if (list[0] > start) list.unshift(start);
+  }
+  return { step, points: [...new Set(list)].map(d => ({ d, ...portfolioStats(d === t ? null : d) })) };
 }
 
 export function allocation(by) {

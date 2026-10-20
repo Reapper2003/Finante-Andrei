@@ -70,7 +70,7 @@ export function donut({ items, title, format, onLegend, size = 200, legendLimit 
 }
 
 let gradId = 0;
-export function lineChart({ labels, series, format, height = 180, bare = false }) {
+export function lineChart({ labels, tips = null, series, format, height = 180, bare = false }) {
   const hideAxis = isPrivate() || bare;
   const W = 340, H = height, pl = hideAxis ? 10 : 44, pr = 12, pt = 12, pb = 26;
   const all = series.flatMap(se => se.values).filter(v => v != null && isFinite(v));
@@ -120,7 +120,7 @@ export function lineChart({ labels, series, format, height = 180, bare = false }
   svg.append(guide, ...dots, hit);
   const tip = h('div', { class: 'chart-tip', hidden: true });
 
-  // Punctele urmează degetul cursiv de-a lungul liniei; eticheta arată luna cea mai apropiată.
+  // Punctele urmează degetul cursiv de-a lungul liniei; eticheta arată punctul (ziua sau luna) cel mai apropiat.
   let shownIdx = -1;
   function show(e) {
     const r = svg.getBoundingClientRect();
@@ -136,7 +136,7 @@ export function lineChart({ labels, series, format, height = 180, bare = false }
     });
     if (i !== shownIdx) {
       shownIdx = i;
-      tip.replaceChildren(h('b', {}, labels[i]), ...series.map(se => h('span', {}, h('i', { style: { background: se.color } }), `${se.name}: ${format(se.values[i])}`)));
+      tip.replaceChildren(h('b', {}, tips?.[i] ?? labels[i]), ...series.map(se => h('span', {}, h('i', { style: { background: se.color } }), `${se.name}: ${format(se.values[i])}`)));
     }
     tip.hidden = false;
     const left = (cx / W) * 100;

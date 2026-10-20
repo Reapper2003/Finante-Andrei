@@ -1091,10 +1091,11 @@ body.bleed:not(.scrolled) .top .icon-btn.round {
 .te-opt.used { opacity: .55; }
 
 /* Graficul curat: file de tab, inel cu total, primele 4 */
-.cc-tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--line); }
-.cc-tabs button { position: relative; padding: 2px 0 11px; border: 0; background: none; color: var(--muted); font-size: 15px; font-weight: 650; }
+/* cele trei file împart lățimea în mod egal */
+.cc-tabs { display: flex; border-bottom: 1px solid var(--line); }
+.cc-tabs button { position: relative; flex: 1; padding: 2px 0 11px; border: 0; background: none; color: var(--muted); font-size: 15px; font-weight: 650; text-align: center; }
 .cc-tabs button.on { color: var(--text); }
-.cc-tabs button.on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--accent); }
+.cc-tabs button.on::after { content: ""; position: absolute; left: 14%; right: 14%; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--accent); }
 .cc-body { display: flex; align-items: center; gap: 18px; padding-top: 16px; }
 .cc-ring { position: relative; flex: none; width: 124px; height: 124px; }
 .cc-ring svg { display: block; }
@@ -1589,16 +1590,18 @@ body.nav-fara-text .tabs a { height: 48px; }
 :root[data-theme="dark"] .top-card + .pill-strip .pill { box-shadow: 0 10px 28px rgba(0, 0, 0, .45); }
 .top-card + .pill-strip .pill small { font-size: 11px; }
 .top-card + .pill-strip .pill b { font-size: 14px; }
-.inv-hero.top-card .hero-art { top: 10px; right: 10px; height: 100px; width: 42%; max-width: 180px; }
+/* desenul stă lângă sumă, centrat pe înălțimea etichetei, sumei și câștigului, cu aer sus și în dreapta */
+.inv-hero.top-card .hero-art { top: 22px; right: 28px; height: 86px; width: 40%; max-width: 150px; }
+.inv-hero.top-card .hero-art svg { width: auto; aspect-ratio: 6 / 5; margin-left: auto; }
 
 /* Acasă: card compact; suma în stânga, centrată pe verticală, desenul în dreapta, cât mai mare deasupra plăcilor */
 .hero.top-card { justify-content: center; min-height: 162px; }
 .hero.top-card .big { margin: 2px 0 0; }
 .hero.top-card > .label, .hero.top-card > .big { position: relative; z-index: 1; }
 /* desenul are exact mărimea lui (6:5) și stă la distanță de marginea din dreapta */
-.hero.top-card .hero-art { top: 12px; right: 20px; width: 46%; max-width: 156px; height: calc(100% - 50px); max-height: 116px; }
+.hero.top-card .hero-art { top: 12px; right: 26px; width: 46%; max-width: 156px; height: calc(100% - 50px); max-height: 116px; }
 .hero.top-card .hero-art svg { width: auto; aspect-ratio: 6 / 5; margin-left: auto; }
-.hero.top-card.art-scene .hero-art { right: 12px; }
+.hero.top-card.art-scene .hero-art { right: 16px; }
 /* peisajele: solul se estompează la capete, ca să nu se oprească brusc */
 .hero.top-card.art-scene .hero-art svg {
   -webkit-mask-image: linear-gradient(to right, transparent, #000 26%, #000 90%, transparent); mask-image: linear-gradient(to right, transparent, #000 26%, #000 90%, transparent); }

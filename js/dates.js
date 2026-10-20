@@ -102,10 +102,18 @@ export function monthLabel(key) {
 // Doar numele scurt al lunii: „oct” / „Oct”.
 export const monthAbbr = key => names().short[Number(key.slice(5, 7)) - 1];
 
+// „oct '26”: apostroful arată că 26 e anul, nu ziua.
 export function monthShort(key) {
   const [y, m] = key.split('-').map(Number);
-  return `${names().short[m - 1]} ${String(y).slice(2)}`;
+  return `${names().short[m - 1]} '${String(y).slice(2)}`;
 }
+
+// „20 oct” și „20 oct 2026”, pentru graficele pe zile.
+export function dayShort(s) {
+  const [, m, d] = s.split('-').map(Number);
+  return `${d} ${names().short[m - 1]}`;
+}
+export const dayLong = s => `${dayShort(s)} ${s.slice(0, 4)}`;
 
 export function dayLabel(s) {
   const t = today();

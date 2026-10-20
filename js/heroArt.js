@@ -544,14 +544,14 @@ Object.assign(HERO_ART, {
   saturn: svg(`
     ${[[16, 16, 0, 2.6], [40, 70, -1.4, 3.1], [112, 18, -2.2, 2.4], [28, 40, -0.6, 3.6]]
       .map(([x, y, d, dur]) => `<circle class="ha-star" cx="${x}" cy="${y}" r="1" fill="#FFF" ${t(d, dur)}/>`).join('')}
-    <g transform="rotate(-16 84 52)">
-      <ellipse cx="84" cy="52" rx="34" ry="8" fill="none" stroke="#E8C98E" stroke-width="4" opacity=".85"/>
-      <circle cx="84" cy="52" r="18" fill="#E9A85B"/>
-      <path d="M67 46h34M66 52h36M68 58h32" stroke="#C9813A" stroke-width="2.4" opacity=".6"/>
-      <path d="M50 52a34 8 0 0 0 68 0" fill="none" stroke="#F3DCA8" stroke-width="4"/>
+    <g transform="rotate(-16 78 52)">
+      <ellipse cx="78" cy="52" rx="34" ry="8" fill="none" stroke="#E8C98E" stroke-width="4" opacity=".85"/>
+      <circle cx="78" cy="52" r="18" fill="#E9A85B"/>
+      <path d="M61 46h34M60 52h36M62 58h32" stroke="#C9813A" stroke-width="2.4" opacity=".6"/>
+      <path d="M44 52a34 8 0 0 0 68 0" fill="none" stroke="#F3DCA8" stroke-width="4"/>
     </g>
-    <circle cx="84" cy="52" r="34" fill="none" stroke="#FFF" stroke-width=".6" stroke-dasharray="1.5 4" opacity=".35"/>
-    <g class="ha-orbit" ${t(0, 12)}><circle cx="84" cy="52" r="34" fill="none"/><circle cx="118" cy="52" r="3.6" fill="#D9E2F0"/></g>`),
+    <circle cx="78" cy="52" r="34" fill="none" stroke="#FFF" stroke-width=".6" stroke-dasharray="1.5 4" opacity=".35"/>
+    <g class="ha-orbit" ${t(0, 12)}><circle cx="78" cy="52" r="37.6" fill="none"/><circle cx="112" cy="52" r="3.6" fill="#D9E2F0"/></g>`),
 
   astronaut: svg(`
     ${[[14, 20, 0, 2.6], [44, 84, -1.3, 3.2], [114, 14, -2, 2.4], [24, 60, -0.7, 3.4], [100, 92, -1.8, 2.9]]

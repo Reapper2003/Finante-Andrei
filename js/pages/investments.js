@@ -1,8 +1,8 @@
 import { state, uid, commit } from '../store.js';
-import { today, fmtDate, monthShort } from '../dates.js';
+import { today, fmtDate, monthShort, monthLabel, dayShort, dayLong } from '../dates.js';
 import { money, pct, parseAmount, CURRENCIES, plural, forInput } from '../fmt.js';
 import {
-  round2, assetStats, brokerStats, portfolioStats, portfolioSeries, allocation, assetTypeOptions, assetTypeLabel, brokerOfAsset, convert,
+  round2, assetStats, brokerStats, portfolioStats, portfolioSeriesFor, allocation, assetTypeOptions, assetTypeLabel, brokerOfAsset, convert,
 } from '../calc.js';
 import {
   h, card, sectionHead, linkBtn, stat, btn, go, app, signCls, emptyState, openSheet, field, textInput, amountInput, dateInput,
@@ -107,7 +107,7 @@ function openValueForm(asset, existing) {
     footer: btn(tr('Salvează'), () => {
       const v = parseAmount(value.value);
       if (!(v >= 0) || value.value.trim() === '') return invalid(value, tr('Introdu valoarea'));
-      const out = { assetId: asset.id, date: date.value || today(), value: round2(v) };
+      const out = { assetId: asset.id, date: date.value || today(), value: round2(v), ts: Date.now() };
       if (existing) Object.assign(state.assetValues.find(x => x.id === existing.id), out);
       else state.assetValues.push({ ...out, id: uid() });
       commit();
@@ -135,17 +135,18 @@ export function investmentsPage() {
   }
   const base = state.settings.currency;
   const p = portfolioStats();
-  const series = portfolioSeries();
-  // „1L” = luna asta față de cea trecută (2 puncte), „3L” = ultimele 3 luni (4 puncte) etc.
-  const shown = period === 'all' ? series : series.slice(-(Number(period) + 1));
+  // Perioada aleasă: 1 zi, 1 săptămână, 1 lună, 1 an, 3 ani, 5 ani sau tot.
+  const { points: shown, step } = portfolioSeriesFor(period);
+  const lab = x => (step === 'month' ? monthShort(x.d.slice(0, 7)) : dayShort(x.d));
+  const tipLab = x => (step === 'month' && x.d !== today() ? monthLabel(x.d.slice(0, 7)) : dayLong(x.d));
   const up = p.profit >= 0;
 
   // Cardul principal: valoarea, câștigul și graficul, împreună.
   const invStyle = INV_ART[state.settings.invStyle] || INV_PLAIN.includes(state.settings.invStyle) ? state.settings.invStyle : 'implicit';
   const art = INV_ART[invStyle] ? h('div', { class: 'hero-art' }) : null;
   if (art) art.innerHTML = INV_ART[invStyle];
-  const PERIODS = [['1', '1L'], ['3', '3L'], ['6', '6L'], ['12', '1A'], ['36', '3A'], ['all', tr('Tot')]];
-  const periods = series.length > 1 ? h('div', { class: 'inv-periods', role: 'radiogroup' }, PERIODS.map(([v, label]) => h('button', {
+  const PERIODS = [['1', tr('1Z')], ['7', tr('1S')], ['30', tr('1L')], ['365', tr('1A')], ['1095', tr('3A')], ['1825', tr('5A')], ['all', tr('Tot')]];
+  const periods = state.contributions.length || state.assetValues.length ? h('div', { class: 'inv-periods', role: 'radiogroup' }, PERIODS.map(([v, label]) => h('button', {
     type: 'button', role: 'radio', class: period === v ? 'on' : '', 'aria-checked': String(period === v), onclick: () => { period = v; app.rerender(); },
   }, label))) : null;
   const hero = h('section', { class: `card inv-hero inv-bg-${invStyle}${art ? ' has-art' : ''} top-card` },
@@ -155,7 +156,7 @@ export function investmentsPage() {
     h('strong', { class: 'big' }, money(p.value)),
     h('span', { class: 'inv-pill ' + (up ? 'up' : 'down') }, up ? '▲' : '▼', ` ${money(p.profit, { sign: true })} · ${pct(p.pct, 1, true)}`),
     shown.length > 1 ? lineChart({
-      labels: shown.map(x => monthShort(x.m)), bare: true, height: 130,
+      labels: shown.map(lab), tips: shown.map(tipLab), bare: true, height: 130,
       series: [
         { name: tr('Valoare'), color: '#FFFFFF', values: shown.map(x => x.value), area: true },
         { name: tr('Total depus'), color: 'rgba(255,255,255,.55)', values: shown.map(x => x.deposited), dashed: true },
