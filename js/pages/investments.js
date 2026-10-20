@@ -148,7 +148,7 @@ export function investmentsPage() {
   const periods = series.length > 1 ? h('div', { class: 'inv-periods', role: 'radiogroup' }, PERIODS.map(([v, label]) => h('button', {
     type: 'button', role: 'radio', class: period === v ? 'on' : '', 'aria-checked': String(period === v), onclick: () => { period = v; app.rerender(); },
   }, label))) : null;
-  const hero = h('section', { class: `card inv-hero inv-bg-${invStyle}${art ? ' has-art' : ''} bleed-hero hl-mixt` },
+  const hero = h('section', { class: `card inv-hero inv-bg-${invStyle}${art ? ' has-art' : ''} top-card` },
     art,
     h('div', { class: 'inv-top' },
       h('span', { class: 'label' }, tr('Valoare portofoliu'))),
@@ -207,7 +207,7 @@ export function investmentsPage() {
       barBreakdown({ items: alloc, format: v => `${money(v)} · ${pct(v / (p.value || 1), 0)}` })) : null,
     base !== 'RON' || state.brokers.some(b => b.currency !== base) ? h('p', { class: 'hint center' }, tr('Totalurile sunt convertite cu cursul din Setări.')) : null,
     h('div', { class: 'center' }, linkBtn(tr('Calculator investiții'), () => go('#/calculator'), 'trend')));
-  return { title: tr('Investiții'), node, bleed: true };
+  return { title: tr('Investiții'), node };
 }
 
 export function brokerPage(id) {

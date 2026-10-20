@@ -12,7 +12,7 @@ import { t as tr, catName } from '../i18n.js';
 const PER = { lunar: '/lună', trimestrial: '/trim.', anual: '/an' };
 
 function openSubForm(existing) {
-  const s = existing ? { ...existing } : { frequency: 'lunar', nextPayment: today(), autoRecord: true, categoryId: catByName('Abonamente', 'cheltuiala')?.id || '' };
+  const s = existing ? { ...existing } : { frequency: 'lunar', nextPayment: today(), autoRecord: false, categoryId: catByName('Abonamente', 'cheltuiala')?.id || '' };
   const name = textInput(s.name, { placeholder: tr('ex. Netflix'), maxlength: 40 });
   const amount = amountInput(s.amount);
   const freq = segmented(freqOptions(), s.frequency);
@@ -31,7 +31,7 @@ function openSubForm(existing) {
       field(tr('Categorie'), cat),
       field(tr('Notă'), note),
       switchRow(tr('De anulat?'), s.toCancel, v => { s.toCancel = v; }, tr('Marchează-l ca să-l revizuiești')),
-      switchRow(tr('Înregistrează automat plata'), s.autoRecord, v => { s.autoRecord = v; }, tr('La data plății se adaugă cheltuiala din contul Curent'))),
+      switchRow(tr('Înregistrează automat plata'), s.autoRecord, v => { s.autoRecord = v; }, tr('Pornit: la data plății se adaugă singură cheltuiala. Oprit: plata rămâne pe Acasă, la „Urmează”, până confirmi că ai plătit-o.'))),
     footer: h('div', { class: 'btn-row' },
       existing ? btn(tr('Șterge'), () => confirmDelete(existing, () => sh.close()), 'ghost danger-text') : null,
       btn(existing ? tr('Salvează') : tr('Adaugă'), () => {
@@ -76,12 +76,13 @@ export function subscriptionsPage() {
     list.length
       ? h('div', { class: 'list' }, list.map(s => {
         const soon = s.nextPayment && s.nextPayment >= t && daysBetween(t, s.nextPayment) <= 7;
+        const late = s.nextPayment && s.nextPayment < t && !s.autoRecord;
         const content = h('div', { class: 'row' + (soon ? ' soon' : '') },
           catIcon(catById(s.categoryId) || { icon: '🔁', color: '#C9CED6' }),
           h('div', { class: 'row-main' },
             h('div', { class: 'row-title' }, s.name, s.toCancel ? h('span', { class: 'tag warn' }, tr('De anulat?')) : null),
             h('div', { class: 'row-sub' }, [freqLabel(s.frequency), s.paymentMethod].filter(Boolean).join(' · ')),
-            h('div', { class: 'row-sub' + (soon ? ' accent' : '') }, s.nextPayment ? `${tr('Următoarea plată: {date}', { date: fmtDate(s.nextPayment) })}${soon ? ` · ${inDays(s.nextPayment)}` : ''}` : '')),
+            h('div', { class: 'row-sub' + (soon ? ' accent' : late ? ' warn-text' : '') }, s.nextPayment ? `${tr('Următoarea plată: {date}', { date: fmtDate(s.nextPayment) })}${soon ? ` · ${inDays(s.nextPayment)}` : late ? ` · ${tr('neconfirmată')}` : ''}` : '')),
           h('div', { class: 'row-right' }, h('span', { class: 'amt' }, money(s.amount)), h('span', { class: 'row-sub' }, tr(PER[s.frequency]))));
         return swipeRow(content, { onTap: () => openSubForm(s), onEdit: () => openSubForm(s), onDelete: () => confirmDelete(s) });
       }))

@@ -8,9 +8,9 @@ import { openTxForm, openCategoryTxSheet, openGoalForm, openGoalActions, openSal
 import { buildDemo } from '../demo.js';
 import { runAutomations } from '../actions.js';
 import { t as tr } from '../i18n.js';
-import { HERO_ART } from '../heroArt.js';
+import { HERO_ART, HERO_SCENES } from '../heroArt.js';
 import { showTransactions } from './transactions.js';
-import { upcomingRow, tilesGrid, cleanChart } from './homeParts.js';
+import { upcomingRow, confirmPaid, dueText, tilesGrid, cleanChart } from './homeParts.js';
 
 export function loadDemo() {
   setState(buildDemo(state.settings));
@@ -72,17 +72,18 @@ function sparkline(m) {
   const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
   const W = 200, H = 64;
   const pts = vals.map((v, i) => `${((i / (vals.length - 1)) * W).toFixed(1)} ${(H - 6 - ((v - min) / span) * (H - 12)).toFixed(1)}`);
-  return s('svg', { class: 'spark', width: W, height: H, viewBox: `0 0 ${W} ${H}`, fill: 'none', 'aria-hidden': 'true' },
+  return s('svg', { class: 'spark', width: W, height: H, viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', fill: 'none', 'aria-hidden': 'true' },
     s('path', { d: 'M' + pts.join(' L'), stroke: 'currentColor', 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
 }
 
 function openCommitments(a) {
-  openSheet({
+  const sh = openSheet({
     title: a.payday ? tr('De plătit până la salariu') : tr('De plătit până la final de lună'),
     body: h('div', {},
       h('p', { class: 'muted' }, tr('Total: {sum} · se scad din suma pe zi.', { sum: money(a.committed) })),
-      h('div', { class: 'list' }, a.commitments.map(c => h('div', { class: 'row' },
-        h('div', { class: 'row-main' }, h('div', { class: 'row-title' }, c.label), h('div', { class: 'row-sub' }, `${c.kind} · ${fmtDate(c.date)}`)),
+      h('p', { class: 'muted' }, tr('Apasă pe o plată ca să confirmi că ai plătit-o.')),
+      h('div', { class: 'list' }, a.commitments.map(c => h('button', { type: 'button', class: 'row', onclick: () => confirmPaid(c, a.commitments, () => sh.close()) },
+        h('div', { class: 'row-main' }, h('div', { class: 'row-title' }, c.label), h('div', { class: 'row-sub' + (c.late ? ' warn-text' : '') }, `${c.kind} · ${c.late || c.date === today() ? dueText(c) : fmtDate(c.date)}`)),
         h('span', { class: 'amt' }, money(c.amount)))))),
   });
 }
@@ -135,7 +136,7 @@ function allowanceCard() {
     bigMoney(Math.max(0, a.free > 0 ? a.leftToday : 0), {}, 'mid'),
     progress(frac, over ? 'var(--warn)' : null),
     h('p', { class: 'allow2-sub' }, sub),
-    upcomingRow(a));
+    upcomingRow(a, () => openCommitments(a)));
 }
 
 // Iconițe pentru compartimentele de economii din grafic.
@@ -156,19 +157,19 @@ export function dashboardPage() {
   const avail = accountBalance('curent', upTo);
   const isEmpty = !state.transactions.length && !state.goals.length && !state.brokers.length && !state.subscriptions.length && !state.debts.length;
 
-  // Cardul de sus ocupă toată lățimea și se topește în pagină; desenul ales stă lângă sold.
+  // Cardul de sus, sub antet; desenul ales stă în dreapta soldului.
   const heroStyle = state.settings.heroStyle || 'aurora';
   const art = HERO_ART[heroStyle] ? h('div', { class: 'hero-art' }) : null;
   if (art) art.innerHTML = HERO_ART[heroStyle];
-  const hero = h('section', { class: `card summary hero hero-bg-${heroStyle}${art ? ' has-art' : ''} bleed-hero hl-mixt` },
-    art || sparkline(m),
-    h('span', { class: 'label' }, m === cm ? tr('Disponibil · cont Curent') : tr('Disponibil la {date}', { date: fmtDate(upTo) })),
-    bigMoney(avail));
-  // Cele trei sume stau ca plăci la trecerea dintre card și pagină. Tap: Tranzacții, filtrate pe acel tip.
+  // Cele trei sume, ca plăci agățate de marginea de jos a cardului. Tap: Tranzacții, filtrate pe acel tip.
   const pills = h('div', { class: 'pill-strip' },
     h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('venit') }, h('small', {}, tr('Venituri')), h('b', {}, moneyShort(tot.income))),
     h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('cheltuiala') }, h('small', {}, tr('Cheltuieli')), h('b', {}, moneyShort(-tot.expense))),
     h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('') }, h('small', {}, tot.left >= 0 ? tr('Economisit') : tr('Cheltuit în plus')), h('b', {}, moneyShort(Math.abs(tot.left)))));
+  const hero = h('section', { class: `card summary hero hero-bg-${heroStyle}${art ? ' has-art' : ''}${art && HERO_SCENES.has(heroStyle) ? ' art-scene' : ''} top-card` },
+    art || sparkline(m),
+    h('span', { class: 'label' }, m === cm ? tr('Disponibil · cont Curent') : tr('Disponibil la {date}', { date: fmtDate(upTo) })),
+    bigMoney(avail));
 
   const active = state.goals.filter(g => !g.done);
   const goals = [
@@ -189,11 +190,11 @@ export function dashboardPage() {
 
   // Plăcile (4, alese din Setări → Aspect și limbă) vin după „Azi mai poți cheltui”.
   const node = h('div', { class: 'page home-tablou' },
-    hero, pills, monthChip(),
+    monthChip(), hero, pills,
     live ? allowanceCard() : null,
     welcome,
     live ? tilesGrid() : null,
     chart,
     ...goals);
-  return { title: `${greeting()} 👋`, subtitle: longDate(today()), node, bleed: true };
+  return { title: `${greeting()} 👋`, subtitle: longDate(today()), node };
 }

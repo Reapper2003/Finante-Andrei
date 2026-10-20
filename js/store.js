@@ -31,7 +31,7 @@ export function slotTab() {
 }
 
 // Crește odată cu VERSION din sw.js; apare în Setări ca să vezi ce versiune rulează.
-export const APP_VERSION = 39;
+export const APP_VERSION = 43;
 
 const KEY = 'finante.data.v1';
 // Tema și culoarea, păstrate și separat ca pagina să le aplice înainte de afișare (vezi index.html).
@@ -87,6 +87,7 @@ export function defaultState() {
       privateOnStart: false,
       includeReceivables: false,
       opening: { curent: 0, economii: 0 },
+      payConfirm: true,
     },
     emergency: { initial: 0, months: 6, manualAvg: null, red: 1, orange: 3 },
     categories: defaultCategories(),
@@ -116,6 +117,11 @@ function migrate(raw) {
   s.emergency = { ...d.emergency, ...(raw.emergency || {}) };
   for (const k of Object.keys(d)) if (Array.isArray(d[k]) && !Array.isArray(s[k])) s[k] = [];
   if (!s.categories.length) s.categories = d.categories;
+  // Abonamentele nu se mai înregistrează singure: rămân la „Urmează” până confirmi plata (plata automată se poate porni din nou, pe fiecare).
+  if (!raw.settings?.payConfirm) {
+    for (const x of s.subscriptions) x.autoRecord = false;
+    s.settings.payConfirm = true;
+  }
   // Culorile din paleta veche (prea șterse) trec la nuanța corespunzătoare din paleta nouă.
   for (const x of [...s.categories, ...s.goals, ...s.funds]) {
     const i = OLD_PALETTE.indexOf(String(x.color).toUpperCase());

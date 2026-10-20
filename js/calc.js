@@ -419,13 +419,15 @@ export function buildYearReport(y) {
 /* ---------- Cât pot cheltui azi ---------- */
 
 // Plățile din contul Curent care mai urmează până la `end` (inclusiv): abonamente și rate neplătite încă.
+// Rămân în listă și după scadență, până confirmi că le-ai plătit (abonamentele cu plată automată se înregistrează singure).
 export function upcomingCommitments(end = monthEnd(currentMonth())) {
   const t = today(), cm = currentMonth();
   const items = [];
   for (const s of state.subscriptions) {
     // Un abonament poate cădea de mai multe ori în interval (ex. lunar, când salariul e peste mai mult de o lună).
     for (let d = s.nextPayment, i = 0; d && d <= end && i < 6; d = addMonthsDate(d, FREQ[s.frequency] || 1, s.anchorDay), i++) {
-      if (d > t) items.push({ label: s.name, date: d, amount: s.amount, kind: tr('Abonament') });
+      if (s.autoRecord && d <= t) continue;
+      items.push({ label: s.name, date: d, amount: s.amount, kind: tr('Abonament'), subId: s.id, late: d < t });
     }
   }
   for (const d of state.debts) {
@@ -440,7 +442,7 @@ export function upcomingCommitments(end = monthEnd(currentMonth())) {
       if (due > end || (m !== cm && due <= t)) continue;
       const amount = Math.min(d.monthly, remaining);
       remaining -= amount;
-      items.push({ label: d.creditor, date: due, amount, kind: tr('Rată') });
+      items.push({ label: d.creditor, date: due, amount, kind: tr('Rată'), debtId: d.id, late: due < t });
     }
   }
   return items.sort((a, b) => a.date.localeCompare(b.date));

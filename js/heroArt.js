@@ -3,6 +3,10 @@
 
 const svg = body => `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMaxYMid meet" aria-hidden="true">${body}</svg>`;
 
+// Peisaje (cu sol, apă sau orizont jos): pe cardul de sus partea din stânga se estompează, ca solul să nu se oprească brusc.
+export const HERO_SCENES = new Set(['mountains', 'beach', 'aquarium', 'winter', 'city', 'sailboat', 'fireflies', 'autumn', 'aurora2',
+  'garden', 'fox', 'lighthouse', 'bike', 'summer', 'football']);
+
 export const HERO_ART = {
   bear: svg(`
     <path d="M98 18c-3-6-11-4-10 2 1 5 10 10 10 10s9-5 10-10c1-6-7-8-10-2z" fill="#FF6B8A"/>

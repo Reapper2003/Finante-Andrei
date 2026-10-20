@@ -1,12 +1,13 @@
 // Piese pentru pagina Acasă: rândul „Urmează”, plăcile alese de tine și graficul pe categorii.
 
-import { state, modOn, save } from '../store.js';
-import { today, addDays, fmtDayMonth, weekdayInitials, currentMonth } from '../dates.js';
+import { state, modOn, save, catByName } from '../store.js';
+import { today, addDays, fmtDate, fmtDayMonth, weekdayInitials, currentMonth } from '../dates.js';
 import { money, moneyShort, num, pct } from '../fmt.js';
 import {
   expenseByCategory, incomeByCategory, savingsBreakdown, goalStats, efStats, netWorth, monthTotals, accountBalance, portfolioStats, subTotals, debtTotals, convert,
 } from '../calc.js';
-import { h, s, icon, go, openSheet, app, catGlyph, withEmoji } from '../ui.js';
+import { h, s, icon, go, openSheet, app, catGlyph, withEmoji, btn, linkBtn, toast } from '../ui.js';
+import { paySubscription, saveDebtPayment } from '../actions.js';
 import { openGoalForm } from '../forms.js';
 import { t as tr } from '../i18n.js';
 
@@ -24,18 +25,47 @@ export function ring(frac, color, size = 56, inner = null, stroke = 6) {
 
 /* ---------- Plățile care urmează, în cardul „Azi mai poți cheltui” ---------- */
 
-export function upcomingRow(a) {
+// Plățile rămân aici (și după scadență) până apeși pe ele și confirmi că le-ai plătit.
+export function upcomingRow(a, openAll) {
   const list = a.commitments || [];
   if (!list.length) {
     return h('p', { class: 'up-none' }, icon('check', 15),
       a.payday ? tr('Nicio plată programată până la salariu') : tr('Nicio plată programată până la final de lună'));
   }
   const shown = list.slice(0, 3);
+  const tap = fn => e => { e.stopPropagation(); fn(); };
   return h('div', { class: 'up-row' },
     h('span', { class: 'up-label' }, tr('Urmează')),
     h('div', { class: 'up-chips' },
-      shown.map(c => h('span', { class: 'up-chip' }, icon(kindIcon(c), 13), h('b', {}, c.label), h('small', {}, `${fmtDayMonth(c.date)} · ${money(c.amount)}`))),
-      list.length > 3 ? h('span', { class: 'up-chip more' }, `+${list.length - 3}`) : null));
+      shown.map(c => h('button', { type: 'button', class: 'up-chip' + (c.late ? ' late' : ''), onclick: tap(() => confirmPaid(c, list)) },
+        icon(kindIcon(c), 13), h('b', {}, c.label), h('small', {}, `${dueText(c)} · ${money(c.amount)}`))),
+      list.length > 3 ? h('button', { type: 'button', class: 'up-chip more', onclick: tap(() => openAll?.()) }, `+${list.length - 3}`) : null));
+}
+
+// „azi”, „restantă din 3 oct.” sau data scadenței.
+export const dueText = c => (c.date === today() ? tr('azi') : c.late ? tr('restantă din {date}', { date: fmtDayMonth(c.date) }) : fmtDayMonth(c.date));
+
+// Confirmarea unei plăți de la „Urmează”. Se confirmă mereu cea mai veche plată neconfirmată a abonamentului / datoriei.
+export function confirmPaid(c, list = [c], after) {
+  const first = list.find(x => (c.subId && x.subId === c.subId) || (c.debtId && x.debtId === c.debtId)) || c;
+  const sub = first.subId && state.subscriptions.find(x => x.id === first.subId);
+  const debt = first.debtId && state.debts.find(x => x.id === first.debtId);
+  if (!sub && !debt) return;
+  const done = msg => { sh.close(); after?.(); toast(msg); };
+  const sh = openSheet({
+    title: tr('Ai plătit {name}?', { name: first.label }),
+    body: h('div', { style: { display: 'grid', gap: '10px' } },
+      h('p', { class: 'muted' }, tr('{kind} de {sum}, cu scadența pe {date}.', { kind: first.kind, sum: money(first.amount), date: fmtDate(first.date) })),
+      h('p', { class: 'muted' }, tr('Dacă confirmi, se adaugă ca cheltuială din contul Curent, cu data de azi, și dispare de la „Urmează”.')),
+      sub ? linkBtn(tr('Sari peste ea fără să o înregistrezi'), () => { paySubscription(sub, false); done(tr('Plată sărită')); }, null) : null),
+    footer: h('div', { class: 'btn-row' },
+      btn(tr('Nu încă'), () => sh.close(), 'ghost'),
+      btn(tr('Da, am plătit'), () => {
+        if (sub) paySubscription(sub);
+        else saveDebtPayment({ debtId: debt.id, date: today(), amount: first.amount }, true, catByName('Rate credite', 'cheltuiala')?.id || null);
+        done(tr('Plată confirmată'));
+      }, 'primary')),
+  });
 }
 
 /* ---------- Ultimele 7 zile: cheltuieli pe zile (azi e ultima bară) ---------- */

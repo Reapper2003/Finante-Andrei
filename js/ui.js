@@ -137,16 +137,7 @@ export function applyTheme() {
   };
   for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
 
-  // Varianta temei (ex. negru complet pe întunecat, „hârtie” pe luminos). „Nuanța aplicației” se calculează din culoare.
   const st = state.settings;
-  const variant = dark ? (st.darkVariant || 'grafit') : (st.lightVariant || 'rece');
-  root.dataset.variant = variant;
-  const tinted = variant === 'nuanta' ? (dark
-    ? { '--bg': mix(base, '#000000', 0.9), '--card': mix(base, '#15161A', 0.86), '--soft': mix(base, '#1F2228', 0.8) }
-    : { '--bg': mix(base, '#FFFFFF', 0.93), '--card': '#FFFFFF', '--soft': mix(base, '#FFFFFF', 0.88) }) : {};
-  for (const k of ['--bg', '--card', '--soft']) {
-    if (tinted[k]) root.style.setProperty(k, tinted[k]); else root.style.removeProperty(k);
-  }
   const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
   if (bg) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
 
@@ -701,7 +692,7 @@ export function openColorPicker({ value, title = tr('Alege culoarea'), onPick })
 /* ---------- Explicații „?” și indicii afișate doar primele dăți ---------- */
 
 const HELP = {
-  azi: ['Cât pot cheltui azi', 'Banii din contul Curent, minus plățile care mai urmează până la salariu (abonamente, rate), împărțiți la zilele rămase. Dacă azi cheltui mai puțin, suma pe zi crește în zilele următoare.'],
+  azi: ['Cât pot cheltui azi', 'Banii din contul Curent, minus plățile care mai urmează până la salariu (abonamente, rate), împărțiți la zilele rămase. Dacă azi cheltui mai puțin, suma pe zi crește în zilele următoare. Plățile de la „Urmează” rămân acolo, chiar și după scadență, până apeși pe ele și confirmi că le-ai plătit.'],
   bilant: ['Bilanț', 'Veniturile lunii minus cheltuielile lunii. Pozitiv înseamnă că ai câștigat mai mult decât ai cheltuit.'],
   avere: ['Avere netă', 'Tot ce ai (cont Curent, economii, bani de primit, investiții) minus tot ce datorezi. Arată dacă, per total, averea ta crește de la o lună la alta.'],
   fond: ['Fond de urgență', 'Bani puși deoparte pentru neprevăzute: pierderea jobului, o reparație, o problemă de sănătate. Se măsoară în luni de cheltuieli; ținta obișnuită e 3–6 luni.'],

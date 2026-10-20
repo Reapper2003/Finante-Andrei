@@ -952,6 +952,8 @@ body.onboarding .tabs, body.onboarding #eye, body.onboarding #more { display: no
 .start-card p { margin: 0; }
 .start-q { font-weight: 600; margin-bottom: 8px !important; }
 .start-card .link-btn { margin-top: 8px; }
+.start-tip { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px !important; padding: 10px 12px; border-radius: 14px; background: var(--soft); color: var(--muted); font-size: 13px; line-height: 1.4; }
+.start-tip .ic { flex: none; margin-top: 1px; color: var(--accent); }
 .start-foot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 
 /* 17. Puțin mai mult aer între secțiuni */
@@ -964,7 +966,12 @@ body.onboarding .tabs, body.onboarding #eye, body.onboarding #more { display: no
 .up-label { flex: none; color: var(--muted); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .up-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
 .up-chips::-webkit-scrollbar { display: none; }
-.up-chip { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; background: var(--soft); font-size: 12.5px; white-space: nowrap; }
+.up-chip { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border: 0; border-radius: 999px; background: var(--soft); color: var(--text); font: inherit; font-size: 12.5px; white-space: nowrap; cursor: pointer; }
+.up-chip:active { transform: scale(.96); }
+/* plată trecută de scadență și neconfirmată */
+.up-chip.late { background: color-mix(in srgb, var(--warn) 16%, var(--soft)); }
+.up-chip.late .ic, .up-chip.late small { color: var(--warn); }
+.row-sub.warn-text { color: var(--warn); }
 .up-chip .ic { color: var(--accent); }
 .up-chip b { font-weight: 650; }
 .up-chip small { color: var(--muted); font-size: 12px; }
@@ -1413,12 +1420,6 @@ body.bleed.scrolled .top { background: color-mix(in srgb, var(--bg) 82%, transpa
 @keyframes ha-ping { 0% { transform: scale(.4); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
 
 /* ===================== Opțiuni de afișare ===================== */
-/* Variante de temă */
-:root[data-theme="light"][data-variant="alb"] { --bg: #FFFFFF; --card: #F4F5F7; --soft: #EBEDF1; --line: #E3E6EB; --glass: rgba(255, 255, 255, .82); }
-:root[data-theme="light"][data-variant="hartie"] { --bg: #F5EFE3; --card: #FFFCF6; --soft: #EEE6D6; --line: #E4DAC7; --glass: rgba(255, 252, 246, .8);
-  --shadow: 0 1px 2px rgba(60, 40, 10, .05), 0 8px 24px rgba(60, 40, 10, .07); }
-:root[data-theme="dark"][data-variant="negru"] { --bg: #000000; --card: #0F1013; --soft: #1A1C21; --line: rgba(255, 255, 255, .08); --glass: rgba(18, 18, 22, .8); }
-:root[data-theme="dark"][data-variant="albastru"] { --bg: #0A1020; --card: #121A2E; --soft: #1B2540; --line: rgba(160, 190, 255, .09); --glass: rgba(18, 26, 46, .8); }
 .variant-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
 .variant-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .variant { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: var(--muted); text-align: center; }
@@ -1543,28 +1544,34 @@ body.nav-fara-text .tabs a { height: 48px; }
 /* Cardul de la Investiții are mereu text alb (antetul de peste el îl preia) */
 .inv-hero { --on-hero: #FFFFFF; }
 
-/* Desenele, mai mari pe cardul de pe toată lățimea (se topesc jos odată cu cardul) */
-.bleed-hero .hero-art { top: calc(var(--top-h, 70px) - 6px); height: 132px; width: 50%; max-width: 220px; right: 8px; }
-.inv-hero.bleed-hero .hero-art { top: calc(var(--top-h, 70px) - 4px); height: 110px; width: 44%; max-width: 190px; }
 
-/* ===================== Sub bara de stare a iPhone-ului (ca în Revolut) ===================== */
-/* Pe Acasă și Investiții, cât ești sus, cardul trece prin spatele orei și al bateriei.
-   Pe celelalte pagini (și după ce derulezi), sub oră e o fâșie: fundalul paginii pe întunecat,
-   culoarea aplicației pe luminos (în acest mod iPhone scrie ora cu alb). */
-/* Unde iPhone-ul nu pune ora peste aplicație (Android, browser), zona are înălțimea 0 și fâșia nu se vede. */
-.status-strip { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); z-index: 45;
-  pointer-events: none; background: var(--bg); transition: background-color .2s ease; }
+/* ===================== Bara cu ora a iPhone-ului ===================== */
+/* Dacă aplicația a fost instalată în modul în care ora stă peste conținut, sub oră e o fâșie: fundalul paginii
+   pe întunecat, culoarea aplicației pe luminos (acolo ora e scrisă cu alb). Altfel zona are înălțimea 0. */
+.status-strip { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); z-index: 45; pointer-events: none; background: var(--bg); }
 :root[data-theme="light"] .status-strip { background: color-mix(in srgb, var(--hero, #6C47FF) 82%, #000); }
-/* Pe Acasă / Investiții, cât ești sus: zona din spatele orei are exact culoarea de sus a cardului (vezi app.js),
-   iar cardul pornește din aceeași culoare. Așa culoarea curge continuu de sub oră în card, oricum s-ar așeza cardul. */
-body.bleed:not(.scrolled) .status-strip { background: transparent; }
-/* Antetul paginilor cu card pe toată lățimea are înălțime fixă (zona orei + 72px), calculată de iPhone însuși:
-   cardul (care urcă exact cu --top-h) ajunge mereu până la marginea de sus, fără măsurători în cod. */
-:root { --top-h: calc(var(--safe-t) + 72px); }
-body.bleed .top { height: var(--top-h); box-sizing: border-box; }
-:root[data-theme="light"] .hero-bg-glass { --top: color-mix(in srgb, var(--hero, #6C47FF) 82%, #000); }
-.bleed-hero::before {
-  content: ""; position: absolute; left: 0; right: 0; top: 0; height: calc(var(--top-h, 70px) + 24px); z-index: -1; pointer-events: none;
-  background: linear-gradient(to bottom, var(--top, transparent) 0, var(--top, transparent) calc(var(--safe-t) + 4px), transparent 100%);
-}
+
+/* ===================== Cardul de sus, sub antet (Acasă și Investiții) ===================== */
+/* Card rotunjit; Venituri / Cheltuieli / Economisit (sau Total depus / Câștig / Randament) stau ca plăci mici,
+   retrase de la marginile lui, agățate de marginea de jos. */
+.top-card { position: relative; overflow: hidden; isolation: isolate; border-radius: 28px !important; padding-bottom: 44px !important; }
+.top-card + .pill-strip { margin: -30px 18px 0; gap: 6px; }
+.top-card + .pill-strip .pill { padding: 8px 6px; border-radius: 14px; gap: 1px; align-items: center; text-align: center; box-shadow: 0 10px 28px rgba(15, 17, 21, .13); }
+:root[data-theme="dark"] .top-card + .pill-strip .pill { box-shadow: 0 10px 28px rgba(0, 0, 0, .45); }
+.top-card + .pill-strip .pill small { font-size: 11px; }
+.top-card + .pill-strip .pill b { font-size: 14px; }
+.inv-hero.top-card .hero-art { top: 10px; right: 10px; height: 100px; width: 42%; max-width: 180px; }
+
+/* Acasă: card compact; suma în stânga, centrată pe verticală, desenul în dreapta, cât mai mare deasupra plăcilor */
+.hero.top-card { justify-content: center; min-height: 140px; }
+.hero.top-card .big { margin: 2px 0 0; }
+.hero.top-card > .label, .hero.top-card > .big { position: relative; z-index: 1; }
+.hero.top-card .hero-art { top: 8px; right: 8px; width: 46%; max-width: 156px; height: calc(100% - 40px); max-height: 112px; }
+/* peisajele: solul se estompează spre stânga, ca să nu se oprească brusc */
+.hero.top-card.art-scene .hero-art svg { width: auto; aspect-ratio: 6 / 5; margin-left: auto;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 26%); mask-image: linear-gradient(to right, transparent, #000 26%); }
+/* desenele mici în pătratul lor: puțin mai mari */
+.hero.top-card:is(.hero-bg-spring, .hero-bg-galaxy, .hero-bg-saturn, .hero-bg-kite) .hero-art svg { transform: scale(1.18); transform-origin: 100% 40%; }
+.hero.top-card .spark { top: 50%; right: 14px; transform: translateY(calc(-50% - 22px)); width: 38%; height: 44%; }
+.hero.top-card .spark path { vector-effect: non-scaling-stroke; }
 

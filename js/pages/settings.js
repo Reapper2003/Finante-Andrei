@@ -85,20 +85,6 @@ function bgRow(title, groups, art, prefix, current, open) {
     h('span', { class: 'chev', 'aria-hidden': 'true' }, icon('chevR', 18)));
 }
 
-// Variante de temă: [id, nume, fundal, card]. „Nuanța aplicației” se calculează din culoarea principală.
-const LIGHT_VARIANTS = [['rece', 'Gri rece', '#F4F5F8', '#FFFFFF'], ['alb', 'Alb', '#FFFFFF', '#F4F5F7'], ['hartie', 'Hârtie', '#F5EFE3', '#FFFCF6'], ['nuanta', 'Nuanța aplicației', null, '#FFFFFF']];
-const DARK_VARIANTS = [['grafit', 'Grafit', '#0B0C10', '#16181D'], ['negru', 'Negru complet', '#000000', '#0F1013'], ['albastru', 'Albastru noapte', '#0A1020', '#121A2E'], ['nuanta', 'Nuanța aplicației', null, null]];
-
-function variantPicker(list, cur, onPick, dark) {
-  const accent = getComputedStyle(document.documentElement).getPropertyValue('--hero').trim() || DEFAULT_ACCENT;
-  const tint = (pct, to) => `color-mix(in srgb, ${accent} ${pct}%, ${to})`;
-  return h('div', { class: 'variant-grid' }, list.map(([id, name, bg, card]) => h('button', {
-    type: 'button', class: 'variant' + (id === cur ? ' on' : ''), 'aria-pressed': String(id === cur), onclick: () => onPick(id),
-  },
-    h('span', { class: 'variant-prev', style: { background: bg || (dark ? tint(10, '#000') : tint(7, '#FFF')) } },
-      h('i', { style: { background: card || (dark ? tint(14, '#15161A') : '#FFFFFF') } }), h('i', { style: { background: card || (dark ? tint(14, '#15161A') : '#FFFFFF') } })),
-    h('small', {}, tr(name)))));
-}
 
 function iconStylePicker(cur, onPick) {
   const sample = [['🛒', 'Mâncare', '#6FA8FF'], ['🚌', 'Transport', '#FF8A80'], ['🎬', 'Distracție', '#5DD3A6']];
@@ -291,9 +277,7 @@ function sectionContent(sub) {
     return [
       sectionHead(tr('Temă')),
       h('div', { class: 'list' },
-        stackRow(tr('Temă'), segmented(themeOpts, st.theme, v => set('theme', v))),
-        stackRow(tr('Varianta luminoasă'), variantPicker(LIGHT_VARIANTS, st.lightVariant || 'rece', v => set('lightVariant', v), false)),
-        stackRow(tr('Varianta întunecată'), variantPicker(DARK_VARIANTS, st.darkVariant || 'grafit', v => set('darkVariant', v), true))),
+        stackRow(tr('Temă'), segmented(themeOpts, st.theme, v => set('theme', v)))),
       sectionHead(tr('Fundaluri și culoare')),
       h('div', { class: 'list' },
         bgRow(tr('Fundal card principal'), HERO_GROUPS, HERO_ART, 'hero-bg-', heroNow, openHeroBgSheet),

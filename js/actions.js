@@ -169,6 +169,19 @@ export function deleteCategory(id) {
   commit();
 }
 
+// Plata unui abonament, confirmată de tine din „Urmează”: cheltuiala intră azi în contul Curent, iar abonamentul
+// trece la următoarea dată. Cu record = false doar sare peste plata asta (ex. ai înregistrat-o deja de mână).
+export function paySubscription(sub, record = true) {
+  if (record) {
+    state.transactions.push({
+      id: uid(), type: 'cheltuiala', date: today(), amount: sub.amount, accountId: 'curent',
+      categoryId: sub.categoryId || catByName('Abonamente', 'cheltuiala')?.id || null, note: sub.name, subscriptionId: sub.id,
+    });
+  }
+  sub.nextPayment = addMonthsDate(sub.nextPayment, FREQ[sub.frequency] || 1, sub.anchorDay);
+  commit();
+}
+
 // La pornire / revenire în aplicație: plăți automate de abonamente, snapshot-uri, rapoarte.
 export function runAutomations() {
   let changed = false;

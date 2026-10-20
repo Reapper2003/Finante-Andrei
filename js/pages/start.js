@@ -49,7 +49,8 @@ export function startPage() {
     title = tr('Când îți intră salariul?');
     text = tr('Ziua din lună. Așa aplicația îți spune cât poți cheltui pe zi până la următorul salariu.');
     const input = h('input', { type: 'text', inputmode: 'numeric', class: 'amount', placeholder: tr('ex. 10'), value: draft.salaryDay, 'aria-label': tr('Ziua salariului') });
-    control = h('div', {}, input, h('button', { type: 'button', class: 'link-btn small', onclick: () => { st.salaryDay = null; finish(); } }, tr('Nu am o zi fixă')));
+    control = h('div', {}, input, h('button', { type: 'button', class: 'link-btn small', onclick: () => { st.salaryDay = null; finish(); } }, tr('Nu am o zi fixă')),
+      h('p', { class: 'start-tip' }, icon('repeat', 16), h('span', {}, tr('Abonamentele și ratele apar pe Acasă, la „Urmează”. Rămân acolo, chiar și după scadență, până apeși pe ele și confirmi că le-ai plătit.'))));
     onNext = () => {
       const d = parseInt(input.value, 10);
       if (!(d >= 1 && d <= 31)) return invalid(input, tr('Ziua trebuie să fie între 1 și 31'));
