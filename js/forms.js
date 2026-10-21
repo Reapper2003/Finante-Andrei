@@ -125,6 +125,11 @@ export function openTxForm(existing, preset = {}) {
       };
       if (tx.accountId === 'economii') { out.fromBucket = tx.fromBucket || ''; const v = bucketAmt('from', out.fromBucket); if (v != null) out.fromAmount = v; }
       if (tx.toAccountId === 'economii') { out.toBucket = tx.toBucket || ''; const v = bucketAmt('to', out.toBucket); if (v != null) out.toAmount = v; }
+      if (out.toBucket?.startsWith('g:')) {
+        const prev = isEdit && (existing.toBucket || '') === out.toBucket ? (existing.toAmount ?? existing.amount) : 0;
+        const room = goalRoom(out.toBucket, prev), put = out.toAmount ?? out.amount;
+        if (room != null && put > room + 0.001) return invalid(amount, roomMsg(room, bucketCurrency(out.toBucket)));
+      }
       if (tx.toAccountId === 'investitii' && tx.assetId) out.assetId = tx.assetId;
     } else {
       if (!tx.categoryId) return toast(tr('Alege o categorie'));
@@ -171,6 +176,16 @@ export function openCategoryTxSheet(catId, m, type = 'cheltuiala') {
 
 /* ---------- Bani în / din goal sau fond de urgență ---------- */
 
+// Cât mai încape într-un obiectiv (în moneda lui): ținta minus ce e deja strâns. `minus` = suma veche a
+// tranzacției editate, ca să nu se numere de două ori. null = nu e obiectiv (fondurile n-au limită).
+function goalRoom(bucket, minus = 0) {
+  if (!bucket || !bucket.startsWith('g:')) return null;
+  const g = state.goals.find(x => 'g:' + x.id === bucket);
+  if (!g) return null;
+  return Math.max(0, round2(g.target - (bucketBalance(bucket) - minus)));
+}
+const roomMsg = (room, cur) => (room > 0 ? tr('Obiectivului îi mai lipsesc doar {sum}', { sum: money(room, { cur, show: true }) }) : tr('Obiectivul e deja atins'));
+
 export function openBucketMove({ bucket, dir, existing }) {
   const isEdit = !!existing;
   const label = bucketName(bucket);
@@ -192,11 +207,13 @@ export function openBucketMove({ bucket, dir, existing }) {
   const otherIsSavings = existing ? (dir === 'in' ? existing.accountId === 'economii' : existing.toAccountId === 'economii') : false;
   const other = segmented([{ value: 'curent', label: tr('Cont Curent') }, { value: 'alte', label: tr('Alte economii') }], otherIsSavings ? 'alte' : 'curent');
   const balance = bucketBalance(bucket) + (isEdit && dir === 'out' ? prevAmt : 0);
+  const room = dir === 'in' ? goalRoom(bucket, isEdit ? prevAmt : 0) : null;
 
   function submit() {
     const amt = parseAmount(amount.value);
     if (!(amt > 0)) return invalid(amount, tr('Introdu o sumă mai mare ca 0'));
     if (dir === 'out' && amt > balance + 0.001) return invalid(amount, tr('Poți retrage cel mult {sum}', { sum: money(balance, { cur }) }));
+    if (room != null && amt > room + 0.001) return invalid(amount, roomMsg(room, cur));
     let baseValue = amt;
     if (foreign) {
       baseValue = baseAmt.value.trim() ? parseAmount(baseAmt.value) : convert(amt, cur, base);
@@ -215,7 +232,8 @@ export function openBucketMove({ bucket, dir, existing }) {
   const sh = openSheet({
     title: `${dir === 'in' ? tr('Adaugă bani') : tr('Retrage bani')} · ${label}`,
     body: h('div', {},
-      field(foreign ? tr('Sumă ({cur})', { cur }) : tr('Sumă'), amount, dir === 'out' ? tr('Disponibil: {sum}', { sum: money(balance, { cur }) }) : null),
+      field(foreign ? tr('Sumă ({cur})', { cur }) : tr('Sumă'), amount, dir === 'out' ? tr('Disponibil: {sum}', { sum: money(balance, { cur }) })
+        : room != null ? (room > 0 ? tr('Mai lipsesc {sum}', { sum: money(room, { cur }) }) : tr('Obiectivul e deja atins')) : null),
       foreign ? field(tr('Echivalent în {cur}', { cur: base }), baseAmt, tr('Calculat cu cursul din Setări; îl poți corecta dacă banca a folosit alt curs.')) : null,
       field(dir === 'in' ? tr('Din') : tr('Către'), other),
       h('div', { class: 'two' }, field(tr('Data'), date), field(tr('Notă'), note)),
