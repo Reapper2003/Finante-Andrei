@@ -105,7 +105,7 @@ function setPct(ids, id, v) {
   if (tot !== 100) { const big = others.reduce((m, o) => (c.pct[o] > c.pct[m] ? o : m), others[0]); c.pct[big] += 100 - tot; }
 }
 
-const verdict = (cls, mark, title, text) => h('div', { class: `pv ${cls}` }, h('span', { class: 'pv-mark' }, mark), h('span', {}, h('b', {}, title), h('small', {}, text)));
+const verdict = (cls, mark, title, text) => h('div', { class: `pv pv-${cls}` }, h('span', { class: 'pv-mark' }, mark), h('span', {}, h('b', {}, title), h('small', {}, text)));
 const range = (min, max, step, value, oninput) => {
   const r = h('input', { type: 'range', min, max, step, value });
   r.addEventListener('input', () => oninput(Number(r.value)));
@@ -145,7 +145,7 @@ export function planPage() {
 
   /* --- 1. Planul lunii --- */
   const incInput = amountInput(c.inc, { placeholder: tr('ex. {n}', { n: '7.800' }) });
-  const planOut = h('div', {});
+  const planOut = h('div', { class: 'p-out' });
   let pickOpen = false;
   incInput.addEventListener('input', () => { c.inc = incInput.value; save(); paintPlan(); });
 
@@ -232,7 +232,7 @@ export function planPage() {
   /* --- 2. Neprevăzute --- */
   const ef = efStats(), monthlySave = usualSaving() || 0;
   const emInput = amountInput(c.em || '', { placeholder: tr('ex. {n}', { n: '2.000' }) });
-  const emOut = h('div', {});
+  const emOut = h('div', { class: 'p-out' });
   emInput.addEventListener('input', () => { c.em = emInput.value; save(); paintEm(); });
   function paintEm() {
     const amt = parseAmount(c.em) || 0;
@@ -248,14 +248,14 @@ export function planPage() {
   const a = dailyAllowance();
   let rate = false, months = 6, buyName = '';
   const priceInput = amountInput(c.price || '', { placeholder: tr('ex. {n}', { n: '1.299' }) });
-  const buyOut = h('div', {});
+  const buyOut = h('div', { class: 'p-out' });
   priceInput.addEventListener('input', () => { c.price = priceInput.value; buyName = ''; save(); paintBuy(); });
   const wishes = modOn('dorinte') ? state.wishes.filter(w => !w.done && w.price > 0).slice(0, 6) : [];
   const wishRow = wishes.length ? h('div', { class: 'p-wish' }, wishes.map(w => h('button', {
     type: 'button', onclick: () => { const p = round2(convert(w.price, w.currency || base(), base())); c.price = forInput(p); priceInput.value = c.price; buyName = w.name; save(); paintBuy(); },
   }, `🎁 ${w.name}`))) : null;
   const modeSeg = h('div', { class: 'seg' });
-  const monthsBox = h('div', {});
+  const monthsBox = h('div', { class: 'p-out' });
   function paintMode() {
     modeSeg.replaceChildren(...[[false, tr('Acum')], [true, tr('În rate')]].map(([v, l]) => h('button', {
       type: 'button', class: rate === v ? 'on' : '', onclick: () => { rate = v; paintMode(); paintBuy(); },
