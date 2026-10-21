@@ -1637,7 +1637,10 @@ body.nav-fara-text .tabs a { height: 48px; }
 .p-spent small.sub { color: var(--muted); font-weight: 500; font-size: 11.5px; }
 .p-spent.over .p-bar i { background: var(--warn); }
 .p-spent.over small:not(.sub) { color: var(--warn); }
-.pd { padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+.pd { padding-top: 14px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+/* numele lungi (destinații, obiective) nu au voie să lățească cardul: se taie cu „…” sau trec pe rândul următor */
+.plan .card, .p-out, .p-out > *, .pd > *, .pd-row, .pd-top > span { min-width: 0; }
+.pd-top > span { overflow-wrap: anywhere; }
 .pd h3 { margin: 0; font-size: 15px; }
 .pd-pick { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 12px; background: var(--soft); color: var(--text); text-align: left; font: inherit; font-weight: 600; font-size: 13.5px; }
 .pd-pick span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

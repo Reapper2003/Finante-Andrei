@@ -249,7 +249,7 @@ export function planPage() {
         h('div', {}, h('i', { style: { background: '#B48CFF' } }), h('span', {}, h('b', {}, tr('De cheltuit')), R.perDay), R.spend),
         h('div', {}, h('i', { style: { background: '#6FA8FF' } }), h('span', {}, n.rest ? tr('Plăți fixe neplătite') : tr('Plăți fixe')), R.fixedVal = h('b', {})),
         h('div', {}, h('i', { style: { background: '#5DD3A6' } }), h('span', {}, tr('Economii')), R.saveVal)),
-      spentBox,
+      ...(spentBox ? [spentBox] : []), // fără istoric de cheltuieli nu există caseta (null s-ar afișa ca text)
       h('div', { class: 'pd' },
         h('h3', {}, tr('Unde merg economiile')),
         h('button', { type: 'button', class: 'pd-pick' + (pickOpen ? ' open' : ''), onclick: () => { pickOpen = !pickOpen; paintPlan(); } },
