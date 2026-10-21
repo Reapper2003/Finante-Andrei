@@ -49,14 +49,16 @@ function usualSaving() {
 function destinations() {
   const out = [];
   const ef = efStats();
-  out.push({ id: 'fond', group: 'fond', name: tr('Fond de urgență'), sub: tr('{a} din {b} luni', { a: comma(ef.covered), b: ef.months }), need: null, full: ef.avg > 0 && ef.covered >= ef.months });
+  // cap = cât îi mai trebuie (fondul până la țintă, obiectivul până la sumă); brokerii și fondurile de economii n-au limită.
+  out.push({ id: 'fond', group: 'fond', name: tr('Fond de urgență'), sub: tr('{a} din {b} luni', { a: comma(ef.covered), b: ef.months }), need: null,
+    cap: ef.avg > 0 ? Math.max(0, round2(ef.target - ef.balance)) : null });
   if (modOn('investitii')) for (const b of state.brokers) out.push({ id: 'b:' + b.id, group: 'inv', name: b.name, sub: b.currency, need: null });
   for (const g of state.goals.filter(x => !x.done)) {
     const s = goalStats(g);
     out.push({ id: 'g:' + g.id, group: 'eco', name: `${g.icon || '🎯'} ${g.name}`, sub: s.left > 0 ? tr('lipsesc {sum}', { sum: lei(s.left, s.cur) }) : tr('atins'),
-      need: s.perMonth ? round2(convert(s.perMonth, s.cur, base())) : null });
+      need: s.perMonth ? round2(convert(s.perMonth, s.cur, base())) : null, cap: round2(convert(s.left, s.cur, base())) });
   }
-  for (const f of state.funds) out.push({ id: 'f:' + f.id, group: 'eco', name: `${f.icon || '💰'} ${f.name}`, sub: tr('fond'), need: null });
+  for (const f of state.funds) out.push({ id: 'f:' + f.id, group: 'eco', name: `${f.icon || '💰'} ${f.name}`, sub: tr('fond'), need: null, cap: null });
   return out;
 }
 
@@ -64,45 +66,65 @@ function destinations() {
 const defaultPrio = d => (d.group === 'fond' || d.need ? 3 : d.group === 'inv' || d.group === 'eco' && d.id.startsWith('g:') ? 2 : 1);
 const prioOf = d => calc().prio[d.id] || defaultPrio(d);
 
-// Recomandat: fiecare destinație bifată primește părți după prioritate (Mare 3, Medie 2, Mică 1);
-// fondul de urgență nu mai primește nimic când a ajuns la țintă. Procentele sunt rotunjite la 5.
-function recommend(list) {
-  const c = calc(), on = list.filter(d => c.on.includes(d.id));
-  const get = on.filter(d => !d.full);
-  const w = get.map(prioOf), wsum = w.reduce((a, b) => a + b, 0) || 1;
-  c.pct = {};
-  on.forEach(d => { c.pct[d.id] = 0; });
-  get.forEach((d, i) => { c.pct[d.id] = Math.round(100 * w[i] / wsum / 5) * 5; });
-  fixRound(on.map(d => d.id));
+// Limita unei destinații, în procente din suma pusă deoparte (ex. un obiectiv căruia îi lipsesc 50 lei din 1.960 = 2,55%).
+const limitPct = (d, saveAmt) => (d.cap == null || !(saveAmt > 0) ? 100 : Math.min(100, d.cap / saveAmt * 100));
+
+// Împarte `total` procente între destinații după greutăți, fără ca vreuna să treacă de limita ei;
+// ce nu încape la una pline merge la celelalte. Ce nu încape nicăieri rămâne neîmpărțit.
+function fill(list, total, weight, saveAmt) {
+  const res = {};
+  list.forEach(d => { res[d.id] = 0; });
+  let open = list.filter(d => limitPct(d, saveAmt) > 1e-6), rest = total;
+  while (open.length && rest > 1e-6) {
+    const ws = open.map(d => Math.max(0, weight(d))), wsum = ws.reduce((x, y) => x + y, 0);
+    const share = new Map(open.map((d, i) => [d.id, rest * (wsum > 0 ? ws[i] / wsum : 1 / open.length)]));
+    const full = open.filter(d => share.get(d.id) >= limitPct(d, saveAmt) - res[d.id] - 1e-9);
+    if (!full.length) { open.forEach(d => { res[d.id] += share.get(d.id); }); break; }
+    full.forEach(d => { rest -= limitPct(d, saveAmt) - res[d.id]; res[d.id] = limitPct(d, saveAmt); });
+    open = open.filter(d => !full.includes(d));
+  }
+  return res;
 }
-function equal(list) {
-  const c = calc(), ids = list.filter(d => c.on.includes(d.id)).map(d => d.id);
-  c.pct = {};
-  ids.forEach(id => { c.pct[id] = Math.round(100 / ids.length / 5) * 5; });
-  fixRound(ids);
+
+// Rotunjește la 5% doar destinațiile care nu și-au atins limita (cele pline rămân exact la limită);
+// diferența de rotunjire merge la cea mai mare dintre ele, fără să-i treacă limita.
+function round5(res, list, saveAmt) {
+  const before = Object.values(res).reduce((x, y) => x + y, 0);
+  const free = list.filter(d => res[d.id] < limitPct(d, saveAmt) - 1e-6);
+  free.forEach(d => { res[d.id] = Math.min(limitPct(d, saveAmt), Math.round(res[d.id] / 5) * 5); });
+  const diff = before - Object.values(res).reduce((x, y) => x + y, 0);
+  if (Math.abs(diff) > 1e-6 && free.length) {
+    const big = free.reduce((m, d) => (res[d.id] > res[m.id] ? d : m), free[0]);
+    res[big.id] = Math.max(0, Math.min(limitPct(big, saveAmt), res[big.id] + diff));
+  }
+  return res;
 }
-// Rotunjirea la 5% poate lăsa ±5%: diferența merge la rândul cel mai mare.
-function fixRound(ids) {
-  const c = calc();
-  if (!ids.length) return;
-  const tot = ids.reduce((a, id) => a + (c.pct[id] || 0), 0);
-  const big = ids.reduce((m, id) => ((c.pct[id] || 0) > (c.pct[m] || 0) ? id : m), ids[0]);
-  c.pct[big] = Math.max(0, (c.pct[big] || 0) + 100 - tot);
+
+const chosenList = list => list.filter(d => calc().on.includes(d.id));
+
+// Recomandat: părți după prioritate (Mare 3, Medie 2, Mică 1), fiecare până la limita ei.
+function recommend(list, saveAmt) {
+  const on = chosenList(list);
+  calc().pct = round5(fill(on, 100, prioOf, saveAmt), on, saveAmt);
 }
-// Când tragi de o bară, celelalte se ajustează proporțional, ca totalul să rămână 100%.
-function setPct(ids, id, v) {
-  const c = calc(), others = ids.filter(x => x !== id);
-  if (!others.length) { c.pct[id] = 100; return; }
-  c.pct[id] = v;
-  const rest = 100 - v, cur = others.reduce((a, o) => a + (c.pct[o] || 0), 0);
-  let given = 0;
-  others.forEach((o, i) => {
-    if (i === others.length - 1) { c.pct[o] = Math.max(0, rest - given); return; }
-    c.pct[o] = Math.max(0, Math.round(rest * (cur ? (c.pct[o] || 0) / cur : 1 / others.length) / 5) * 5);
-    given += c.pct[o];
-  });
-  const tot = ids.reduce((a, o) => a + c.pct[o], 0);
-  if (tot !== 100) { const big = others.reduce((m, o) => (c.pct[o] > c.pct[m] ? o : m), others[0]); c.pct[big] += 100 - tot; }
+function equal(list, saveAmt) {
+  const on = chosenList(list);
+  calc().pct = round5(fill(on, 100, () => 1, saveAmt), on, saveAmt);
+}
+// Când se schimbă suma pusă deoparte, limitele (în procente) se schimbă: împărțirea se păstrează cât se poate.
+function clampAll(list, saveAmt) {
+  const c = calc(), on = chosenList(list);
+  const cur = on.reduce((x, d) => x + (c.pct[d.id] || 0), 0);
+  c.pct = round5(fill(on, 100, d => (cur > 0 ? c.pct[d.id] || 0 : prioOf(d)), saveAmt), on, saveAmt);
+}
+// Când tragi de o bară, celelalte se ajustează proporțional, ca totalul să rămână 100% (cât permit limitele).
+function setPct(list, id, v, saveAmt) {
+  const c = calc(), on = chosenList(list), d = on.find(x => x.id === id);
+  const val = Math.min(v, limitPct(d, saveAmt));
+  const others = on.filter(x => x.id !== id);
+  const cur = others.reduce((x, o) => x + (c.pct[o.id] || 0), 0);
+  const res = round5(fill(others, 100 - val, o => (cur > 0 ? c.pct[o.id] || 0 : 1), saveAmt), others, saveAmt);
+  c.pct = { ...res, [id]: val };
 }
 
 const verdict = (cls, mark, title, text) => h('div', { class: `pv pv-${cls}` }, h('span', { class: 'pv-mark' }, mark), h('span', {}, h('b', {}, title), h('small', {}, text)));
@@ -139,15 +161,17 @@ export function openPlanPriorities(onChange) {
 export function planPage() {
   const c = calc();
   const list = destinations();
-  if (!Array.isArray(c.on)) { c.on = list.map(d => d.id); recommend(list); }
+  const saveNow = () => round2((parseAmount(c.inc) || 0) * c.save / 100);
+  if (!Array.isArray(c.on)) { c.on = list.map(d => d.id); recommend(list, saveNow()); }
   c.on = c.on.filter(id => list.some(d => d.id === id)); // destinații șterse între timp
+  if (saveNow() > 0) clampAll(list, saveNow()); // nimeni nu primește peste cât îi mai trebuie
   const fixed = fixedMonthly(), usual = usualSpend();
 
   /* --- 1. Planul lunii --- */
   const incInput = amountInput(c.inc, { placeholder: tr('ex. {n}', { n: '7.800' }) });
   const planOut = h('div', { class: 'p-out' });
   let pickOpen = false;
-  incInput.addEventListener('input', () => { c.inc = incInput.value; save(); paintPlan(); });
+  incInput.addEventListener('input', () => { c.inc = incInput.value; clampAll(list, saveNow()); save(); paintPlan(); });
 
   // paintPlan construiește cardul (la venit nou, destinații bifate, panou deschis);
   // refresh doar actualizează cifrele, ca barele să poată fi trase fără să fie refăcute.
@@ -171,9 +195,15 @@ export function planPage() {
         : tr('Lipsesc {sum}', { sum: lei(usual - n.spend) }) + (n.fitPct > 0 ? ` · ${tr('economisește {p}% ca să ajungă', { p: n.fitPct })}` : '');
     }
     for (const r of refs.rows) {
-      const v = n.saveAmt * (c.pct[r.d.id] || 0) / 100;
-      r.slider.value = c.pct[r.d.id] || 0; r.pct.textContent = `${c.pct[r.d.id] || 0}%`; r.amt.textContent = lei(v);
-      r.hint.replaceChildren(r.d.need ? (v >= r.d.need ? h('span', { class: 'pos' }, ` · ${tr('la timp')}`) : ` · ${tr('ținta cere {sum}/lună', { sum: lei(r.d.need) })}`) : '');
+      const p = c.pct[r.d.id] || 0, v = n.saveAmt * p / 100, full = r.d.cap != null && v >= r.d.cap - 0.5;
+      r.slider.value = p; r.pct.textContent = `${Math.round(p)}%`; r.amt.textContent = lei(v);
+      r.hint.replaceChildren(full ? h('span', { class: 'pos' }, ` · ${tr('acoperit complet')}`)
+        : r.d.need ? (v >= r.d.need ? h('span', { class: 'pos' }, ` · ${tr('la timp')}`) : ` · ${tr('ținta cere {sum}/lună', { sum: lei(r.d.need) })}`) : '');
+    }
+    if (refs.stat) {
+      const used = refs.rows.reduce((x, r) => x + (c.pct[r.d.id] || 0), 0), left = n.saveAmt * (100 - used) / 100;
+      refs.stat.className = 'pd-stat' + (left > 0.5 ? ' left' : '');
+      refs.stat.textContent = left > 0.5 ? tr('Neîmpărțit: {sum} · toate destinațiile alese sunt pline', { sum: lei(left) }) : `✓ ${tr('Totul împărțit')}`;
     }
   }
 
@@ -188,14 +218,14 @@ export function planPage() {
       const rows = list.filter(d => d.group === g);
       return rows.length ? h('div', { class: 'pd-group' }, h('small', {}, title), h('div', { class: 'pd-tags' }, rows.map(d => h('button', {
         type: 'button', class: c.on.includes(d.id) ? 'on' : '',
-        onclick: () => { c.on = c.on.includes(d.id) ? c.on.filter(x => x !== d.id) : [...c.on, d.id]; recommend(list); save(); paintPlan(); },
+        onclick: () => { c.on = c.on.includes(d.id) ? c.on.filter(x => x !== d.id) : [...c.on, d.id]; recommend(list, n.saveAmt); save(); paintPlan(); },
       }, h('i', {}, c.on.includes(d.id) ? '✓' : ''), d.group === 'fond' ? tr('Fond de urgență') : d.name)))) : null;
     };
     const R = { saveLbl: h('span', {}), stack: [0, 1, 2].map(i => h('i', { style: { background: ['#B48CFF', '#6FA8FF', '#5DD3A6'][i] } })),
       spend: h('b', {}), perDay: h('small', {}), saveVal: h('b', {}), rows: [] };
     R.rows = list.filter(d => c.on.includes(d.id)).map(d => ({
       d, amt: h('b', {}), pct: h('b', {}), hint: h('span', {}),
-      slider: range(0, 100, 5, c.pct[d.id] || 0, val => { setPct(ids, d.id, val); save(); refresh(); }),
+      slider: range(0, 100, 5, c.pct[d.id] || 0, val => { setPct(list, d.id, val, numbers().saveAmt); save(); refresh(); }),
     }));
     let spentBox = null;
     if (usual > 0) {
@@ -205,7 +235,7 @@ export function planPage() {
     }
     planOut.replaceChildren(
       h('div', { class: 'p-slh' }, h('span', {}, tr('Economisesc')), R.saveLbl),
-      range(0, 60, 5, c.save, v => { c.save = v; save(); refresh(); }),
+      range(0, 60, 5, c.save, v => { c.save = v; clampAll(list, numbers().saveAmt); save(); refresh(); }),
       h('div', { class: 'p-stack' }, R.stack),
       h('div', { class: 'p-lg' },
         h('div', {}, h('i', { style: { background: '#B48CFF' } }), h('span', {}, h('b', {}, tr('De cheltuit')), R.perDay), R.spend),
@@ -217,14 +247,14 @@ export function planPage() {
         h('button', { type: 'button', class: 'pd-pick' + (pickOpen ? ' open' : ''), onclick: () => { pickOpen = !pickOpen; paintPlan(); } },
           h('span', {}, h('small', {}, tr('Destinații')), chosen), h('i', {}, '›')),
         pickOpen ? h('div', { class: 'pd-panel' }, group('fond', tr('Fond')), group('inv', tr('Investiții')), group('eco', tr('Economii')),
-          h('button', { type: 'button', class: 'pd-link', onclick: () => openPlanPriorities(() => { recommend(list); save(); refresh(); }) }, `${tr('Priorități')} ›`)) : null,
+          h('button', { type: 'button', class: 'pd-link', onclick: () => openPlanPriorities(() => { recommend(list, numbers().saveAmt); save(); refresh(); }) }, `${tr('Priorități')} ›`)) : null,
         ids.length ? h('div', { class: 'pd-btns' },
-          h('button', { type: 'button', onclick: () => { recommend(list); save(); refresh(); } }, `✨ ${tr('Recomandat')}`),
-          h('button', { type: 'button', onclick: () => { equal(list); save(); refresh(); } }, tr('Egal'))) : null,
+          h('button', { type: 'button', onclick: () => { recommend(list, numbers().saveAmt); save(); refresh(); } }, `✨ ${tr('Recomandat')}`),
+          h('button', { type: 'button', onclick: () => { equal(list, numbers().saveAmt); save(); refresh(); } }, tr('Egal'))) : null,
         ...R.rows.map(r => h('div', { class: 'pd-row' },
           h('div', { class: 'pd-top' }, h('span', {}, h('b', {}, r.d.name), h('small', {}, r.d.sub, r.hint)), r.amt),
           h('div', { class: 'pd-sl' }, r.slider, r.pct))),
-        ids.length ? h('p', { class: 'pd-stat' }, `✓ ${tr('Totul împărțit')}`) : null));
+        R.stat = ids.length ? h('p', { class: 'pd-stat' }) : null));
     refs = R;
     refresh();
   }

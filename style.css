@@ -1661,6 +1661,7 @@ body.nav-fara-text .tabs a { height: 48px; }
 .pd-top > b { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pd-sl { display: grid; grid-template-columns: 1fr 44px; gap: 10px; align-items: center; margin-top: 6px; }
 .pd-sl b { text-align: right; font-size: 13px; color: var(--muted); }
+.pd-stat.left { background: color-mix(in srgb, var(--warn) 15%, var(--card)); color: var(--warn); }
 .pd-stat { margin: 0; padding: 9px 12px; border-radius: 12px; background: color-mix(in srgb, var(--pos) 13%, var(--card)); color: var(--pos); font-weight: 650; font-size: 13px; }
 .pv { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; font-weight: 650; }
 .pv .pv-mark { font-size: 24px; line-height: 1; }
