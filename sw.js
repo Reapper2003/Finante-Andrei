@@ -1,7 +1,7 @@
 // Service worker: aplicația funcționează și fără internet.
 // La fiecare modificare a fișierelor, crește VERSION (și APP_VERSION din js/store.js) ca telefoanele să ia versiunea nouă.
 
-const VERSION = 'finante-v57';
+const VERSION = 'finante-v59';
 const FILES = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',

@@ -5,7 +5,7 @@ import { state, save, modOn } from '../store.js';
 import { currentMonth, addMonths } from '../dates.js';
 import { moneyShort, parseAmount, forInput, plural, CURRENCIES } from '../fmt.js';
 import { round2, convert, subTotals, debtTotals, efStats, goalStats, dailyAllowance, monthTotals } from '../calc.js';
-import { h, openSheet, btn, amountInput } from '../ui.js';
+import { h, openSheet, btn, amountInput, segmented } from '../ui.js';
 import { openGoalForm } from '../forms.js';
 import { t as tr } from '../i18n.js';
 
@@ -165,7 +165,9 @@ export function planPage() {
   if (!Array.isArray(c.on)) { c.on = list.map(d => d.id); recommend(list, saveNow()); }
   c.on = c.on.filter(id => list.some(d => d.id === id)); // destinații șterse între timp
   if (saveNow() > 0) clampAll(list, saveNow()); // nimeni nu primește peste cât îi mai trebuie
-  const fixed = fixedMonthly(), usual = usualSpend();
+  // Restul lunii: se scad doar plățile fixe încă neplătite până la salariu / final de lună, pe zilele rămase.
+  // Luna viitoare: toate plățile fixe ale unei luni, pe 30 de zile.
+  const usualMonth = usualSpend(), now = dailyAllowance();
 
   /* --- 1. Planul lunii --- */
   const incInput = amountInput(c.inc, { placeholder: tr('ex. {n}', { n: '7.800' }) });
@@ -177,22 +179,26 @@ export function planPage() {
   // refresh doar actualizează cifrele, ca barele să poată fi trase fără să fie refăcute.
   let refs = null;
   function numbers() {
-    const inc = parseAmount(c.inc) || 0;
+    const inc = parseAmount(c.inc) || 0, rest = c.period !== 'next';
+    const fixed = rest ? now.committed : fixedMonthly(), days = rest ? Math.max(1, now.daysLeft) : 30;
+    const usual = rest ? round2(usualMonth * days / 30) : usualMonth;
     const saveAmt = round2(inc * c.save / 100), spend = Math.max(0, round2(inc - fixed - saveAmt));
-    return { inc, saveAmt, spend, total: Math.max(inc, fixed + saveAmt), ok: usual <= spend, fitPct: Math.floor((inc - fixed - usual) / inc * 100 / 5) * 5 };
+    return { inc, rest, fixed, days, usual, saveAmt, spend, total: Math.max(inc, fixed + saveAmt), ok: usual <= spend,
+      fitPct: inc > 0 ? Math.floor((inc - fixed - usual) / inc * 100 / 5) * 5 : 0 };
   }
   function refresh() {
     if (!refs) return;
     const n = numbers();
     refs.saveLbl.textContent = `${c.save}% · ${lei(n.saveAmt)}`;
-    [n.spend, fixed, n.saveAmt].forEach((v, i) => { refs.stack[i].style.width = `${v / n.total * 100}%`; });
-    refs.spend.textContent = lei(n.spend); refs.perDay.textContent = ` · ${lei(n.spend / 30)}/${tr('zi')}`; refs.saveVal.textContent = lei(n.saveAmt);
+    [n.spend, n.fixed, n.saveAmt].forEach((v, i) => { refs.stack[i].style.width = `${v / n.total * 100}%`; });
+    refs.spend.textContent = lei(n.spend); refs.perDay.textContent = ` · ${lei(n.spend / n.days)}/${tr('zi')}`; refs.saveVal.textContent = lei(n.saveAmt);
+    refs.fixedVal.textContent = lei(n.fixed);
     if (refs.spent) {
       refs.spent.classList.toggle('over', !n.ok);
-      refs.spentOf.textContent = tr('{a} din {b}', { a: lei(usual), b: lei(n.spend) });
-      refs.spentBar.style.width = `${Math.min(100, n.spend > 0 ? usual / n.spend * 100 : 100)}%`;
-      refs.spentMsg.textContent = n.ok ? tr('Ajunge · rămân ~{sum}', { sum: lei(n.spend - usual) })
-        : tr('Lipsesc {sum}', { sum: lei(usual - n.spend) }) + (n.fitPct > 0 ? ` · ${tr('economisește {p}% ca să ajungă', { p: n.fitPct })}` : '');
+      refs.spentOf.textContent = tr('{a} din {b}', { a: lei(n.usual), b: lei(n.spend) });
+      refs.spentBar.style.width = `${Math.min(100, n.spend > 0 ? n.usual / n.spend * 100 : 100)}%`;
+      refs.spentMsg.textContent = n.ok ? tr('Ajunge · rămân ~{sum}', { sum: lei(n.spend - n.usual) })
+        : tr('Lipsesc {sum}', { sum: lei(n.usual - n.spend) }) + (n.fitPct > 0 ? ` · ${tr('economisește {p}% ca să ajungă', { p: n.fitPct })}` : '');
     }
     for (const r of refs.rows) {
       const p = c.pct[r.d.id] || 0, v = n.saveAmt * p / 100, full = r.d.cap != null && v >= r.d.cap - 0.5;
@@ -228,10 +234,12 @@ export function planPage() {
       slider: range(0, 100, 5, c.pct[d.id] || 0, val => { setPct(list, d.id, val, numbers().saveAmt); save(); refresh(); }),
     }));
     let spentBox = null;
-    if (usual > 0) {
+    if (n.usual > 0) {
       R.spentOf = h('span', {}); R.spentBar = h('i', {}); R.spentMsg = h('small', {});
-      spentBox = R.spent = h('div', { class: 'p-spent' }, h('div', { class: 'p-slh' }, h('span', {}, tr('Cheltui de obicei')), R.spentOf),
-        h('div', { class: 'p-bar' }, R.spentBar), R.spentMsg, h('small', { class: 'sub' }, tr('media pe 3 luni, fără plăți fixe')));
+      spentBox = R.spent = h('div', { class: 'p-spent' }, h('div', { class: 'p-slh' },
+        h('span', {}, tr('Cheltui de obicei')), R.spentOf),
+        h('div', { class: 'p-bar' }, R.spentBar), R.spentMsg,
+        h('small', { class: 'sub' }, n.rest ? tr('pentru cele {n} zile rămase · media pe 3 luni, fără plăți fixe', { n: n.days }) : tr('media pe 3 luni, fără plăți fixe')));
     }
     planOut.replaceChildren(
       h('div', { class: 'p-slh' }, h('span', {}, tr('Economisesc')), R.saveLbl),
@@ -239,7 +247,7 @@ export function planPage() {
       h('div', { class: 'p-stack' }, R.stack),
       h('div', { class: 'p-lg' },
         h('div', {}, h('i', { style: { background: '#B48CFF' } }), h('span', {}, h('b', {}, tr('De cheltuit')), R.perDay), R.spend),
-        h('div', {}, h('i', { style: { background: '#6FA8FF' } }), h('span', {}, tr('Plăți fixe')), h('b', {}, lei(fixed))),
+        h('div', {}, h('i', { style: { background: '#6FA8FF' } }), h('span', {}, n.rest ? tr('Plăți fixe neplătite') : tr('Plăți fixe')), R.fixedVal = h('b', {})),
         h('div', {}, h('i', { style: { background: '#5DD3A6' } }), h('span', {}, tr('Economii')), R.saveVal)),
       spentBox,
       h('div', { class: 'pd' },
@@ -317,9 +325,19 @@ export function planPage() {
   }
 
   paintPlan(); paintEm(); paintMode(); paintBuy();
+  const incLbl = h('span', { class: 'field-label' }), planSub = h('p', { class: 'muted p-sub' });
+  const paintHead = () => {
+    const rest = c.period !== 'next';
+    incLbl.textContent = rest ? tr('Cât am acum') : tr('Venit luna viitoare');
+    planSub.textContent = rest ? tr('Se scad doar plățile fixe încă neplătite.') : '';
+    planSub.hidden = !rest;
+  };
+  paintHead();
+  const periodSeg = segmented([{ value: 'rest', label: tr('Restul lunii') }, { value: 'next', label: tr('Luna viitoare') }], c.period === 'next' ? 'next' : 'rest',
+    v => { c.period = v; paintHead(); clampAll(list, saveNow()); save(); paintPlan(); });
   const node = h('div', { class: 'page plan' },
-    h('section', { class: 'card' }, h('h2', { class: 'p-h' }, tr('Planul lunii')), h('p', { class: 'muted p-sub' }, tr('Merge și înainte de salariu.')),
-      h('label', { class: 'field' }, h('span', { class: 'field-label' }, tr('Venit luna asta')), incInput), planOut),
+    h('section', { class: 'card' }, h('h2', { class: 'p-h' }, tr('Planul lunii')), planSub, periodSeg,
+      h('label', { class: 'field' }, incLbl, incInput), planOut),
     h('section', { class: 'card' }, h('h2', { class: 'p-h' }, tr('Neprevăzute')), h('p', { class: 'muted p-sub' }, tr('Reparații, amenzi, doctor…')), emInput, emOut),
     h('section', { class: 'card' }, h('h2', { class: 'p-h' }, tr('Îmi permit?')), h('p', { class: 'muted p-sub' }, tr('Scrie prețul.')), priceInput, wishRow, modeSeg, monthsBox, buyOut));
   return { title: tr('Calculator'), node };
