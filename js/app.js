@@ -76,44 +76,37 @@ function renderSide(route) {
     h('button', { type: 'button', class: 'side-add', onclick: () => openTxForm() }, icon('plus', 18), h('span', {}, tr('Tranzacție nouă'))));
 }
 
-// Pe ecran lat, paginile obișnuite (rezumat sus, apoi secțiuni „titlu + listă”) se rearanjează pe coloane:
-// rezumatul în stânga (fix la derulare), secțiunile în dreapta. Paginile doar din carduri se așază pe mai multe coloane.
-// Acasă și Calculatorul au aranjarea lor (style.css). Pe telefon nu se schimbă nimic.
+// Pe ecran lat, paginile își păstrează ordinea de pe telefon (de sus în jos), dar folosesc lățimea:
+// cardurile de rezumat de sus stau pe un rând, cardurile de obiective se așază în grilă, paginile doar din carduri
+// (Rapoarte, Avere netă) pe două coloane, iar Setările centrat. Acasă și Calculatorul au aranjarea lor (style.css).
+// Pe telefon nu se schimbă nimic.
 const wide = matchMedia('(min-width: 1024px)');
 wide.addEventListener?.('change', () => render());
 function desktopize(page) {
   if (!page.classList?.contains('page') || page.classList.contains('home-tablou') || page.classList.contains('plan')) return;
   const kids = [...page.children];
-  const col = (cls, items) => { const d = h('div', { class: cls }); d.append(...items); return d; };
-  // Tranzacții: căutarea, filtrele și totalurile în stânga; lista sau calendarul în dreapta.
-  const list = kids.find(e => e.classList.contains('stack') && page.querySelector(':scope > .view-seg'));
-  if (list) {
-    page.classList.add('d-split');
-    page.replaceChildren(col('d-left', kids.filter(e => e !== list)), col('d-right', [list]));
-    return;
-  }
-  const firstHead = kids.findIndex(e => e.classList.contains('sec-head'));
-  if (firstHead < 0) {
-    // ex. Calculatorul de investiții: formularul în stânga, rezultatele (blocul .stack) în dreapta
-    const res = kids.findIndex(e => e.classList.contains('stack'));
-    if (res > 0) {
-      page.classList.add('d-split', 'd-even');
-      page.replaceChildren(col('d-left', kids.slice(0, res)), col('d-right', kids.slice(res)));
-      return;
-    }
-    // fără secțiuni: puține blocuri → centrat; multe carduri → pe coloane
-    page.classList.add(kids.filter(e => e.matches('.card, .list, section')).length >= 3 ? 'd-flow' : 'd-narrow');
-    return;
-  }
-  const head = kids.slice(0, firstHead);
-  const blocks = [];
-  for (const e of kids.slice(firstHead)) {
-    if (e.classList.contains('sec-head') || !blocks.length) blocks.push([]);
-    blocks[blocks.length - 1].push(e);
-  }
-  const right = col('d-right', blocks.map(b => col('d-block', b)));
-  if (head.length) { page.classList.add('d-split'); page.replaceChildren(col('d-left', head), right); }
-  else { page.classList.add('d-cols'); page.replaceChildren(...right.children); }
+  const wrap = (cls, items) => { const d = h('div', { class: cls }); items[0].before(d); d.append(...items); return d; };
+  const hasHead = kids.some(e => e.classList.contains('sec-head'));
+  const cards = kids.filter(e => e.matches('section.card, .list'));
+  // pagini doar din carduri: pe două coloane
+  if (!hasHead && cards.length >= 3 && !kids.some(e => e.classList.contains('stack'))) { page.classList.add('d-flow'); return; }
+  // formular + rezultate (Calculator investiții): unul lângă altul
+  const res = kids.findIndex(e => e.classList.contains('stack'));
+  if (!hasHead && res > 0 && !page.querySelector(':scope > .view-seg')) { wrap('d-pair', kids); return; }
+  // pagini scurte (lista din Setări): centrate
+  if (!hasHead && cards.length <= 1 && !page.querySelector(':scope > .view-seg')) { page.classList.add('d-narrow'); return; }
+  // carduri de rezumat consecutive (ex. două carduri sumar) → pe un rând
+  let run = [];
+  const flush = () => { if (run.length >= 2) wrap('d-row', run); run = []; };
+  for (const e of kids) { if (e.matches('section.card.summary')) run.push(e); else flush(); }
+  flush();
+  // Investiții: cardul cu grafic și cifrele (Total depus / Câștig / Randament) unul lângă altul
+  const inv = page.querySelector(':scope > .inv-hero');
+  if (inv && inv.nextElementSibling?.classList.contains('pill-strip')) wrap('d-inv', [inv, inv.nextElementSibling]);
+  // obiectivele (carduri care se glisează) → grilă
+  run = [];
+  for (const e of [...page.children]) { if (e.classList.contains('goal-swipe')) run.push(e); else { if (run.length) wrap('d-goals-grid', run); run = []; } }
+  if (run.length) wrap('d-goals-grid', run);
 }
 
 const view = document.getElementById('view');

@@ -1727,23 +1727,33 @@ body.nav-fara-text .tabs a { height: 48px; }
   .tabs, #fab { display: none !important; }
   main { padding-bottom: 48px; }
   .top { padding-top: 22px; }
-  /* celelalte pagini (vezi desktopize în app.js) */
-  .page.d-split { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); gap: 24px; align-items: start; }
-  .page.d-split.d-even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .d-left { position: sticky; top: 88px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-  .d-right { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
-  .d-block { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-  .d-block > .sec-head { margin: 0; }
-  .page.d-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 24px; align-items: start; }
-  .page.d-flow { display: block; columns: 2 380px; column-gap: 20px; }
-  .page.d-flow > * { break-inside: avoid; margin: 0 0 16px; display: block; }
+  /* celelalte pagini (vezi desktopize în app.js): aceeași ordine ca pe telefon, aceeași lățime ca titlul */
+  .page { gap: 16px; }
+  .d-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .d-row > * { margin: 0; }
+  .d-goals-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .d-goals-grid > * { margin: 0; display: flex; flex-direction: column; }
+  .d-goals-grid > * > .swipe-front { flex: 1; }
+  .d-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .d-inv { display: grid; grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr); gap: 16px; align-items: stretch; }
+  .d-inv .inv-hero.top-card { padding-bottom: 20px !important; }
+  .d-inv .pill-strip { margin: 0 !important; grid-template-columns: 1fr; gap: 12px; align-content: stretch; }
+  .d-inv .pill-strip .pill { justify-content: center; padding: 16px; }
+  .d-inv .pill-strip .pill small { font-size: 13px; }
+  .d-inv .pill-strip .pill b { font-size: 20px; }
+  .page.d-flow { display: block; columns: 2; column-gap: 16px; }
+  .page.d-flow > * { break-inside: avoid; margin: 0 0 16px; }
   .page.d-flow > .seg, .page.d-flow > .report-pick, .page.d-flow > .hint, .page.d-flow > .btn-row, .page.d-flow > .center { column-span: all; }
-  .page.d-flow > .seg { display: flex; }
-  .page.d-narrow { max-width: 720px; }
-  /* cardul de la Investiții nu se mai întinde pe toată lățimea, deci graficul nu crește disproporționat */
-  .d-left .inv-hero .line-chart { max-height: 220px; }
-  .d-left .carousel, .d-right .carousel { margin: 0; padding-left: 0; padding-right: 0; }
-  .toast { bottom: 28px; }
+  .page.d-narrow { max-width: none; }
+  .accent-grid { grid-template-columns: repeat(auto-fill, 56px); gap: 12px; }
+  .color-grid { grid-template-columns: repeat(auto-fill, 40px); }
+  .swipe-actions { top: 1px; bottom: 1px; }
+  /* ce pe telefon se derulează lateral (active, obiective) se așază în grilă */
+  .asset-cards { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+  .asset-cards > * { flex: 0 0 auto; }
+  /* graficele nu cresc odată cu lățimea */
+  .line-chart .line-svg { max-height: 280px; width: 100%; }
+  .d-inv .line-chart .line-svg { max-height: 240px; }
 
   /* Acasă: sold + „Luna aceasta”, plăcile pe un rând, graficul lângă „Plăți care urmează” */
   .home-tablou { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
