@@ -76,6 +76,46 @@ function renderSide(route) {
     h('button', { type: 'button', class: 'side-add', onclick: () => openTxForm() }, icon('plus', 18), h('span', {}, tr('Tranzacție nouă'))));
 }
 
+// Pe ecran lat, paginile obișnuite (rezumat sus, apoi secțiuni „titlu + listă”) se rearanjează pe coloane:
+// rezumatul în stânga (fix la derulare), secțiunile în dreapta. Paginile doar din carduri se așază pe mai multe coloane.
+// Acasă și Calculatorul au aranjarea lor (style.css). Pe telefon nu se schimbă nimic.
+const wide = matchMedia('(min-width: 1024px)');
+wide.addEventListener?.('change', () => render());
+function desktopize(page) {
+  if (!page.classList?.contains('page') || page.classList.contains('home-tablou') || page.classList.contains('plan')) return;
+  const kids = [...page.children];
+  const col = (cls, items) => { const d = h('div', { class: cls }); d.append(...items); return d; };
+  // Tranzacții: căutarea, filtrele și totalurile în stânga; lista sau calendarul în dreapta.
+  const list = kids.find(e => e.classList.contains('stack') && page.querySelector(':scope > .view-seg'));
+  if (list) {
+    page.classList.add('d-split');
+    page.replaceChildren(col('d-left', kids.filter(e => e !== list)), col('d-right', [list]));
+    return;
+  }
+  const firstHead = kids.findIndex(e => e.classList.contains('sec-head'));
+  if (firstHead < 0) {
+    // ex. Calculatorul de investiții: formularul în stânga, rezultatele (blocul .stack) în dreapta
+    const res = kids.findIndex(e => e.classList.contains('stack'));
+    if (res > 0) {
+      page.classList.add('d-split', 'd-even');
+      page.replaceChildren(col('d-left', kids.slice(0, res)), col('d-right', kids.slice(res)));
+      return;
+    }
+    // fără secțiuni: puține blocuri → centrat; multe carduri → pe coloane
+    page.classList.add(kids.filter(e => e.matches('.card, .list, section')).length >= 3 ? 'd-flow' : 'd-narrow');
+    return;
+  }
+  const head = kids.slice(0, firstHead);
+  const blocks = [];
+  for (const e of kids.slice(firstHead)) {
+    if (e.classList.contains('sec-head') || !blocks.length) blocks.push([]);
+    blocks[blocks.length - 1].push(e);
+  }
+  const right = col('d-right', blocks.map(b => col('d-block', b)));
+  if (head.length) { page.classList.add('d-split'); page.replaceChildren(col('d-left', head), right); }
+  else { page.classList.add('d-cols'); page.replaceChildren(...right.children); }
+}
+
 const view = document.getElementById('view');
 const titleEl = document.getElementById('title');
 const subtitleEl = document.getElementById('subtitle');
@@ -126,6 +166,7 @@ function render() {
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   }
   view.replaceChildren(res.node);
+  if (wide.matches) desktopize(res.node);
   if (path !== lastPath) {
     window.scrollTo(0, 0);
     lastPath = path;
