@@ -4,7 +4,7 @@
 import { state, save, modOn } from '../store.js';
 import { currentMonth, addMonths } from '../dates.js';
 import { moneyShort, parseAmount, forInput, plural, CURRENCIES } from '../fmt.js';
-import { round2, convert, subTotals, debtTotals, efStats, goalStats, dailyAllowance, monthTotals } from '../calc.js';
+import { round2, convert, subTotals, debtTotals, efStats, goalStats, dailyAllowance, monthTotals, bucketIn, bucketOut, bucketCurrency, brokerOfAsset } from '../calc.js';
 import { h, openSheet, btn, amountInput, segmented } from '../ui.js';
 import { openGoalForm } from '../forms.js';
 import { t as tr } from '../i18n.js';
@@ -46,6 +46,27 @@ function usualSaving() {
 }
 
 // Unde pot merge economiile: [id, grupă, nume, detaliu, cât cere pe lună (obiective cu termen, în moneda implicită)]
+// Cât ai pus deja luna asta într-o destinație (în moneda implicită): transferuri intrate minus retrase,
+// iar la brokeri contribuțiile. Așa planul pentru restul lunii nu dă altora banii pe care i-ai pus deja.
+function putThisMonth(id) {
+  const cm = currentMonth();
+  if (id.startsWith('b:')) {
+    const bid = id.slice(2);
+    return round2(state.contributions.filter(x => x.date.startsWith(cm)).reduce((acc, x) => {
+      const a = state.assets.find(y => y.id === x.assetId), b = a && brokerOfAsset(a);
+      return b && b.id === bid ? acc + convert(x.amount, b.currency, base()) : acc;
+    }, 0));
+  }
+  const bucket = id === 'fond' ? 'urgenta' : id, cur = bucketCurrency(bucket);
+  let net = 0;
+  for (const t of state.transactions) {
+    if (t.type !== 'transfer' || !t.date.startsWith(cm)) continue;
+    if (t.toAccountId === 'economii' && (t.toBucket || '') === bucket) net += bucketIn(t);
+    if (t.accountId === 'economii' && (t.fromBucket || '') === bucket) net -= bucketOut(t);
+  }
+  return Math.max(0, round2(convert(net, cur, base())));
+}
+
 function destinations() {
   const out = [];
   const ef = efStats();
@@ -59,15 +80,20 @@ function destinations() {
       need: s.perMonth ? round2(convert(s.perMonth, s.cur, base())) : null, cap: round2(convert(s.left, s.cur, base())) });
   }
   for (const f of state.funds) out.push({ id: 'f:' + f.id, group: 'eco', name: `${f.icon || '💰'} ${f.name}`, sub: tr('fond'), need: null, cap: null });
+  out.forEach(d => { d.put = putThisMonth(d.id); });
   return out;
 }
+
+// Limita pentru planul curent: la „Restul lunii” se socotește ca la începutul lunii (cât îi lipsea + ce ai pus deja luna asta),
+// ca un obiectiv completat între timp să-și păstreze partea; la „Luna viitoare” e cât îi lipsește acum.
+const capOf = d => (d.cap == null ? null : calc().period === 'next' ? d.cap : round2(d.cap + d.put));
 
 // Prioritate implicită: fondul și obiectivele cu termen sus, investițiile la mijloc, fondurile de economii jos.
 const defaultPrio = d => (d.group === 'fond' || d.need ? 3 : d.group === 'inv' || d.group === 'eco' && d.id.startsWith('g:') ? 2 : 1);
 const prioOf = d => calc().prio[d.id] || defaultPrio(d);
 
 // Limita unei destinații, în procente din suma pusă deoparte (ex. un obiectiv căruia îi lipsesc 50 lei din 1.960 = 2,55%).
-const limitPct = (d, saveAmt) => (d.cap == null || !(saveAmt > 0) ? 100 : Math.min(100, d.cap / saveAmt * 100));
+const limitPct = (d, saveAmt) => (capOf(d) == null || !(saveAmt > 0) ? 100 : Math.min(100, capOf(d) / saveAmt * 100));
 
 // Împarte `total` procente între destinații după greutăți, fără ca vreuna să treacă de limita ei;
 // ce nu încape la una pline merge la celelalte. Ce nu încape nicăieri rămâne neîmpărțit.
@@ -201,10 +227,16 @@ export function planPage() {
         : tr('Lipsesc {sum}', { sum: lei(n.usual - n.spend) }) + (n.fitPct > 0 ? ` · ${tr('economisește {p}% ca să ajungă', { p: n.fitPct })}` : '');
     }
     for (const r of refs.rows) {
-      const p = c.pct[r.d.id] || 0, v = n.saveAmt * p / 100, full = r.d.cap != null && v >= r.d.cap - 0.5;
+      const p = c.pct[r.d.id] || 0, v = n.saveAmt * p / 100, cap = capOf(r.d), full = cap != null && v >= cap - 0.5;
       r.slider.value = p; r.pct.textContent = `${Math.round(p)}%`; r.amt.textContent = lei(v);
-      r.hint.replaceChildren(full ? h('span', { class: 'pos' }, ` · ${tr('acoperit complet')}`)
-        : r.d.need ? (v >= r.d.need ? h('span', { class: 'pos' }, ` · ${tr('la timp')}`) : ` · ${tr('ținta cere {sum}/lună', { sum: lei(r.d.need) })}`) : '');
+      const parts = [];
+      if (full) parts.push(h('span', { class: 'pos' }, ` · ${tr('acoperit complet')}`));
+      else if (r.d.need) parts.push(v >= r.d.need ? h('span', { class: 'pos' }, ` · ${tr('la timp')}`) : ` · ${tr('ținta cere {sum}/lună', { sum: lei(r.d.need) })}`);
+      // Restul lunii: ce ai pus deja luna asta face parte din plan; vezi cât mai ai de pus.
+      if (n.rest && r.d.put > 0.5) parts.push(v - r.d.put > 0.5
+        ? ` · ${tr('pus deja {a}, mai pui {b}', { a: lei(r.d.put), b: lei(v - r.d.put) })}`
+        : h('span', { class: 'pos' }, ` · ${tr('pus deja {sum} ✓', { sum: lei(r.d.put) })}`));
+      r.hint.replaceChildren(...parts);
     }
     if (refs.stat) {
       const used = refs.rows.reduce((x, r) => x + (c.pct[r.d.id] || 0), 0), left = n.saveAmt * (100 - used) / 100;

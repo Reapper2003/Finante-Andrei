@@ -935,6 +935,8 @@ export const EN = {
   "pe lună · {n} active": "per month · {n} active",
   "pentru cele {n} zile rămase · media pe 3 luni, fără plăți fixe": "for the {n} days left · 3-month average, without fixed payments",
   "peste {sum}": "over {sum}",
+  "pus deja {a}, mai pui {b}": "already put {a}, {b} to go",
+  "pus deja {sum} ✓": "already put {sum} ✓",
   "puțin": "less",
   "până la final de lună": "until the end of the month",
   "până la salariu": "until payday",
