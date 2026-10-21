@@ -88,6 +88,33 @@ function openCommitments(a) {
   });
 }
 
+// Doar pe laptop: Venituri / Cheltuieli / Economisit cu o bară cât din venit (tap: tranzacțiile de acel tip).
+function monthCard(tot) {
+  const max = Math.max(tot.income, tot.expense, 1);
+  const row = (sign, cls, label, value, color, type) => h('button', { type: 'button', class: 'mrow', onclick: () => showTransactions(type) },
+    h('span', { class: `mrow-ic ${cls}` }, sign), h('small', {}, label), h('b', {}, money(value)),
+    h('span', { class: 'mrow-bar' }, h('i', { style: { width: `${Math.min(100, Math.abs(value) / max * 100)}%`, background: color } })));
+  return h('section', { class: 'card month-card d-month' },
+    h('div', { class: 'card-head' }, h('h2', {}, tr('Luna aceasta')), linkBtn(tr('Tranzacții'), () => go('#/tranzactii'), null)),
+    row('+', 'pos', tr('Venituri'), tot.income, '#5DD3A6', 'venit'),
+    row('−', 'neg', tr('Cheltuieli'), tot.expense, '#FF8A80', 'cheltuiala'),
+    row('=', 'acc', tot.left >= 0 ? tr('Economisit') : tr('Cheltuit în plus'), Math.abs(tot.left), 'var(--accent)', ''));
+}
+
+// Doar pe laptop: plățile care urmează (abonamente, rate), fiecare cu „Plătit”.
+function payCard(a) {
+  const list = a.commitments || [];
+  return h('section', { class: 'card pay-card d-pay' },
+    h('div', { class: 'card-head' }, h('h2', {}, tr('Plăți care urmează')), list.length ? linkBtn(tr('Toate'), () => openCommitments(a), null) : null),
+    list.length
+      ? h('div', { class: 'pay-list' }, list.slice(0, 5).map(c => h('div', { class: 'pay-row' + (c.late ? ' late' : '') },
+        h('span', { class: 'pay-ic' }, icon(c.kind === tr('Rată') ? 'card' : 'repeat', 17)),
+        h('span', { class: 'pay-t' }, c.label, h('small', {}, dueText(c))),
+        h('b', {}, money(c.amount)),
+        h('button', { type: 'button', class: 'pay-ok', onclick: () => confirmPaid(c, list) }, tr('Plătit')))))
+      : h('p', { class: 'muted' }, a.payday ? tr('Nicio plată programată până la salariu') : tr('Nicio plată programată până la final de lună')));
+}
+
 function gauge(fraction, label, color) {
   const C = 2 * Math.PI * 42, f = Math.max(0, Math.min(1, fraction));
   return h('div', { class: 'gauge' },
@@ -166,10 +193,14 @@ export function dashboardPage() {
     h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('venit') }, h('small', {}, tr('Venituri')), h('b', {}, moneyShort(tot.income))),
     h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('cheltuiala') }, h('small', {}, tr('Cheltuieli')), h('b', {}, moneyShort(-tot.expense))),
     h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('') }, h('small', {}, tot.left >= 0 ? tr('Economisit') : tr('Cheltuit în plus')), h('b', {}, moneyShort(Math.abs(tot.left)))));
-  const hero = h('section', { class: `card summary hero hero-bg-${heroStyle}${art ? ' has-art' : ''}${art && HERO_SCENES.has(heroStyle) ? ' art-scene' : ''} top-card` },
+  const live = m === cm && !isEmpty;
+  const a = live ? dailyAllowance() : null;
+  const hero = h('section', { class: `card summary hero hero-bg-${heroStyle}${art ? ' has-art' : ''}${art && HERO_SCENES.has(heroStyle) ? ' art-scene' : ''} top-card d-hero` },
     art || sparkline(m),
     h('span', { class: 'label' }, m === cm ? tr('Disponibil · cont Curent') : tr('Disponibil la {date}', { date: fmtDate(upTo) })),
-    bigMoney(avail));
+    bigMoney(avail),
+    // Doar pe laptop: „Azi mai poți cheltui” devine o linie informativă în card.
+    a && a.free > 0 ? h('span', { class: 'hero-daily' }, tr('Buget pe zi'), ' ', h('b', {}, money(a.perDay)), ' · ', tr('azi mai ai'), ' ', h('b', {}, money(Math.max(0, a.leftToday)))) : null);
 
   const active = state.goals.filter(g => !g.done);
   const goals = [
@@ -179,7 +210,6 @@ export function dashboardPage() {
       h('button', { type: 'button', class: 'gcard add', onclick: () => openGoalForm() }, icon('plus', 24), active.length ? tr('Goal nou') : tr('Creează primul goal'))),
   ];
 
-  const live = m === cm && !isEmpty;
   const welcome = isEmpty ? card(
     h('h2', {}, tr('Bun venit! 👋')),
     h('p', { class: 'muted' }, tr('Adaugă prima tranzacție cu butonul +, sau încarcă date demo ca să vezi cum arată aplicația.')),
@@ -189,12 +219,22 @@ export function dashboardPage() {
   });
 
   // Plăcile (4, alese din Setări → Aspect și limbă) vin după „Azi mai poți cheltui”.
+  // Pe laptop (vezi style.css, .home-tablou), pagina devine o grilă: sold + „Luna aceasta”, plăcile pe un rând,
+  // graficul lângă „Plăți care urmează”; plăcile mici de sub sold și „Azi mai poți cheltui” se ascund acolo.
+  const [goalsHead, goalsRow] = goals;
+  goalsHead.classList.add('d-gh'); goalsRow.classList.add('d-goals');
+  const tiles = live ? tilesGrid() : null;
+  tiles?.classList.add('d-tiles');
+  chart.classList.add('d-chart');
+  welcome?.classList.add('d-wide');
   const node = h('div', { class: 'page home-tablou' },
     monthChip(), hero, pills,
     live ? allowanceCard() : null,
+    monthCard(tot),
     welcome,
-    live ? tilesGrid() : null,
+    tiles,
     chart,
-    ...goals);
+    live ? payCard(a) : null,
+    goalsHead, goalsRow);
   return { title: `${greeting()} 👋`, subtitle: longDate(today()), node };
 }

@@ -233,8 +233,8 @@ export function currencySeg(value, onChange) {
 
 const GOAL_EMOJIS = ['🎯', '✈️', '🏖️', '🚗', '🏠', '💻', '📱', '💍', '🎓', '🛋️', '🚲', '🎸', '🐶', '👶', '🏥', '💰'];
 
-export function openGoalForm(existing) {
-  const g = existing ? { ...existing } : { icon: '🎯', color: PALETTE[state.goals.length % PALETTE.length] };
+export function openGoalForm(existing, prefill = null) {
+  const g = existing ? { ...existing } : { icon: '🎯', color: PALETTE[state.goals.length % PALETTE.length], ...prefill };
   const oldCur = g.currency || state.settings.currency;
   let cur = oldCur;
   const name = textInput(g.name, { placeholder: tr('ex. Vacanță'), maxlength: 40 });

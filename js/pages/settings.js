@@ -9,6 +9,7 @@ import {
 import { openExportSheet, openSalaryDay } from '../forms.js';
 import { exportBackup } from '../exporter.js';
 import { runAutomations } from '../actions.js';
+import { openPlanPriorities } from './plan.js';
 import { loadDemo } from './dashboard.js';
 import { openEfSettings } from './emergency.js';
 import { t as tr } from '../i18n.js';
@@ -313,14 +314,15 @@ function sectionContent(sub) {
       navRow(tr('Curs de schimb'), tr('1 EUR = {eur} lei · 1 USD = {usd} lei', { eur: num(st.rates.EUR, 4), usd: num(st.rates.USD, 4) }), openRates),
       navRow(tr('Ziua salariului'), st.salaryDay ? tr('Pe {d} ale lunii · în weekend, vinerea dinainte', { d: st.salaryDay }) : tr('Nesetată · banii se împart până la final de lună'), openSalaryDay),
       navRow(tr('Solduri inițiale'), `${accountName('curent')} ${money(st.opening.curent)} · ${accountName('economii')} ${money(st.opening.economii)}`, openOpening),
-      navRow(tr('Ținta fondului de urgență'), tr('{n} luni', { n: state.emergency.months }), openEfSettings))];
+      navRow(tr('Ținta fondului de urgență'), tr('{n} luni', { n: state.emergency.months }), openEfSettings),
+      navRow(tr('Priorități în calculator'), tr('Cine primește mai mult la „Recomandat”'), () => openPlanPriorities()))];
   }
   if (sub === 'module') {
     return [
       h('div', { class: 'list' }, MODULES.map(([k, name, desc]) =>
         switchRow(tr(name), modOn(k), v => { st.modules = { ...st.modules, [k]: v }; commit(); }, tr(desc)))),
-      // Când Investițiile sunt ascunse, alegi ce pagină le ia locul în bara de jos.
-      modOn('investitii') ? null : h('div', { class: 'list' }, stackRow(tr('În bara de jos, în locul Investițiilor'),
+      // Al patrulea tab din bara de jos (implicit Investițiile).
+      h('div', { class: 'list' }, stackRow(tr('Al patrulea tab din bara de jos'),
         h('div', { class: 'slot-grid' }, TAB_SLOTS.filter(x => !x[3] || modOn(x[3])).map(([id, label, ico]) => h('button', {
           type: 'button', class: 'slot' + (slotTab()[0] === id ? ' on' : ''), 'aria-pressed': String(slotTab()[0] === id),
           onclick: () => { st.tabSlot = id; commit(); toast(tr('În bara de jos: {name}', { name: tr(label) })); },

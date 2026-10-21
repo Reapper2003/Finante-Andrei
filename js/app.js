@@ -18,16 +18,17 @@ import { debtsPage, debtPage } from './pages/debts.js';
 import { settingsPage } from './pages/settings.js';
 import { categoriesPage } from './pages/categories.js';
 import { calculatorPage } from './pages/calculator.js';
+import { planPage } from './pages/plan.js';
 import { wishlistPage } from './pages/wishlist.js';
 import { startPage, needsOnboarding } from './pages/start.js';
 
 // Bara de jos: două tab-uri, butonul + la mijloc, alte două tab-uri. „Mai mult” e butonul rotund din header.
-// Dacă Investițiile sunt ascunse (Setări → Module), în locul lor apare pagina aleasă acolo (implicit Rapoarte).
+// Al patrulea tab e cel ales în Setări → Module (implicit Investiții; Rapoarte dacă Investițiile sunt ascunse).
 const tabs = () => [
   ['acasa', 'Acasă', 'home'],
   ['tranzactii', 'Tranzacții', 'list'],
   ['economii', 'Economii', 'wallet'],
-  modOn('investitii') ? ['investitii', 'Investiții', 'trend'] : slotTab().slice(0, 3),
+  slotTab().slice(0, 3),
 ];
 
 const ROUTES = [
@@ -47,9 +48,33 @@ const ROUTES = [
   [/^setari(?:\/(\w+))?$/, settingsPage, 'mai-mult'],
   [/^categorii$/, categoriesPage, 'mai-mult'],
   [/^calculator$/, calculatorPage, 'calculator'],
+  [/^plan$/, planPage, 'plan'],
   [/^dorinte$/, wishlistPage, 'dorinte', 'dorinte'],
   [/^start$/, startPage, 'start'],
 ];
+
+// Pe ecran lat (laptop, browser): bară laterală cu toate paginile, Setări și „+ Tranzacție nouă”;
+// bara de jos se ascunde (vezi style.css, @media min-width 1024px).
+const side = h('aside', { class: 'side' });
+document.body.prepend(side);
+function renderSide(route) {
+  const items = [
+    ['acasa', 'Acasă', 'home'], ['tranzactii', 'Tranzacții', 'list'], ['economii', 'Economii', 'wallet'],
+    modOn('investitii') && ['investitii', 'Investiții', 'trend'], ['plan', 'Calculator', 'calc'], ['rapoarte', 'Rapoarte', 'report'],
+    modOn('abonamente') && ['abonamente', 'Abonamente', 'repeat'], modOn('datorii') && ['datorii', 'Datorii', 'card'],
+    modOn('avere') && ['avere', 'Avere netă', 'scale'], ['fond', 'Fond de urgență', 'shield'], modOn('dorinte') && ['dorinte', 'Listă de dorințe', 'gift'],
+  ].filter(Boolean);
+  const cur = route[2] === 'mai-mult' ? 'setari' : route[2];
+  const link = ([id, label, ico]) => h('a', { href: `#/${id}`, class: 'side-item' + (id === cur ? ' on' : ''), 'aria-current': id === cur ? 'page' : null },
+    icon(ico, 20), h('span', {}, tr(label)));
+  side.setAttribute('aria-label', tr('Navigare principală'));
+  side.replaceChildren(
+    h('a', { href: '#/acasa', class: 'side-brand' }, h('img', { src: 'icons/icon-192.png', alt: '' }), h('span', {}, tr('Finanțe'))),
+    h('nav', { class: 'side-nav' }, items.map(link)),
+    h('div', { class: 'side-grow' }),
+    link(['setari', 'Setări', 'settings']),
+    h('button', { type: 'button', class: 'side-add', onclick: () => openTxForm() }, icon('plus', 18), h('span', {}, tr('Tranzacție nouă'))));
+}
 
 const view = document.getElementById('view');
 const titleEl = document.getElementById('title');
@@ -93,6 +118,7 @@ function render() {
   fab.setAttribute('aria-label', tr('Adaugă tranzacție'));
   tabsEl.setAttribute('aria-label', tr('Navigare principală'));
   if (tabsEl.dataset.key !== TABS.map(t => t[0]).join()) buildTabs(TABS);
+  renderSide(route);
   for (const a of tabsEl.querySelectorAll('a[data-tab]')) {
     const on = a.dataset.tab === tabKey;
     a.lastChild.textContent = tr(TABS.find(x => x[0] === a.dataset.tab)[1]);
