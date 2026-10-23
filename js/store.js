@@ -18,13 +18,12 @@ export const modOn = k => state.settings.modules?.[k] !== false;
 // Implicit Investițiile (sau Rapoartele, dacă Investițiile sunt ascunse).
 export const TAB_SLOTS = [
   ['investitii', 'Investiții', 'trend', 'investitii'],
-  ['plan', 'Calculator', 'calc', null],
+  ['plan', 'Calc. bani', 'calc', null],
   ['rapoarte', 'Rapoarte', 'report', null],
   ['abonamente', 'Abonamente', 'repeat', 'abonamente'],
   ['datorii', 'Datorii', 'card', 'datorii'],
   ['avere', 'Avere', 'scale', 'avere'],
   ['dorinte', 'Dorințe', 'gift', 'dorinte'],
-  ['fond', 'Urgență', 'shield', null],
   ['calculator', 'Calc. investiții', 'trend', null],
 ];
 export function slotTab() {
@@ -34,7 +33,7 @@ export function slotTab() {
 }
 
 // Crește odată cu VERSION din sw.js; apare în Setări ca să vezi ce versiune rulează.
-export const APP_VERSION = 64;
+export const APP_VERSION = 70;
 
 const KEY = 'finante.data.v1';
 // Tema și culoarea, păstrate și separat ca pagina să le aplice înainte de afișare (vezi index.html).

@@ -1,4 +1,4 @@
-// Iconițe desenate cu linie pentru emoji-urile categoriilor (stilul „Linie” din Setări → Aspect și limbă).
+// Iconițe desenate cu linie pentru emoji-urile categoriilor (stilul „Linie” din Setări → Aspect).
 // Cheia e emoji-ul fără selectorul de variantă (U+FE0F).
 
 const P = {

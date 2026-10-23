@@ -102,5 +102,5 @@ export function calculatorPage() {
         field(tr('Inflație/an (%)'), inflation)),
       h('p', { class: 'hint' }, tr('„Creștere/an” mărește depunerea lunară în fiecare an (ex. odată cu salariul). Inflația arată cât valorează suma în banii de azi.'))),
     result);
-  return { title: tr('Calculator'), back: '#/acasa', node };
+  return { title: tr('Calculator investiții'), back: '#/acasa', node };
 }

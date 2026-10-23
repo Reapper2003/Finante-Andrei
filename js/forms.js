@@ -251,7 +251,8 @@ export function currencySeg(value, onChange) {
 
 const GOAL_EMOJIS = ['🎯', '✈️', '🏖️', '🚗', '🏠', '💻', '📱', '💍', '🎓', '🛋️', '🚲', '🎸', '🐶', '👶', '🏥', '💰'];
 
-export function openGoalForm(existing, prefill = null) {
+// onCreated(goal): apelat după ce un obiectiv nou a fost salvat (ex. o dorință mutată la obiective).
+export function openGoalForm(existing, prefill = null, onCreated = null) {
   const g = existing ? { ...existing } : { icon: '🎯', color: PALETTE[state.goals.length % PALETTE.length], ...prefill };
   const oldCur = g.currency || state.settings.currency;
   let cur = oldCur;
@@ -278,7 +279,9 @@ export function openGoalForm(existing, prefill = null) {
     const before = goalSnapshot();
     if (existing) convertBucketHistory('g:' + g.id, oldCur, cur);
     if (existing) state.goals[state.goals.findIndex(x => x.id === g.id)] = out;
-    else state.goals.push({ ...out, id: uid(), done: false, createdAt: today() });
+    const created = existing ? null : { ...out, id: uid(), done: false, createdAt: today() };
+    if (created) state.goals.push(created);
+    onCreated?.(created);
     commit();
     sh.close();
     toast(existing ? tr('Goal actualizat') : tr('Goal creat'));

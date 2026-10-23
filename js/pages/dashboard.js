@@ -8,7 +8,7 @@ import { openTxForm, openCategoryTxSheet, openGoalForm, openGoalActions, openSal
 import { buildDemo } from '../demo.js';
 import { runAutomations } from '../actions.js';
 import { t as tr } from '../i18n.js';
-import { HERO_ART, HERO_SCENES } from '../heroArt.js';
+import { HERO_ART, HERO_SCENES, fitHeroAmount } from '../heroArt.js';
 import { showTransactions } from './transactions.js';
 import { upcomingRow, confirmPaid, dueText, tilesGrid, cleanChart } from './homeParts.js';
 
@@ -218,7 +218,7 @@ export function dashboardPage() {
     onCat: it => openCategoryTxSheet(it.id, m), onInc: it => openCategoryTxSheet(it.id, m, 'venit'), savingsIcons,
   });
 
-  // Plăcile (4, alese din Setări → Aspect și limbă) vin după „Azi mai poți cheltui”.
+  // Plăcile (4, alese din Setări → Aspect) vin după „Azi mai poți cheltui”.
   // Pe laptop (vezi style.css, .home-tablou), pagina devine o grilă: sold + „Luna aceasta”, plăcile pe un rând,
   // graficul lângă „Plăți care urmează”; plăcile mici de sub sold și „Azi mai poți cheltui” se ascund acolo.
   const [goalsHead, goalsRow] = goals;
@@ -236,5 +236,6 @@ export function dashboardPage() {
     chart,
     live ? payCard(a) : null,
     goalsHead, goalsRow);
+  if (art) fitHeroAmount(hero);
   return { title: `${greeting()} 👋`, subtitle: longDate(today()), node };
 }

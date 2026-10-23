@@ -7,6 +7,33 @@ const svg = body => `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/sv
 export const HERO_SCENES = new Set(['mountains', 'beach', 'aquarium', 'winter', 'city', 'sailboat', 'fireflies', 'autumn', 'aurora2',
   'garden', 'fox', 'lighthouse', 'bike', 'summer', 'football', 'whale', 'desert', 'camping', 'train']);
 
+// Pe telefoane înguste sau la sume lungi, suma mare poate ajunge peste desen: atunci i se micșorează puțin
+// fontul, cât să rămână ~8px liberi până la primul element desenat de pe același rând (cel mult până la 72%).
+export function fitHeroAmount(card) {
+  requestAnimationFrame(() => {
+    const big = card.querySelector('.big'), art = card.querySelector('.hero-art');
+    if (!big || !art || !card.isConnected || card.classList.contains('art-scene')) return;
+    big.style.fontSize = '';
+    const r = document.createRange();
+    r.selectNodeContents(big);
+    const rs = [...r.getClientRects()];
+    if (!rs.length) return;
+    const left = Math.min(...rs.map(x => x.left)), right = Math.max(...rs.map(x => x.right));
+    const top = Math.min(...rs.map(x => x.top)), bottom = Math.max(...rs.map(x => x.bottom));
+    let artLeft = Infinity;
+    art.querySelectorAll('svg *').forEach(e => {
+      if (!(e instanceof SVGGeometryElement)) return;
+      const b = e.getBoundingClientRect();
+      if (b.width + b.height < 1 || b.bottom < top + 4 || b.top > bottom - 4) return;
+      artLeft = Math.min(artLeft, b.left);
+    });
+    const over = right + 8 - artLeft;
+    if (!(over > 0)) return;
+    const size = parseFloat(getComputedStyle(big).fontSize), w = right - left;
+    big.style.fontSize = `${Math.max(size * 0.72, size * (w - over) / w)}px`;
+  });
+}
+
 export const HERO_ART = {
   bear: svg(`
     <path d="M98 18c-3-6-11-4-10 2 1 5 10 10 10 10s9-5 10-10c1-6-7-8-10-2z" fill="#FF6B8A"/>

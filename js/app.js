@@ -60,16 +60,16 @@ document.body.prepend(side);
 function renderSide(route) {
   const items = [
     ['acasa', 'Acasă', 'home'], ['tranzactii', 'Tranzacții', 'list'], ['economii', 'Economii', 'wallet'],
-    modOn('investitii') && ['investitii', 'Investiții', 'trend'], ['plan', 'Calculator', 'calc'], ['rapoarte', 'Rapoarte', 'report'],
+    modOn('investitii') && ['investitii', 'Investiții', 'trend'], ['plan', 'Calculator bani', 'calc'], ['rapoarte', 'Rapoarte', 'report'],
     modOn('abonamente') && ['abonamente', 'Abonamente', 'repeat'], modOn('datorii') && ['datorii', 'Datorii', 'card'],
-    modOn('avere') && ['avere', 'Avere netă', 'scale'], ['fond', 'Fond de urgență', 'shield'], modOn('dorinte') && ['dorinte', 'Listă de dorințe', 'gift'],
+    modOn('avere') && ['avere', 'Avere netă', 'scale'], modOn('dorinte') && ['dorinte', 'Listă de dorințe', 'gift'],
   ].filter(Boolean);
-  const cur = route[2] === 'mai-mult' ? 'setari' : route[2];
+  const cur = route[2] === 'mai-mult' ? 'setari' : items.some(x => x[0] === route[2]) ? route[2] : route[4] || route[2];
   const link = ([id, label, ico]) => h('a', { href: `#/${id}`, class: 'side-item' + (id === cur ? ' on' : ''), 'aria-current': id === cur ? 'page' : null },
     icon(ico, 20), h('span', {}, tr(label)));
   side.setAttribute('aria-label', tr('Navigare principală'));
   side.replaceChildren(
-    h('a', { href: '#/acasa', class: 'side-brand' }, h('img', { src: 'icons/icon-192.png', alt: '' }), h('span', {}, tr('Finanțe'))),
+    h('a', { href: '#/acasa', class: 'side-brand' }, h('img', { src: 'icons/icon-192.png', alt: '' }), h('span', {}, 'Swinance')),
     h('nav', { class: 'side-nav' }, items.map(link)),
     h('div', { class: 'side-grow' }),
     link(['setari', 'Setări', 'settings']),
@@ -139,7 +139,7 @@ function render() {
   const tabKey = inBar(route[2]) ? route[2] : inBar(route[4]) ? route[4] : null;
   moreEl.classList.toggle('on', route[2] !== 'start' && !tabKey);
   moreEl.setAttribute('aria-label', tr('Meniu'));
-  document.title = `${res.title} · ${tr('Finanțe')}`;
+  document.title = `${res.title} · Swinance`;
   document.documentElement.lang = state.settings.lang === 'en' ? 'en' : 'ro';
   backEl.hidden = !res.back;
   if (res.back) backEl.href = res.back;

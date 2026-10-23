@@ -8,7 +8,7 @@ import {
   h, icon, card, sectionHead, linkBtn, btn, app, emptyState, openSheet, field, textInput, amountInput, segmented,
   switchRow, invalid, toast, confirmDialog, emojiPicker, swipeRow, onceHint
 } from '../ui.js';
-import { currencySeg } from '../forms.js';
+import { currencySeg, openGoalForm } from '../forms.js';
 import { t as tr } from '../i18n.js';
 
 const EMOJIS = ['🎁', '📱', '💻', '🎧', '👟', '👕', '⌚', '📚', '🎮', '🏠', '✈️', '💄', '🧸', '🍳', '🚲', '💍'];
@@ -51,7 +51,14 @@ function openWishForm(existing) {
       field(tr('Link către produs (opțional)'), link),
       field(tr('Notițe'), note),
       field(tr('Iconiță'), emojiPicker(EMOJIS, w.icon, v => { w.icon = v; })),
-      existing ? switchRow(kind === 'cadou' ? tr('Cadoul e luat') : tr('Am luat-o'), w.done, v => { w.done = v; }) : null),
+      existing ? switchRow(kind === 'cadou' ? tr('Cadoul e luat') : tr('Am luat-o'), w.done, v => { w.done = v; }) : null,
+      // o dorință cu preț devine obiectiv: se completează numele, suma și moneda, iar dorința se mută din listă
+      existing && !existing.done && existing.price > 0 ? btn(`🎯 ${tr('Începe să strângi')}`, () => {
+        sh.close();
+        openGoalForm(null, { name: existing.name, target: existing.price, currency: existing.currency || state.settings.currency, icon: existing.icon || '🎯' },
+          () => { state.wishes = state.wishes.filter(x => x.id !== existing.id); });
+      }, 'secondary') : null,
+      existing && !existing.done && existing.price > 0 ? h('p', { class: 'hint' }, tr('Devine obiectiv la Economii și dispare din listă.')) : null),
     footer: h('div', { class: 'btn-row' },
       existing ? btn(tr('Șterge'), () => confirmDialog({ title: tr('Ștergi {name}?', { name: existing.name }) }).then(ok => {
         if (!ok) return;

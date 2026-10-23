@@ -454,6 +454,8 @@ export function upcomingCommitments(end = monthEnd(currentMonth())) {
     for (const m of monthsRange(cm, end.slice(0, 7))) {
       if (remaining <= 0) break;
       if (state.debtPayments.some(p => p.debtId === d.id && p.date.startsWith(m))) continue;
+      // rata unei luni plătite înainte ca datoria să fie adăugată în aplicație (bifa din formular)
+      if (d.paidThrough && m <= d.paidThrough) continue;
       const last = Number(monthEnd(m).slice(8));
       const due = `${m}-${String(Math.min(d.dueDay || last, last)).padStart(2, '0')}`;
       // Luna curentă: rata neplătită intră în calcul chiar dacă scadența a trecut. Lunile următoare: doar până la `end`.

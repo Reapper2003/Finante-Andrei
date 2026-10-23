@@ -12,7 +12,7 @@ import { donut, lineChart, barBreakdown } from '../charts.js';
 import { listRow, exportButton } from '../components.js';
 import { saveContribution, deleteContribution, deleteAsset, deleteBroker } from '../actions.js';
 import { t as tr } from '../i18n.js';
-import { INV_ART, INV_PLAIN } from '../heroArt.js';
+import { INV_ART, INV_PLAIN, fitHeroAmount } from '../heroArt.js';
 
 const CUR_OPTS = Object.keys(CURRENCIES).map(c => ({ value: c, label: c }));
 let allocBy = 'tip';
@@ -208,6 +208,7 @@ export function investmentsPage() {
       barBreakdown({ items: alloc, format: v => `${money(v)} · ${pct(v / (p.value || 1), 0)}` })) : null,
     base !== 'RON' || state.brokers.some(b => b.currency !== base) ? h('p', { class: 'hint center' }, tr('Totalurile sunt convertite cu cursul din Setări.')) : null,
     h('div', { class: 'center' }, linkBtn(tr('Calculator investiții'), () => go('#/calculator'), 'trend')));
+  if (art) fitHeroAmount(hero);
   return { title: tr('Investiții'), node };
 }
 

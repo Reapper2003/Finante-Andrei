@@ -67,10 +67,9 @@ export function openMainMenu() {
       ...group(tr('Planificare'), [
         modOn('abonamente') && item('repeat', tr('Abonamente'), '#/abonamente'),
         modOn('datorii') && item('card', tr('Datorii'), '#/datorii'),
-        item('shield', tr('Fond de urgență'), '#/fond'),
         modOn('dorinte') && item('gift', tr('Listă de dorințe'), '#/dorinte')]),
       ...group(tr('Unelte'), [
-        !inBar('plan') && item('calc', tr('Calculator'), '#/plan'),
+        !inBar('plan') && item('calc', tr('Calculator bani'), '#/plan'),
         item('trend', tr('Calculator investiții'), '#/calculator'),
         item('tag', tr('Categorii'), '#/categorii')]),
       h('div', { class: 'list menu-settings' }, item('settings', tr('Setări'), '#/setari'))),

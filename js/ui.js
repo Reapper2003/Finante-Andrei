@@ -78,6 +78,7 @@ const ICONS = {
   card: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/>',
   settings: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
   tag: '<path d="M3 12.5V4h8.5L21 13.5 13.5 21z"/><circle cx="7.5" cy="8.5" r="1.3"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/>',
   download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
   upload: '<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>',
   refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
@@ -142,9 +143,7 @@ export function applyTheme() {
   const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
   if (bg) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
 
-  // Densitatea și bara de jos
-  document.body.classList.toggle('dens-compact', st.density === 'compact');
-  document.body.classList.toggle('nav-plina', st.navStyle === 'plina');
+  // Bara de jos: cu sau fără text sub iconițe
   document.body.classList.toggle('nav-fara-text', st.navLabels === false);
 }
 

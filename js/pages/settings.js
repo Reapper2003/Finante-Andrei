@@ -9,7 +9,6 @@ import {
 import { openExportSheet, openSalaryDay } from '../forms.js';
 import { exportBackup } from '../exporter.js';
 import { runAutomations } from '../actions.js';
-import { openPlanPriorities } from './plan.js';
 import { loadDemo } from './dashboard.js';
 import { openEfSettings } from './emergency.js';
 import { t as tr } from '../i18n.js';
@@ -257,8 +256,8 @@ async function wipe() {
 
 // Setări împărțite pe subpagini: o listă scurtă la intrare, detaliile un nivel mai jos.
 const SECTIONS = [
-  ['aspect', 'Aspect și limbă', 'Temă, culoare, fundal, plăcile de pe Acasă, limbă', 'eye'],
   ['bani', 'Bani și conturi', 'Monedă, curs, ziua salariului, solduri', 'wallet'],
+  ['aspect', 'Aspect', 'Temă, culoare, fundal, plăcile de pe Acasă, bara de jos', 'eye'],
   ['module', 'Module', 'Alege ce secțiuni vezi în aplicație', 'list'],
   ['date', 'Date și backup', 'Export Excel, backup, restaurare', 'download'],
 ];
@@ -276,11 +275,9 @@ function sectionContent(sub) {
   if (sub === 'aspect') {
     const set = (k, v) => { st[k] = v; applyTheme(); commit(); };
     return [
-      sectionHead(tr('Temă')),
+      sectionHead(tr('Temă și culoare')),
       h('div', { class: 'list' },
-        stackRow(tr('Temă'), segmented(themeOpts, st.theme, v => set('theme', v)))),
-      sectionHead(tr('Fundaluri și culoare')),
-      h('div', { class: 'list' },
+        stackRow(tr('Temă'), segmented(themeOpts, st.theme, v => set('theme', v))),
         bgRow(tr('Fundal card principal'), HERO_GROUPS, HERO_ART, 'hero-bg-', heroNow, openHeroBgSheet),
         bgRow(tr('Fundal card Investiții'), INV_GROUPS, INV_ART, 'inv-bg-', invNow, openInvBgSheet),
         switchRow(tr('Culoarea aplicației după fundalul principal'), st.accentFromHero, v => set('accentFromHero', v),
@@ -295,17 +292,22 @@ function sectionContent(sub) {
       sectionHead(tr('Afișare')),
       h('div', { class: 'list' },
         navRow(tr('Plăcile de pe Acasă'), chosenTileNames().join(' · '), openTileEditor),
-        stackRow(tr('Densitate'), segmented([{ value: 'aerisit', label: tr('Aerisit') }, { value: 'compact', label: tr('Compact') }], st.density || 'aerisit', v => set('density', v)),
-          tr('Compact: mai puțin spațiu între carduri, vezi mai multe pe ecran.')),
         stackRow(tr('Iconițele categoriilor'), iconStylePicker(st.iconStyle || 'emoji', v => set('iconStyle', v))),
-        stackRow(tr('Bara de jos'), segmented([{ value: 'sticla', label: tr('Plutitoare') }, { value: 'plina', label: tr('Pe toată lățimea') }], st.navStyle || 'sticla', v => set('navStyle', v))),
-        switchRow(tr('Text sub iconițele din bara de jos'), st.navLabels !== false, v => set('navLabels', v))),
-      sectionHead(tr('Limbă și formate')),
-      h('div', { class: 'list' },
-        stackRow('Limbă / Language', segmented(LANG_OPTS, st.lang || 'ro', v => { st.lang = v; commit(); toast(tr('Limba a fost schimbată')); })),
-        stackRow(tr('Format numere'), segmented(NUMBER_FORMATS, st.numberFormat || 'ro', v => { st.numberFormat = v; commit(); })),
-        stackRow(tr('Format dată'), (() => { const sel = selectInput(DATE_FORMATS, st.dateFormat || 'dmy.'); sel.addEventListener('change', () => { st.dateFormat = sel.value; commit(); }); return sel; })()),
         switchRow(tr('Pornește aplicația în mod privat'), st.privateOnStart, v => { st.privateOnStart = v; commit(); }, tr('Sumele sunt ascunse la deschidere'))),
+      // tot ce ține de bara de jos, într-un singur loc
+      sectionHead(tr('Bara de jos')),
+      h('div', { class: 'list' },
+        switchRow(tr('Text sub iconițe'), st.navLabels !== false, v => set('navLabels', v)),
+        // Al patrulea tab (implicit Investițiile); apar doar modulele active.
+        stackRow(tr('Al patrulea tab'),
+          h('div', { class: 'slot-grid' }, TAB_SLOTS.filter(x => !x[3] || modOn(x[3])).map(([id, label, ico]) => h('button', {
+            type: 'button', class: 'slot' + (slotTab()[0] === id ? ' on' : ''), 'aria-pressed': String(slotTab()[0] === id),
+            onclick: () => { st.tabSlot = id; commit(); toast(tr('În bara de jos: {name}', { name: tr(label) })); },
+          }, icon(ico, 22), h('span', {}, tr(label))))))),
+      sectionHead(tr('Formate')),
+      h('div', { class: 'list' },
+        stackRow(tr('Format numere'), segmented(NUMBER_FORMATS, st.numberFormat || 'ro', v => { st.numberFormat = v; commit(); })),
+        stackRow(tr('Format dată'), (() => { const sel = selectInput(DATE_FORMATS, st.dateFormat || 'dmy.'); sel.addEventListener('change', () => { st.dateFormat = sel.value; commit(); }); return sel; })())),
     ];
   }
   if (sub === 'bani') {
@@ -313,20 +315,13 @@ function sectionContent(sub) {
       stackRow(tr('Monedă implicită'), segmented(CUR_OPTS, st.currency, v => { st.currency = v; commit(); toast(tr('Monedă schimbată')); }), tr('Sumele existente nu se convertesc, se schimbă doar afișarea.')),
       navRow(tr('Curs de schimb'), tr('1 EUR = {eur} lei · 1 USD = {usd} lei', { eur: num(st.rates.EUR, 4), usd: num(st.rates.USD, 4) }), openRates),
       navRow(tr('Ziua salariului'), st.salaryDay ? tr('Pe {d} ale lunii · în weekend, vinerea dinainte', { d: st.salaryDay }) : tr('Nesetată · banii se împart până la final de lună'), openSalaryDay),
-      navRow(tr('Solduri inițiale'), `${accountName('curent')} ${money(st.opening.curent)} · ${accountName('economii')} ${money(st.opening.economii)}`, openOpening),
       navRow(tr('Ținta fondului de urgență'), tr('{n} luni', { n: state.emergency.months }), openEfSettings),
-      navRow(tr('Priorități în calculator'), tr('Cine primește mai mult la „Recomandat”'), () => openPlanPriorities()))];
+      navRow(tr('Solduri inițiale'), `${accountName('curent')} ${money(st.opening.curent)} · ${accountName('economii')} ${money(st.opening.economii)}`, openOpening))];
   }
   if (sub === 'module') {
     return [
       h('div', { class: 'list' }, MODULES.map(([k, name, desc]) =>
         switchRow(tr(name), modOn(k), v => { st.modules = { ...st.modules, [k]: v }; commit(); }, tr(desc)))),
-      // Al patrulea tab din bara de jos (implicit Investițiile).
-      h('div', { class: 'list' }, stackRow(tr('Al patrulea tab din bara de jos'),
-        h('div', { class: 'slot-grid' }, TAB_SLOTS.filter(x => !x[3] || modOn(x[3])).map(([id, label, ico]) => h('button', {
-          type: 'button', class: 'slot' + (slotTab()[0] === id ? ' on' : ''), 'aria-pressed': String(slotTab()[0] === id),
-          onclick: () => { st.tabSlot = id; commit(); toast(tr('În bara de jos: {name}', { name: tr(label) })); },
-        }, icon(ico, 22), h('span', {}, tr(label))))))),
       h('p', { class: 'hint' }, tr('Ce ascunzi nu se șterge: datele rămân și reapar când activezi din nou modulul.')),
     ];
   }
@@ -335,9 +330,10 @@ function sectionContent(sub) {
       h('div', { class: 'list' },
         navRow(tr('Exportă în Excel'), tr('Toate datele sau o anumită perioadă'), openExportSheet),
         navRow(tr('Backup (export JSON)'), tr('Salvează o copie a tuturor datelor'), () => exportBackup().then(() => toast(tr('Backup creat')))),
-        navRow(tr('Restaurare (import JSON)'), tr('Încarcă datele dintr-un backup'), restore),
-        navRow(tr('Încarcă date demo'), tr('Ca să vezi cum arată aplicația'), demo)),
-      h('div', { class: 'list' }, navRow(tr('Șterge toate datele'), tr('Cu confirmare dublă'), wipe, 'danger-text')),
+        navRow(tr('Restaurare (import JSON)'), tr('Încarcă datele dintr-un backup'), restore)),
+      h('div', { class: 'list' },
+        navRow(tr('Încarcă date demo'), tr('Înlocuiește datele tale cu date de exemplu'), demo, 'danger-text'),
+        navRow(tr('Șterge toate datele'), tr('Cu confirmare dublă'), wipe, 'danger-text')),
       h('p', { class: 'hint center' }, tr('Datele sunt salvate doar pe acest dispozitiv. Fă din când în când un backup.')),
       h('p', { class: 'hint center' }, tr('Spațiu folosit: {size}', { size: sizeLabel(dataSize()) })),
     ];
@@ -352,10 +348,19 @@ export function settingsPage(sub) {
     if (!content) return null;
     return { title: tr(sec[1]), back: '#/setari', node: h('div', { class: 'page' }, ...content) };
   }
+  const st = state.settings;
+  const sec = id => { const [, title, desc, ico] = SECTIONS.find(x => x[0] === id); return iconRow(ico, tr(title), tr(desc), () => go(`#/setari/${id}`)); };
   const node = h('div', { class: 'page' },
+    // limba direct pe prima pagină, ușor de găsit și pentru cine nu știe română
     h('div', { class: 'list' },
-      SECTIONS.map(([id, title, desc, ico]) => iconRow(ico, tr(title), tr(desc), () => go(`#/setari/${id}`))),
-      iconRow('tag', tr('Categorii'), tr('{n} categorii', { n: state.categories.length }), () => go('#/categorii'))),
+      h('div', { class: 'row lang-row' },
+        h('span', { class: 'cat-ic neutral' }, icon('globe', 20)),
+        h('div', { class: 'row-main' }, h('div', { class: 'row-title' }, 'Limbă'), h('div', { class: 'row-sub' }, 'Language')),
+        segmented(LANG_OPTS, st.lang || 'ro', v => { st.lang = v; commit(); toast(tr('Limba a fost schimbată')); }))),
+    h('div', { class: 'list' },
+      sec('bani'),
+      iconRow('tag', tr('Categorii'), tr('{n} categorii', { n: state.categories.length }), () => go('#/categorii')),
+      sec('aspect'), sec('module'), sec('date')),
     h('p', { class: 'hint center' }, tr('Versiunea {v}', { v: APP_VERSION })));
   return { title: tr('Setări'), back: '#/acasa', node };
 }

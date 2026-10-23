@@ -1,5 +1,5 @@
 import { state, uid, commit, catByName } from '../store.js';
-import { today, fmtDate } from '../dates.js';
+import { today, fmtDate, currentMonth } from '../dates.js';
 import { money, pct, parseAmount, plural, forInput } from '../fmt.js';
 import { round2, debtStats, debtTotals, receivablesOpen, debtTypeOptions, debtTypeLabel, rebuildSnapshots } from '../calc.js';
 import {
@@ -27,6 +27,11 @@ function openDebtForm(existing) {
   const dueDay = h('input', { type: 'text', inputmode: 'numeric', value: d.dueDay ? String(d.dueDay) : '', placeholder: tr('ex. 15') });
   const endDate = dateInput(d.endDate);
   const note = textInput(d.note, { placeholder: tr('Opțional'), maxlength: 140 });
+  // Rata lunii curente poate fi deja plătită (ex. datoria e adăugată după scadență): atunci nu se mai scade
+  // din banii de cheltuit și nu apare la „Urmează”. Nu creează nicio cheltuială și nu schimbă soldul.
+  const cm = currentMonth();
+  const paidNowRecorded = existing && state.debtPayments.some(p => p.debtId === d.id && p.date.startsWith(cm));
+  let paidNow = !!(d.paidThrough && d.paidThrough >= cm);
   const sh = openSheet({
     title: existing ? tr('Editează datoria') : tr('Datorie nouă'),
     body: h('div', {},
@@ -36,6 +41,8 @@ function openDebtForm(existing) {
       h('div', { class: 'two' }, field(tr('Rată lunară'), monthly), field(tr('Dobândă % (opțional)'), interest)),
       h('div', { class: 'two' }, field(tr('Ziua scadenței'), dueDay), field(tr('Data finală'), endDate)),
       field(tr('Notă'), note),
+      paidNowRecorded ? null : h('div', { class: 'list' }, switchRow(tr('Rata de luna asta e deja plătită'), paidNow, v => { paidNow = v; },
+        tr('Nu se scade din banii de cheltuit și nu apare la „Urmează”. Nu se înregistrează nicio cheltuială.'))),
       existing ? h('p', { class: 'hint' }, tr('Soldul rămas actual = sold la adăugare − plățile înregistrate.')) : null),
     footer: btn(existing ? tr('Salvează') : tr('Adaugă datoria'), () => {
       if (!creditor.value.trim()) return invalid(creditor, tr('Scrie numele creditorului'));
@@ -53,6 +60,7 @@ function openDebtForm(existing) {
       const out = {
         ...d, type: type.value, creditor: creditor.value.trim(), initial: round2(ini), remainingStart: round2(rem), monthly: round2(mon),
         interest: intr, dueDay: day, endDate: endDate.value || null, note: note.value.trim(),
+        paidThrough: paidNowRecorded ? d.paidThrough ?? null : paidNow ? cm : d.paidThrough && d.paidThrough < cm ? d.paidThrough : null,
       };
       if (existing) Object.assign(state.debts.find(x => x.id === d.id), out);
       else state.debts.push({ ...out, id: uid(), startDate: today() });
@@ -212,6 +220,8 @@ export function debtPage(id) {
       info(tr('Rată lunară'), d.monthly ? money(d.monthly) : null),
       info(tr('Dobândă'), d.interest != null ? `${forInput(d.interest)}%` : null),
       info(tr('Scadență lunară'), d.dueDay ? tr('ziua {d}', { d: d.dueDay }) : null),
+      d.paidThrough && d.paidThrough >= currentMonth() && !payments.some(p => p.date.startsWith(currentMonth()))
+        ? info(tr('Rata de luna asta'), tr('plătită înainte de adăugare')) : null,
       info(tr('Data finală'), d.endDate ? fmtDate(d.endDate) : null),
       d.note ? h('p', { class: 'muted' }, d.note) : null),
     btn(tr('Înregistrează plată'), () => openPaymentForm(d)),
