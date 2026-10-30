@@ -113,7 +113,8 @@ export function bucketOptions(current) {
     { value: '', label: tr('Alte economii') },
     { value: 'urgenta', label: tr('Fond de urgență') },
     ...state.funds.map(f => ({ value: 'f:' + f.id, label: tr('Fond: {name}', { name: f.name }) + curTag('f:' + f.id) })),
-    ...state.goals.filter(g => !g.done || 'g:' + g.id === current).map(g => ({ value: 'g:' + g.id, label: tr('Goal: {name}', { name: g.name }) + curTag('g:' + g.id) })),
+    ...state.goals.filter(g => !g.done || 'g:' + g.id === current).map(g => ({ value: 'g:' + g.id,
+      label: (g.tripId ? tr('Călătorie: {name}', { name: g.name }) : tr('Goal: {name}', { name: g.name })) + curTag('g:' + g.id) })),
   ];
 }
 
@@ -476,19 +477,24 @@ export const tripById = id => state.trips.find(x => x.id === id);
 // Călătoria (neîncheiată) în perioada căreia cade o dată.
 export const tripForDate = date => state.trips.find(x => x.status !== 'done' && x.start <= date && date <= x.end) || null;
 
+// Sumele pentru afișare sunt în moneda călătoriei (`cur`); `reserveLeft` e în moneda implicită, pentru „Azi mai poți cheltui”.
 export function tripStats(trip) {
+  const base = baseCur(), cur = trip.currency || base;
   const txs = state.transactions.filter(t => t.type === 'cheltuiala' && t.tripId === trip.id);
-  const spent = round2(sum(txs, t => t.amount));
+  const spent = round2(sum(txs, t => txAmountIn(t, cur)));
   // Din rezervă se iau doar cheltuielile din Curent de la plecare încolo (biletul cumpărat înainte vine din banii obișnuiți).
-  const fromReserve = round2(sum(txs.filter(t => t.accountId === 'curent' && t.date >= trip.start), t => t.amount));
+  const fromRes = txs.filter(t => t.accountId === 'curent' && t.date >= trip.start);
+  const fromReserve = round2(sum(fromRes, t => t.amount)), fromReserveCur = round2(sum(fromRes, t => txAmountIn(t, cur)));
   const g = state.goals.find(x => x.id === trip.goalId);
-  const saved = trip.status === 'planned' && g ? round2(convert(bucketBalance('g:' + g.id), g.currency || baseCur(), baseCur())) : 0;
+  const saved = trip.status === 'planned' && g ? round2(convert(bucketBalance('g:' + g.id), g.currency || base, cur)) : 0;
   const active = trip.status === 'active';
+  const reservedCur = trip.reservedCur ?? round2(convert(trip.reserved || 0, base, cur));
   const t = today();
   return {
-    txs, spent, saved,
+    txs, spent, saved, cur, reservedCur,
     reserveLeft: active ? Math.max(0, round2((trip.reserved || 0) - fromReserve)) : 0,
-    over: active ? Math.max(0, round2(fromReserve - (trip.reserved || 0))) : 0,
+    reserveLeftCur: active ? Math.max(0, round2(reservedCur - fromReserveCur)) : 0,
+    over: active ? Math.max(0, round2(fromReserveCur - reservedCur)) : 0,
     daysTo: daysBetween(t, trip.start), daysLeft: daysBetween(t, trip.end) + 1, days: daysBetween(trip.start, trip.end) + 1,
   };
 }

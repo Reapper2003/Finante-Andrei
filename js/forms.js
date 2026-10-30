@@ -216,10 +216,17 @@ export function openBucketMove({ bucket, dir, existing }) {
   });
   baseAmt.addEventListener('input', () => { baseEdited = true; });
   const date = dateInput(existing?.date || today());
-  const defaultNote = bucket.startsWith('g:') ? tr('Goal: {name}', { name: label }) : label;
+  const isTrip = bucket.startsWith('g:') && state.goals.find(g => 'g:' + g.id === bucket)?.tripId;
+  const defaultNote = isTrip ? tr('Călătorie: {name}', { name: label }) : bucket.startsWith('g:') ? tr('Goal: {name}', { name: label }) : label;
   const note = textInput(existing?.note ?? defaultNote, { maxlength: 140 });
-  const otherIsSavings = existing ? (dir === 'in' ? existing.accountId === 'economii' : existing.toAccountId === 'economii') : false;
-  const other = segmented([{ value: 'curent', label: tr('Cont Curent') }, { value: 'alte', label: tr('Alte economii') }], otherIsSavings ? 'alte' : 'curent');
+  // De unde vin / unde merg banii: contul Curent sau orice alt loc din Economii (alte economii, fond de urgență,
+  // fonduri, obiective, călătorii). Valorile: 'curent' sau 'sav:<compartiment>'.
+  const prevOther = !existing ? 'curent'
+    : dir === 'in' ? (existing.accountId === 'economii' ? 'sav:' + (existing.fromBucket || '') : 'curent')
+      : (existing.toAccountId === 'economii' ? 'sav:' + (existing.toBucket || '') : 'curent');
+  const otherOpts = [{ value: 'curent', label: tr('Cont Curent') },
+    ...bucketOptions(prevOther.startsWith('sav:') ? prevOther.slice(4) : null).filter(o => o.value !== bucket).map(o => ({ value: 'sav:' + o.value, label: o.label }))];
+  const other = selectInput(otherOpts, prevOther);
   const balance = bucketBalance(bucket) + (isEdit && dir === 'out' ? prevAmt : 0);
   const room = dir === 'in' ? goalRoom(bucket, isEdit ? prevAmt : 0) : null;
 
@@ -233,10 +240,24 @@ export function openBucketMove({ bucket, dir, existing }) {
       baseValue = baseAmt.value.trim() ? parseAmount(baseAmt.value) : convert(amt, cur, base);
       if (!(baseValue > 0)) return invalid(baseAmt, tr('Introdu o sumă mai mare ca 0'));
     }
-    const alte = other.get() === 'alte';
+    const sav = other.value.startsWith('sav:'), ob = sav ? other.value.slice(4) : null;
+    // celălalt compartiment poate fi în altă monedă: suma lui se convertește din suma în moneda implicită
+    const obCur = sav ? bucketCurrency(ob) : base, obAmt = obCur !== base ? round2(convert(baseValue, base, obCur)) : null;
+    if (dir === 'in' && sav) {
+      const prevOut = isEdit && existing.accountId === 'economii' && (existing.fromBucket || '') === ob ? bucketOut(existing) : 0;
+      const avail = round2(bucketBalance(ob) + prevOut);
+      if ((obAmt ?? baseValue) > avail + 0.001) return invalid(amount, tr('În {name} sunt doar {sum}', { name: bucketName(ob), sum: money(avail, { cur: obCur, show: true }) }));
+    }
+    if (dir === 'out' && ob?.startsWith('g:')) {
+      const prevIn = isEdit && (existing.toBucket || '') === ob ? bucketIn(existing) : 0;
+      const r = goalRoom(ob, prevIn);
+      if (r != null && (obAmt ?? baseValue) > r + 0.001) return invalid(amount, roomMsg(r, obCur));
+    }
     const tx = { id: existing?.id, type: 'transfer', amount: round2(baseValue), date: date.value || today(), note: note.value.trim() };
-    if (dir === 'in') Object.assign(tx, { accountId: alte ? 'economii' : 'curent', toAccountId: 'economii', toBucket: bucket }, alte ? { fromBucket: '' } : {}, foreign ? { toAmount: round2(amt) } : {});
-    else Object.assign(tx, { accountId: 'economii', fromBucket: bucket, toAccountId: alte ? 'economii' : 'curent' }, alte ? { toBucket: '' } : {}, foreign ? { fromAmount: round2(amt) } : {});
+    if (dir === 'in') Object.assign(tx, { accountId: sav ? 'economii' : 'curent', toAccountId: 'economii', toBucket: bucket },
+      sav ? { fromBucket: ob } : {}, obAmt != null ? { fromAmount: obAmt } : {}, foreign ? { toAmount: round2(amt) } : {});
+    else Object.assign(tx, { accountId: 'economii', fromBucket: bucket, toAccountId: sav ? 'economii' : 'curent' },
+      sav ? { toBucket: ob } : {}, obAmt != null ? { toAmount: obAmt } : {}, foreign ? { fromAmount: round2(amt) } : {});
     const reached = saveTx(tx);
     sh.close();
     toast(dir === 'in' ? tr('Bani adăugați în {name}', { name: label }) : tr('Bani retrași din {name}', { name: label }));

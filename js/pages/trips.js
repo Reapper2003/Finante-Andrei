@@ -3,12 +3,12 @@
 
 import { state, uid, commit, PALETTE } from '../store.js';
 import { today, fmtDate } from '../dates.js';
-import { money, parseAmount, plural } from '../fmt.js';
-import { round2, tripStats, bucketBalance } from '../calc.js';
+import { money, parseAmount, plural, forInput } from '../fmt.js';
+import { round2, tripStats, bucketBalance, convert } from '../calc.js';
 import { h, s, card, sectionHead, linkBtn, btn, go, openSheet, field, textInput, amountInput, dateInput, invalid, toast, confirmDialog, emojiPicker, progress, emptyState } from '../ui.js';
-import { openBucketMove } from '../forms.js';
+import { openBucketMove, currencySeg } from '../forms.js';
 import { txRow } from '../components.js';
-import { runAutomations, deleteGoal } from '../actions.js';
+import { runAutomations, deleteGoal, convertBucketHistory } from '../actions.js';
 import { t as tr } from '../i18n.js';
 
 const EMOJIS = ['✈️', '🏖️', '🏔️', '🏙️', '🚗', '⛺', '🎿', '🌴', '🚢', '🚆', '🗺️', '🎡'];
@@ -22,13 +22,22 @@ export function openTripForm(existing) {
   const name = textInput(trip.name, { placeholder: tr('ex. Grecia'), maxlength: 40 });
   const start = dateInput(trip.start), end = dateInput(trip.end);
   const budget = amountInput(trip.budget || '');
-  // După plecare, bugetul nu mai schimbă nimic (banii strânși au trecut deja în rezervă).
+  // După plecare, bugetul și moneda nu mai schimbă nimic (banii strânși au trecut deja în rezervă).
   const planned = !existing || existing.status === 'planned';
+  // Moneda călătoriei: în ea strângi banii și vezi bugetul, cheltuielile și restul (ex. o vacanță în euro).
+  const oldCur = trip.currency || state.settings.currency;
+  let cur = oldCur;
+  const curSeg = currencySeg(cur, v => {
+    const n = parseAmount(budget.value);
+    if (n > 0) budget.value = forInput(round2(convert(n, cur, v)));
+    cur = v;
+  });
   const sh = openSheet({
     title: existing ? tr('Editează călătoria') : tr('Călătorie nouă'),
     body: h('div', {},
       field(tr('Unde mergi?'), name),
       h('div', { class: 'two' }, field(tr('Plecare'), start), field(tr('Întoarcere'), end)),
+      planned ? field(tr('Monedă'), curSeg) : null,
       planned ? field(tr('Buget'), budget, tr('Cât vrei să strângi și să cheltui în călătorie.')) : null,
       field(tr('Iconiță'), emojiPicker(EMOJIS, trip.icon, v => { trip.icon = v; })),
       existing ? null : h('p', { class: 'hint' }, tr('Strângi bani pentru ea ca pentru un obiectiv. În ziua plecării, banii strânși trec în Curent, rezervați pentru călătorie, iar cheltuielile din perioada ei se iau de acolo. La final, ce rămâne devine un fond de economii.'))),
@@ -39,15 +48,17 @@ export function openTripForm(existing) {
       if (end.value < start.value) return invalid(end, tr('Întoarcerea nu poate fi înainte de plecare'));
       const b = planned ? parseAmount(budget.value) : trip.budget;
       if (planned && !(b > 0)) return invalid(budget, tr('Introdu o sumă mai mare ca 0'));
-      const out = { ...trip, name: name.value.trim(), start: start.value, end: end.value, budget: round2(b) };
+      const out = { ...trip, name: name.value.trim(), start: start.value, end: end.value, budget: round2(b), currency: planned ? cur : oldCur };
       if (existing) {
         Object.assign(state.trips.find(x => x.id === trip.id), out);
         const g = goalOf(out);
+        // banii deja strânși se convertesc în noua monedă, ca la obiective
+        if (g && planned && (g.currency || oldCur) !== cur) { convertBucketHistory('g:' + g.id, g.currency || oldCur, cur); g.currency = cur; }
         if (g) Object.assign(g, { name: out.name, icon: out.icon, deadline: out.start, ...(planned ? { target: out.budget } : {}) });
       } else {
         const id = uid(), goalId = uid();
         state.goals.push({ id: goalId, name: out.name, icon: out.icon, color: PALETTE[state.goals.length % PALETTE.length], target: out.budget, initial: 0,
-          currency: state.settings.currency, deadline: out.start, done: false, createdAt: today(), tripId: id });
+          currency: cur, deadline: out.start, done: false, createdAt: today(), tripId: id });
         state.trips.push({ ...out, id, goalId, status: 'planned', createdAt: today() });
       }
       runAutomations(); // dacă plecarea e azi sau a trecut, rezerva se face pe loc
@@ -78,26 +89,27 @@ async function removeTrip(trip, after) {
 /* ---------- Card (Economii și Acasă) ---------- */
 
 function status(trip, st) {
+  const m = v => money(v, { cur: st.cur });
   if (trip.status === 'planned') {
     return {
-      line: tr('Strâns {a} din {b}', { a: money(st.saved), b: money(trip.budget) }),
+      line: tr('Strâns {a} din {b}', { a: m(st.saved), b: m(trip.budget) }),
       pct: trip.budget ? st.saved / trip.budget : 0,
       sub: st.daysTo > 0 ? tr('Pleci în {n}', { n: plural(st.daysTo, tr('zi'), tr('zile')) }) : tr('Pleci azi'),
     };
   }
   if (trip.status === 'active') {
     const left = tr('încă {n}', { n: plural(Math.max(1, st.daysLeft), tr('zi'), tr('zile')) });
-    if (!trip.reserved) return { line: tr('Cheltuit {sum}', { sum: money(st.spent) }), pct: 0, sub: `${left} · ${tr('fără bani strânși: cheltuielile vin din bugetul obișnuit')}` };
+    if (!trip.reserved) return { line: tr('Cheltuit {sum}', { sum: m(st.spent) }), pct: 0, sub: `${left} · ${tr('fără bani strânși: cheltuielile vin din bugetul obișnuit')}` };
     return {
-      line: st.over > 0 ? tr('Ai depășit rezerva cu {sum}', { sum: money(st.over) }) : tr('Mai ai {sum}', { sum: money(st.reserveLeft) }),
-      pct: trip.reserved ? st.reserveLeft / trip.reserved : 0, warn: st.over > 0,
-      sub: st.over > 0 ? `${left} · ${tr('diferența vine din bugetul obișnuit')}` : `${left} · ${tr('din {sum} rezervați', { sum: money(trip.reserved) })}`,
+      line: st.over > 0 ? tr('Ai depășit rezerva cu {sum}', { sum: m(st.over) }) : tr('Mai ai {sum}', { sum: m(st.reserveLeftCur) }),
+      pct: st.reservedCur ? st.reserveLeftCur / st.reservedCur : 0, warn: st.over > 0,
+      sub: st.over > 0 ? `${left} · ${tr('diferența vine din bugetul obișnuit')}` : `${left} · ${tr('din {sum} rezervați', { sum: m(st.reservedCur) })}`,
     };
   }
   return {
-    line: tr('Te-a costat {a} din {b}', { a: money(st.spent), b: money(trip.budget) }),
+    line: tr('Te-a costat {a} din {b}', { a: m(st.spent), b: m(trip.budget) }),
     pct: trip.budget ? Math.min(1, st.spent / trip.budget) : 0,
-    sub: trip.leftover > 0 ? tr('Rămași {sum}, puși deoparte', { sum: money(trip.leftover) }) : plural(st.days, tr('zi'), tr('zile')),
+    sub: trip.leftover > 0 ? tr('Rămași {sum}, puși deoparte', { sum: m(trip.leftover) }) : plural(st.days, tr('zi'), tr('zile')),
   };
 }
 
@@ -176,13 +188,13 @@ export function homeTripCard() {
   if (trip) return tripCard(trip);
   const ended = state.trips.find(x => x.status === 'done' && !x.summarySeen);
   if (!ended) return null;
-  const fund = state.funds.find(f => f.id === ended.fundId);
+  const fund = state.funds.find(f => f.id === ended.fundId), ec = ended.currency || state.settings.currency;
   return h('section', { class: 'card trip-card trip-done' },
     h('div', { class: 'tc-head' }, h('span', { class: 'tc-ic' }, ended.icon || '✈️'),
       h('span', { class: 'tc-t' }, h('b', {}, tr('{name} s-a terminat', { name: ended.name })), h('small', {}, period(ended))),
       h('button', { type: 'button', class: 'icon-btn tc-x', 'aria-label': tr('Ascunde'), onclick: () => { ended.summarySeen = true; commit(); } }, '✕')),
-    h('div', { class: 'tc-line' }, tr('Te-a costat {a} din {b}', { a: money(ended.spent || 0), b: money(ended.budget) })),
-    fund ? h('p', { class: 'muted' }, tr('{sum} au trecut în fondul „{name}”.', { sum: money(ended.leftover), name: fund.name })) : null,
+    h('div', { class: 'tc-line' }, tr('Te-a costat {a} din {b}', { a: money(ended.spent || 0, { cur: ec }), b: money(ended.budget, { cur: ec }) })),
+    fund ? h('p', { class: 'muted' }, tr('{sum} au trecut în fondul „{name}”.', { sum: money(ended.leftover, { cur: ec }), name: fund.name })) : null,
     h('div', { class: 'btn-row' },
       btn(tr('Vezi călătoria'), () => go(`#/economii/c/${ended.id}`), 'secondary'),
       fund ? btn(tr('Mută banii rămași'), () => { ended.summarySeen = true; commit(); go(`#/economii/f/${fund.id}`); }) : null));
@@ -200,7 +212,7 @@ export function tripPage(id) {
   const node = h('div', { class: 'page' },
     h('section', { class: 'card summary trip-hero' },
       h('span', { class: 'label' }, `${period(trip)} · ${plural(st.days, tr('zi'), tr('zile'))}`),
-      h('strong', { class: 'big' + (s.warn ? ' warn' : '') }, trip.status === 'planned' ? money(st.saved) : trip.status === 'active' && trip.reserved ? money(st.reserveLeft) : money(st.spent)),
+      h('strong', { class: 'big' + (s.warn ? ' warn' : '') }, money(trip.status === 'planned' ? st.saved : trip.status === 'active' && trip.reserved ? st.reserveLeftCur : st.spent, { cur: st.cur })),
       h('p', { class: 'muted' }, s.line),
       route(trip, st, s.warn),
       // în călătorie, bara arată cât a mai rămas din rezervă (traseul arată zilele)
@@ -210,10 +222,10 @@ export function tripPage(id) {
       st.saved > 0 ? btn(tr('Retrage bani'), () => openBucketMove({ bucket: 'g:' + g.id, dir: 'out' }), 'secondary') : null,
       btn(tr('Adaugă bani'), () => openBucketMove({ bucket: 'g:' + g.id, dir: 'in' }))) : null,
     trip.status === 'done' && fund ? card(
-      h('p', {}, tr('{sum} au trecut în fondul „{name}”.', { sum: money(trip.leftover), name: fund.name })),
+      h('p', {}, tr('{sum} au trecut în fondul „{name}”.', { sum: money(trip.leftover, { cur: st.cur }), name: fund.name })),
       btn(tr('Mută banii rămași'), () => go(`#/economii/f/${fund.id}`))) : null,
     trip.status === 'planned' ? h('p', { class: 'hint' }, tr('Pe {date}, banii strânși trec în Curent, rezervați pentru călătorie. Nu intră în „Azi mai poți cheltui”.', { date: fmtDate(trip.start) })) : null,
-    sectionHead(tr('Cheltuieli · {sum}', { sum: money(st.spent) })),
+    sectionHead(tr('Cheltuieli · {sum}', { sum: money(st.spent, { cur: st.cur }) })),
     txs.length ? h('div', { class: 'list' }, txs.map(t => txRow(t, { showDate: true })))
       : h('p', { class: 'hint' }, tr('Cheltuielile puse între {a} și {b} apar aici singure. Poți lega și altele (de exemplu biletul de avion), din formularul cheltuielii.', { a: fmtDate(trip.start), b: fmtDate(trip.end) })),
     h('div', { class: 'btn-row' },

@@ -1090,5 +1090,7 @@ export const EN = {
   "încă {n}": "{n} to go",
   "Ștergi călătoria {name}?": "Delete the trip {name}?",
   "— Nu ține de o călătorie —": "— Not part of a trip —",
-  "Rămași {sum}, puși deoparte": "{sum} left, set aside"
+  "Rămași {sum}, puși deoparte": "{sum} left, set aside",
+  "Călătorie: {name}": "Trip: {name}",
+  "În {name} sunt doar {sum}": "There's only {sum} in {name}"
 };

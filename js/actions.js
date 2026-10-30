@@ -192,7 +192,7 @@ function runTrips() {
     if (trip.status === 'planned' && trip.start <= t) {
       const g = state.goals.find(x => x.id === trip.goalId);
       const bal = g ? bucketBalance('g:' + g.id) : 0;
-      trip.reserved = 0;
+      trip.reserved = 0; trip.reservedCur = 0;
       if (g && bal > 0) {
         const cur = g.currency || cur0, amount = round2(convert(bal, cur, cur0));
         const tx = { id: uid(), type: 'transfer', date: trip.start, amount, accountId: 'economii', fromBucket: 'g:' + g.id, toAccountId: 'curent',
@@ -200,6 +200,8 @@ function runTrips() {
         if (cur !== cur0) tx.fromAmount = bal;
         state.transactions.push(tx);
         trip.reserved = amount;
+        // rezerva și în moneda călătoriei (ex. 600 €), ca restul de la final să fie socotit în aceeași monedă
+        trip.reservedCur = round2(convert(bal, cur, trip.currency || cur0));
       }
       if (g) g.done = true;
       trip.status = 'active';
@@ -209,12 +211,15 @@ function runTrips() {
       const st = tripStats(trip);
       Object.assign(trip, { status: 'done', spent: st.spent, leftover: 0, doneAt: t, summarySeen: false });
       if (st.reserveLeft >= 1) {
+        // Fondul cu restul e în moneda călătoriei (o călătorie în euro lasă un fond în euro).
         const f = { id: uid(), name: tr('Rămas din {name}', { name: trip.name }), icon: trip.icon, color: PALETTE[(state.funds.length + 5) % PALETTE.length],
-          currency: cur0, initial: 0, note: '', createdAt: t };
+          currency: st.cur, initial: 0, note: '', createdAt: t };
         state.funds.push(f);
-        state.transactions.push({ id: uid(), type: 'transfer', date: t, amount: st.reserveLeft, accountId: 'curent', toAccountId: 'economii', toBucket: 'f:' + f.id,
-          note: `${trip.icon} ${tr('Rămas din {name}', { name: trip.name })}`, tripId: trip.id });
-        Object.assign(trip, { leftover: st.reserveLeft, fundId: f.id });
+        const tx = { id: uid(), type: 'transfer', date: t, amount: st.reserveLeft, accountId: 'curent', toAccountId: 'economii', toBucket: 'f:' + f.id,
+          note: `${trip.icon} ${tr('Rămas din {name}', { name: trip.name })}`, tripId: trip.id };
+        if (st.cur !== cur0) tx.toAmount = st.reserveLeftCur;
+        state.transactions.push(tx);
+        Object.assign(trip, { leftover: st.cur !== cur0 ? st.reserveLeftCur : st.reserveLeft, fundId: f.id });
       }
       changed = true;
     }
