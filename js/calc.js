@@ -122,10 +122,10 @@ export function bucketOptions(current) {
 export function savingsBreakdown(upTo = null) {
   const base = baseCur();
   const val = b => convert(bucketBalance(b, upTo), bucketCurrency(b), base);
-  const items = [{ id: 'urgenta', label: tr('Fond de urgență'), value: val('urgenta'), color: '#4FD1DC' }];
+  const items = [{ id: 'urgenta', label: tr('Fond de urgență'), value: val('urgenta'), color: '#1A9E8F' }];
   for (const f of state.funds) items.push({ id: 'f:' + f.id, label: f.name, value: val('f:' + f.id), color: f.color });
   for (const g of state.goals) items.push({ id: 'g:' + g.id, label: g.name, value: val('g:' + g.id), color: g.color });
-  items.push({ id: '', label: tr('Alte economii'), value: val(''), color: '#C9CED6' });
+  items.push({ id: '', label: tr('Alte economii'), value: val(''), color: '#C4C8CF' });
   return items.filter(i => i.value > 0).map(i => ({ ...i, value: round2(i.value) }));
 }
 
@@ -203,11 +203,30 @@ export function expenseByCategory(key, type = 'cheltuiala') {
   }
   return [...map].map(([id, value]) => {
     const c = catById(id);
-    return { id, value: round2(value), label: catName(c), color: c?.color || '#C9CED6', icon: c?.icon || '•' };
+    return { id, value: round2(value), label: catName(c), color: c?.color || '#C4C8CF', icon: c?.icon || '•' };
   }).sort((a, b) => b.value - a.value);
 }
 
 export const incomeByCategory = key => expenseByCategory(key, 'venit');
+
+/* ---------- Bugete ---------- */
+
+// Limitele pe categorii, cu cât s-a cheltuit în lună (aceeași bază ca „Top 3 categorii” din Rapoarte), cele mai folosite primele.
+export function budgetStats(m) {
+  const spent = new Map(expenseByCategory(m).map(x => [x.id, x.value]));
+  return state.categories.filter(c => c.type === 'cheltuiala' && c.budget > 0).map(c => {
+    const s = spent.get(c.id) || 0;
+    return { id: c.id, cat: c, limit: c.budget, spent: s, pct: s / c.budget, left: round2(c.budget - s) };
+  }).sort((a, b) => b.pct - a.pct);
+}
+
+// Media lunară a unei categorii în ultimele `months` luni încheiate.
+export function categoryAvg(catId, months = 3) {
+  const cm = currentMonth();
+  let total = 0;
+  for (let i = 1; i <= months; i++) total += expenseByCategory(addMonths(cm, -i)).find(x => x.id === catId)?.value || 0;
+  return round2(total / months);
+}
 
 /* ---------- Investiții ---------- */
 

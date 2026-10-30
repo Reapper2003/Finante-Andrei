@@ -1,6 +1,6 @@
 import { state, uid, commit } from '../store.js';
 import { today, fmtDate, monthShort, monthLabel, dayShort, dayLong } from '../dates.js';
-import { money, pct, parseAmount, CURRENCIES, plural, forInput } from '../fmt.js';
+import { money, moneyRound, pct, parseAmount, CURRENCIES, plural, forInput } from '../fmt.js';
 import {
   round2, assetStats, brokerStats, portfolioStats, portfolioSeriesFor, allocation, assetTypeOptions, assetTypeLabel, brokerOfAsset, convert,
 } from '../calc.js';
@@ -8,8 +8,8 @@ import {
   h, card, sectionHead, linkBtn, stat, btn, go, app, signCls, emptyState, openSheet, field, textInput, amountInput, dateInput,
   segmented, selectInput, switchRow, invalid, toast, confirmDialog, swipeRow, icon,
 } from '../ui.js';
-import { donut, lineChart, barBreakdown } from '../charts.js';
-import { listRow, exportButton } from '../components.js';
+import { donut, lineChart, barBreakdown, distinctColors } from '../charts.js';
+import { listRow, exportButton, savingsTabs } from '../components.js';
 import { saveContribution, deleteContribution, deleteAsset, deleteBroker } from '../actions.js';
 import { t as tr } from '../i18n.js';
 import { INV_ART, INV_PLAIN, fitHeroAmount } from '../heroArt.js';
@@ -128,6 +128,7 @@ export function investmentsPage() {
     return {
       title: tr('Investiții'),
       node: h('div', { class: 'page' },
+        savingsTabs('investitii'),
         card(emptyState(tr('Nu ai încă nicio investiție, adaugă primul broker.'), tr('Adaugă broker'), () => openBrokerForm())),
         h('div', { class: 'center' }, linkBtn(tr('Calculator investiții'), () => go('#/calculator'), 'trend')),
         h('p', { class: 'hint center' }, tr('Investițiile sunt separate de restul banilor și nu intră în totalul disponibil.'))),
@@ -165,8 +166,8 @@ export function investmentsPage() {
     }) : null,
     periods);
   const stats = h('div', { class: 'pill-strip' },
-    h('div', { class: 'pill' }, h('small', {}, tr('Total depus')), h('b', {}, money(p.deposited))),
-    h('div', { class: 'pill' }, h('small', {}, tr('Câștig')), h('b', { class: signCls(p.profit) }, money(p.profit, { sign: true }))),
+    h('div', { class: 'pill' }, h('small', {}, tr('Total depus')), h('b', {}, moneyRound(p.deposited))),
+    h('div', { class: 'pill' }, h('small', {}, tr('Câștig')), h('b', { class: signCls(p.profit) }, moneyRound(p.profit, { sign: true }))),
     h('div', { class: 'pill' }, h('small', {}, tr('Randament')), h('b', { class: signCls(p.profit) }, pct(p.pct, 1, true))));
 
   // Fiecare broker cu activele lui dedesubt (cele mai mari primele), ca să se vadă că țin împreună.
@@ -195,9 +196,12 @@ export function investmentsPage() {
         h('button', { type: 'button', class: 'asset-card add', onclick: () => openAssetForm(b.id) }, icon('plus', 22), tr('Activ nou'))));
   });
 
-  const alloc = allocation(allocBy === 'broker' ? 'broker' : 'tip').map(x => ({ ...x, icon: allocBy === 'broker' ? x.label.slice(0, 1).toUpperCase() : TYPE_ICON[x.id] || '💼' }));
+  const alloc = distinctColors(allocation(allocBy === 'broker' ? 'broker' : 'tip')
+    .map(x => ({ ...x, icon: allocBy === 'broker' ? x.label.slice(0, 1).toUpperCase() : TYPE_ICON[x.id] || '💼' }))
+    .sort((a, b) => b.value - a.value));
 
   const node = h('div', { class: 'page' },
+    savingsTabs('investitii'),
     hero,
     stats,
     sectionHead(tr('Brokeri și active'), linkBtn(tr('Broker nou'), () => openBrokerForm())),

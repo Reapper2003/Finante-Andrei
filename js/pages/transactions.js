@@ -4,7 +4,7 @@ import { money, num, parseAmount, forInput, CURRENCIES } from '../fmt.js';
 import { monthTotals, txCurrency, txAmountIn } from '../calc.js';
 import { h, icon, app, go, openSheet, segmented, selectInput, field, btn, emptyState, card } from '../ui.js';
 import { txGroups, txRow, exportButton } from '../components.js';
-import { getMonth, monthChip } from '../menu.js';
+import { getMonth, monthChip, openMonthSheet } from '../menu.js';
 import { openTxForm } from '../forms.js';
 import { t as tr, catName } from '../i18n.js';
 
@@ -192,7 +192,8 @@ export function transactionsPage() {
   const listBox = h('div', { class: 'stack' });
   const paintList = () => {
     const list = state.transactions.filter(matches);
-    listBox.replaceChildren(...(list.length ? txGroups(list) : [emptyState(
+    // Transferurile se strâng pe zile, dar nu când le cauți sau filtrezi anume.
+    listBox.replaceChildren(...(list.length ? txGroups(list, { group: f.type !== 'transfer' && !f.q.trim() }) : [emptyState(
       f.q.trim() ? tr('Nicio tranzacție nu se potrivește căutării.') : tr('Nicio tranzacție în această lună.'),
       f.q.trim() ? null : tr('Adaugă o tranzacție'), () => openTxForm())]));
   };
@@ -221,5 +222,5 @@ export function transactionsPage() {
       sumCard('cheltuiala', 'minus', 'neg', tr('Cheltuieli'), money(-tot.expense), '')),
     segmented([{ value: 'list', label: tr('Listă') }, { value: 'cal', label: tr('Calendar') }], view, v => { view = v; app.rerender(); }, 'view-seg'),
     view === 'cal' ? calendar(getMonth()) : listBox);
-  return { title: tr('Tranzacții'), subtitle: monthLabel(getMonth()), node };
+  return { title: tr('Tranzacții'), subtitle: monthLabel(getMonth()), onSubtitle: openMonthSheet, node };
 }

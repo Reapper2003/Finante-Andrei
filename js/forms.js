@@ -1,9 +1,9 @@
 // Formulare comune (bottom sheets): tranzacție, mutare bani în goal / fond, goal, export.
 
-import { state, uid, commit, save, catById, ACCOUNTS, PALETTE, accountName } from './store.js';
+import { state, uid, commit, save, catById, ACCOUNTS, PALETTE, accountName, modOn } from './store.js';
 import { today, monthLabel, fmtDate } from './dates.js';
-import { money, parseAmount, plural, forInput, CURRENCIES } from './fmt.js';
-import { round2, convert, bucketBalance, bucketOptions, bucketName, bucketCurrency, bucketIn, bucketOut, goalStats, brokerOfAsset, tripForDate, accountBalance } from './calc.js';
+import { money, moneyRound, moneyShort, parseAmount, plural, forInput, CURRENCIES } from './fmt.js';
+import { budgetStats, round2, convert, bucketBalance, bucketOptions, bucketName, bucketCurrency, bucketIn, bucketOut, goalStats, brokerOfAsset, tripForDate, accountBalance } from './calc.js';
 import {
   h, openSheet, toast, confirmDialog, btn, field, amountInput, textInput, dateInput, selectInput, segmented,
   invalid, catIcon, emojiPicker, colorPicker, progress,
@@ -159,7 +159,10 @@ export function openTxForm(existing, preset = {}) {
     }
     const reached = saveTx(out);
     sh.close();
-    toast(isEdit ? tr('Tranzacție actualizată') : tr('Tranzacție adăugată'));
+    // Cheltuială pe o categorie cu buget: toast-ul arată cât s-a folosit din limită.
+    const bud = out.type === 'cheltuiala' && modOn('bugete') ? budgetStats(out.date.slice(0, 7)).find(b => b.id === out.categoryId) : null;
+    if (bud) toast(tr('{cat}: {a} din {b}', { cat: catName(bud.cat), a: moneyShort(bud.spent), b: moneyRound(bud.limit) }), { warn: bud.pct >= 0.85 });
+    else toast(isEdit ? tr('Tranzacție actualizată') : tr('Tranzacție adăugată'));
     celebrate(reached);
   }
   amount.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
@@ -174,18 +177,19 @@ export function openTxForm(existing, preset = {}) {
   if (!isEdit) amount.focus({ preventScroll: true });
 }
 
-// Tap pe o categorie din legenda graficului: tranzacțiile ei din lună.
-export function openCategoryTxSheet(catId, m, type = 'cheltuiala') {
-  const c = catById(catId);
+// Tranzacțiile unei categorii dintr-o lună (folosită și în panoul unui buget).
+export function categoryTxList(catId, m, type = 'cheltuiala') {
   const txs = state.transactions.filter(t => t.type === type && (t.categoryId || '') === (catId || '') && t.date.startsWith(m))
     .sort((a, b) => b.date.localeCompare(a.date));
   const total = txs.reduce((a, t) => a + t.amount, 0);
-  openSheet({
-    title: catName(c),
-    body: h('div', {},
-      h('p', { class: 'muted' }, `${monthLabel(m)} · ${plural(txs.length, tr('tranzacție'), tr('tranzacții'))} · ${money(total)}`),
-      h('div', { class: 'list' }, txs.map(t => txRow(t, { showDate: true })))),
-  });
+  return h('div', {},
+    h('p', { class: 'muted' }, `${monthLabel(m)} · ${plural(txs.length, tr('tranzacție'), tr('tranzacții'))} · ${money(total)}`),
+    txs.length ? h('div', { class: 'list' }, txs.map(t => txRow(t, { showDate: true }))) : null);
+}
+
+// Tap pe o categorie din legenda graficului: tranzacțiile ei din lună.
+export function openCategoryTxSheet(catId, m, type = 'cheltuiala') {
+  openSheet({ title: catName(catById(catId)), body: categoryTxList(catId, m, type) });
 }
 
 /* ---------- Bani în / din goal sau fond de urgență ---------- */

@@ -1,10 +1,10 @@
 import { state, save, catById } from '../store.js';
-import { modOn } from '../store.js';
+import { modOn, slotTab } from '../store.js';
 import { networthPage } from './networth.js';
 import { currentMonth, monthLabel, monthAbbr, fmtDate } from '../dates.js';
-import { money, pct, num } from '../fmt.js';
-import { buildReport, buildYearReport, availableYears } from '../calc.js';
-import { h, card, stat, btn, app, signCls, progress, selectInput, toast, catIcon, emptyState, segmented, withEmoji } from '../ui.js';
+import { money, moneyRound, moneyShort, pct, num } from '../fmt.js';
+import { buildReport, buildYearReport, availableYears, budgetStats } from '../calc.js';
+import { h, icon, card, stat, btn, app, signCls, progress, selectInput, toast, catIcon, emptyState, segmented, withEmoji } from '../ui.js';
 import { donut, barChart } from '../charts.js';
 import { exportReport, exportYearReport } from '../exporter.js';
 import { t as tr, catName } from '../i18n.js';
@@ -26,28 +26,49 @@ function diffLine(cur, prev) {
   return h('span', { class: 'diff ' + signCls(d) }, `${d >= 0 ? '↑' : '↓'} ${money(d, { sign: true })}${p != null ? ` (${pct(p, 1, true)})` : ''}`);
 }
 
-// Observații automate, construite la afișare (ca să respecte modul privat și limba).
+// Textul tradus, cu valorile ({cat}, {pct}, {sum}) îngroșate.
+const rich = (tpl, vars) => tpl.split(/\{(\w+)\}/).map((x, i) => (i % 2 ? h('b', {}, String(vars[x] ?? '')) : x));
+
+// Observații automate („Pe scurt”), construite la afișare (ca să respecte modul privat și limba).
+// Fiecare are un ton: good (cheltuială în scădere), warn (în creștere / peste venit), info (restul).
 function observations(r) {
   const out = [];
+  const add = (tone, tpl, vars) => out.push({ tone, text: rich(tpl, vars) });
   const changes = r.compare.filter(c => c.prev > 0 && c.cur > 0).map(c => ({ ...c, ch: (c.cur - c.prev) / c.prev }))
     .filter(c => Math.abs(c.ch) >= 0.1).sort((a, b) => Math.abs(b.ch) * b.prev - Math.abs(a.ch) * a.prev);
   const down = changes.find(c => c.ch < 0), up = changes.find(c => c.ch > 0);
-  if (down) out.push(tr('Ai cheltuit cu {pct} mai puțin pe {cat} decât luna trecută.', { pct: pct(-down.ch, 0), cat: lbl(down) }));
-  if (up) out.push(tr('Ai cheltuit cu {pct} mai mult pe {cat} decât luna trecută.', { pct: pct(up.ch, 0), cat: lbl(up) }));
+  if (down) add('good', tr('Ai cheltuit cu {pct} mai puțin pe {cat} decât luna trecută.'), { pct: pct(-down.ch, 0), cat: lbl(down) });
+  if (up) add('warn', tr('Ai cheltuit cu {pct} mai mult pe {cat} decât luna trecută.'), { pct: pct(up.ch, 0), cat: lbl(up) });
   if (r.income > 0) {
-    if (r.left < 0) out.push(tr('Ai cheltuit mai mult decât ai câștigat, cu {sum}.', { sum: money(-r.left) }));
-    else out.push(r.savingsRate >= 0.2
-      ? tr('Rata de economisire a fost {pct}, foarte bine!', { pct: pct(r.savingsRate, 0) })
-      : tr('Rata de economisire a fost {pct}.', { pct: pct(r.savingsRate, 0) }));
+    if (r.left < 0) add('warn', tr('Ai cheltuit mai mult decât ai câștigat, cu {sum}.'), { sum: money(-r.left) });
+    else if (r.savingsRate >= 0.2) add('info', tr('Rata de economisire a fost {pct}, foarte bine!'), { pct: pct(r.savingsRate, 0) });
+    else add('info', tr('Rata de economisire a fost {pct}.'), { pct: pct(r.savingsRate, 0) });
   }
-  if (r.top[0] && r.expense > 0 && out.length < 3) out.push(tr('{cat} a reprezentat {pct} din cheltuieli.', { cat: lbl(r.top[0]), pct: pct(r.top[0].value / r.expense, 0) }));
+  if (r.top[0] && r.expense > 0 && out.length < 3) add('info', tr('{cat} a reprezentat {pct} din cheltuieli.'), { cat: lbl(r.top[0]), pct: pct(r.top[0].value / r.expense, 0) });
   const nwDiff = r.networth.with - r.networth.prevWith;
   if (out.length < 3 && r.networth.prevWith && Math.abs(nwDiff) > 0.5) {
     const p = pct(Math.abs(nwDiff / r.networth.prevWith), 1);
-    out.push(nwDiff > 0 ? tr('Averea netă (cu investiții) a crescut cu {pct}.', { pct: p }) : tr('Averea netă (cu investiții) a scăzut cu {pct}.', { pct: p }));
+    if (nwDiff > 0) add('info', tr('Averea netă (cu investiții) a crescut cu {pct}.'), { pct: p });
+    else add('info', tr('Averea netă (cu investiții) a scăzut cu {pct}.'), { pct: p });
   }
-  return out.slice(0, 3);
+  // Câte o observație pentru fiecare buget depășit în lună.
+  const over = modOn('bugete') ? budgetStats(r.month).filter(b => b.left < 0) : [];
+  return [...out.slice(0, 3), ...over.map(b => ({ tone: 'warn', text: rich(tr('{cat} a depășit bugetul cu {sum}'), { cat: catName(b.cat), sum: moneyRound(-b.left) }) }))];
 }
+// Bugetele lunii: cheltuit din limită, cu bară (aceleași culori ca pe pagina Bugete).
+function budgetsCard(m) {
+  const list = modOn('bugete') ? budgetStats(m) : [];
+  if (!list.length) return null;
+  return card(h('h2', {}, tr('Bugete')), h('div', { class: 'stack-sm' }, list.map(b => h('div', {},
+    h('div', { class: 'top-line' }, h('span', {}, withEmoji(b.cat.icon, catName(b.cat))), h('b', { class: b.left < 0 ? 'neg' : '' }, `${moneyShort(b.spent)} / ${moneyRound(b.limit)}`)),
+    progress(Math.min(1, b.pct), b.pct > 1 ? 'var(--neg)' : b.pct >= 0.85 ? 'var(--warn)' : null)))));
+}
+const OBS_ICON = { good: 'arrowDown', warn: 'arrowUp', info: 'check' };
+const obsCard = r => {
+  const list = observations(r);
+  return list.length ? card(h('h2', {}, tr('Pe scurt')), h('div', { class: 'obs' }, list.map(o =>
+    h('div', { class: 'obs-row' }, h('span', { class: `obs-ic ${o.tone}` }, icon(OBS_ICON[o.tone], 18)), h('p', {}, o.text))))) : null;
+};
 
 // Vedere anuală: totaluri pe an, venituri vs cheltuieli pe luni, categorii, repere.
 function yearlyView() {
@@ -118,8 +139,8 @@ export function reportsPage() {
   const tabs = [{ value: 'lunar', label: tr('Lunar') }, { value: 'anual', label: tr('Anual') }, modOn('avere') && { value: 'avere', label: tr('Avere netă') }].filter(Boolean);
   if (!tabs.some(t => t.value === mode)) mode = 'lunar';
   const modeSeg = segmented(tabs, mode, v => { mode = v; app.rerender(); });
-  if (mode === 'anual') return { title: tr('Rapoarte'), back: '#/acasa', node: h('div', { class: 'page' }, modeSeg, yearlyView()) };
-  if (mode === 'avere') { const nw = networthPage(); nw.node.prepend(modeSeg); return { title: tr('Rapoarte'), back: '#/acasa', node: nw.node }; }
+  if (mode === 'anual') return { title: tr('Rapoarte'), back: slotTab()[0] === 'rapoarte' ? null : '#/acasa', node: h('div', { class: 'page' }, modeSeg, yearlyView()) };
+  if (mode === 'avere') { const nw = networthPage(); nw.node.prepend(modeSeg); return { title: tr('Rapoarte'), back: slotTab()[0] === 'rapoarte' ? null : '#/acasa', node: nw.node }; }
   const cm = currentMonth();
   const stored = [...state.reports].sort((a, b) => b.month.localeCompare(a.month));
   const options = [{ value: cm, label: tr('{month} (în curs)', { month: monthLabel(cm) }) }, ...stored.map(r => ({ value: r.month, label: monthLabel(r.month) }))];
@@ -145,6 +166,8 @@ export function reportsPage() {
           stat(tr('Venituri'), money(r.income)), stat(tr('Cheltuieli'), money(r.expense)),
           stat(tr('Rămas'), money(r.left), signCls(r.left)), stat(tr('Rata de economisire'), r.savingsRate == null ? '—' : pct(r.savingsRate, 1), signCls(r.savingsRate || 0)))),
 
+      obsCard(r),
+
       r.top.length ? card(h('h2', {}, tr('Top 3 categorii de cheltuieli')),
         h('div', { class: 'stack-sm' }, r.top.map(c => h('div', { class: 'top-row' },
           catIcon(c, 36),
@@ -152,6 +175,8 @@ export function reportsPage() {
             h('div', { class: 'top-line' }, h('span', {}, lbl(c)), h('b', {}, money(c.value))),
             progress(r.expense ? c.value / r.expense : 0, c.color),
             h('small', { class: 'muted' }, tr('{pct} din cheltuieli', { pct: pct(r.expense ? c.value / r.expense : 0, 0) }))))))) : null,
+
+      budgetsCard(r.month),
 
       r.compare.length ? card(h('h2', {}, tr('Față de luna trecută')),
         h('div', { class: 'cmp' }, r.compare.map(c => {
@@ -189,7 +214,6 @@ export function reportsPage() {
           h('div', { class: 'stat' }, h('span', { class: 'label' }, tr('Fără investiții')), h('strong', {}, money(nw.without)), diffLine(nw.without, nw.prevWithout)),
           h('div', { class: 'stat' }, h('span', { class: 'label' }, tr('Cu investiții')), h('strong', {}, money(nw.with)), diffLine(nw.with, nw.prevWith)))),
 
-      card(h('h2', {}, tr('Observații')), h('ul', { class: 'obs' }, observations(r).map(o => h('li', {}, o)))),
     ],
     h('div', { class: 'btn-row' },
       !isLive ? btn(tr('Regenerează'), () => {
@@ -200,5 +224,5 @@ export function reportsPage() {
         toast(tr('Raport regenerat'));
       }, 'secondary') : null,
       btn(tr('Exportă în Excel'), () => exportReport(r).then(() => toast(tr('Raport exportat'))), 'primary')));
-  return { title: tr('Rapoarte'), back: '#/acasa', node };
+  return { title: tr('Rapoarte'), back: slotTab()[0] === 'rapoarte' ? null : '#/acasa', node };
 }

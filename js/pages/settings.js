@@ -316,7 +316,8 @@ function sectionContent(sub) {
       sectionHead(tr('Afișare')),
       h('div', { class: 'list' },
         navRow(tr('Plăcile de pe Acasă'), chosenTileNames().join(' · '), openTileEditor),
-        navRow(tr('Scurtăturile de pe Acasă'), chosenQuickNames().join(' · '), openQuickEditor),
+        switchRow(tr('Scurtături pe Acasă'), !!st.showQuickLinks, v => { st.showQuickLinks = v; commit(); }),
+        st.showQuickLinks ? navRow(tr('Scurtăturile de pe Acasă'), chosenQuickNames().join(' · '), openQuickEditor) : null,
         stackRow(tr('Iconițele categoriilor'), iconStylePicker(st.iconStyle || 'emoji', v => set('iconStyle', v))),
         switchRow(tr('Pornește aplicația în mod privat'), st.privateOnStart, v => { st.privateOnStart = v; commit(); }, tr('Sumele sunt ascunse la deschidere'))),
       // tot ce ține de bara de jos, într-un singur loc

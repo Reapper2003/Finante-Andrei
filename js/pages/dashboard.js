@@ -2,7 +2,7 @@ import { state, commit, setState } from '../store.js';
 import { openMonthSheet } from '../menu.js';
 import { slotTab, modOn } from '../store.js';
 import { today, currentMonth, monthEnd, fmtDate, fmtDayMonth, weekdayName, longDate, addDays } from '../dates.js';
-import { money, moneyParts, moneyShort, plural } from '../fmt.js';
+import { money, moneyParts, moneyRound, plural } from '../fmt.js';
 import { accountBalance, monthTotals, goalStats, dailyAllowance } from '../calc.js';
 import { h, s, icon, card, sectionHead, linkBtn, progress, btn, go, toast, openSheet, swipeRow, helpBtn } from '../ui.js';
 import { getMonth, monthChip } from '../menu.js';
@@ -85,7 +85,7 @@ function openCommitments(a) {
 function monthCard(tot) {
   const max = Math.max(tot.income, tot.expense, 1);
   const row = (sign, cls, label, value, color, type) => h('button', { type: 'button', class: 'mrow', onclick: () => showTransactions(type) },
-    h('span', { class: `mrow-ic ${cls}` }, sign), h('small', {}, label), h('b', {}, money(value)),
+    h('span', { class: `mrow-ic ${cls}` }, sign), h('small', {}, label), h('b', {}, moneyRound(value)),
     h('span', { class: 'mrow-bar' }, h('i', { style: { width: `${Math.min(100, Math.abs(value) / max * 100)}%`, background: color } })));
   return h('section', { class: 'card month-card d-month' },
     h('div', { class: 'card-head' }, h('h2', {}, tr('Luna aceasta')), linkBtn(tr('Tranzacții'), () => go('#/tranzactii'), null)),
@@ -118,15 +118,22 @@ function firstSteps() {
     [tr('Creează un obiectiv'), state.goals.length > 0, () => openGoalForm(null)],
     [tr('Fă primul backup'), !!st.lastBackupAt, () => go('#/setari/date')],
   ];
-  const done = steps.filter(s => s[1]).length;
+  const done = steps.filter(x => x[1]).length;
   if (done === steps.length) return null;
+  // Un singur rând: inelul de progres, pasul următor (apăsarea îl deschide) și un X mic pentru ascundere.
+  const [label, , act] = steps.find(x => !x[1]);
+  const C = 2 * Math.PI * 16;
   return h('section', { class: 'card first-steps' },
-    h('div', { class: 'fs-head' },
-      h('div', {}, h('h2', {}, tr('Primii pași')), h('small', { class: 'muted' }, tr('{a} din {b} gata', { a: done, b: steps.length }))),
-      h('button', { type: 'button', class: 'icon-btn', 'aria-label': tr('Ascunde'), onclick: () => { st.stepsHidden = true; commit(); } }, icon('x', 18))),
-    h('div', { class: 'fs-bar' }, h('i', { style: { width: `${done / steps.length * 100}%` } })),
-    h('div', { class: 'fs-list' }, steps.map(([label, ok, act]) => h('button', { type: 'button', class: 'fs-row' + (ok ? ' ok' : ''), disabled: ok, onclick: act },
-      h('span', { class: 'fs-check' }, ok ? '✓' : ''), h('span', { class: 'fs-t' }, label), ok ? null : icon('chevR', 18)))));
+    h('button', { type: 'button', class: 'fs-main', onclick: act },
+      h('span', { class: 'fs-ring' },
+        s('svg', { viewBox: '0 0 40 40', width: 40, height: 40, 'aria-hidden': 'true' },
+          s('circle', { cx: 20, cy: 20, r: 16, fill: 'none', stroke: 'var(--soft)', 'stroke-width': 4 }),
+          s('circle', { cx: 20, cy: 20, r: 16, fill: 'none', stroke: 'var(--accent)', 'stroke-width': 4, 'stroke-linecap': 'round',
+            'stroke-dasharray': `${C * done / steps.length} ${C}`, transform: 'rotate(-90 20 20)' })),
+        h('b', {}, `${done}/${steps.length}`)),
+      h('span', { class: 'fs-t' }, h('small', {}, tr('Primii pași · următorul')), h('b', {}, label)),
+      icon('chevR', 18)),
+    h('button', { type: 'button', class: 'fs-x', 'aria-label': tr('Ascunde'), onclick: () => { st.stepsHidden = true; commit(); } }, icon('x', 14)));
 }
 
 function gauge(fraction, label, color) {
@@ -204,9 +211,9 @@ export function dashboardPage() {
   if (art) art.innerHTML = HERO_ART[heroStyle];
   // Cele trei sume, ca plăci agățate de marginea de jos a cardului. Tap: Tranzacții, filtrate pe acel tip.
   const pills = h('div', { class: 'pill-strip' },
-    h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('venit') }, h('small', {}, tr('Venituri')), h('b', {}, moneyShort(tot.income))),
-    h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('cheltuiala') }, h('small', {}, tr('Cheltuieli')), h('b', {}, moneyShort(-tot.expense))),
-    h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('') }, h('small', {}, tot.left >= 0 ? tr('Economisit') : tr('Cheltuit în plus')), h('b', {}, moneyShort(Math.abs(tot.left)))));
+    h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('venit') }, h('small', {}, tr('Venituri')), h('b', { class: tot.income > 0 ? 'pos' : null }, moneyRound(tot.income, { sign: true }))),
+    h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('cheltuiala') }, h('small', {}, tr('Cheltuieli')), h('b', {}, moneyRound(-tot.expense))),
+    h('button', { type: 'button', class: 'pill', onclick: () => showTransactions('') }, h('small', {}, tot.left >= 0 ? tr('Economisit') : tr('Cheltuit în plus')), h('b', {}, moneyRound(Math.abs(tot.left)))));
   const live = m === cm && !isEmpty;
   const a = live ? dailyAllowance() : null;
   const hero = h('section', { class: `card summary hero hero-bg-${heroStyle}${art ? ' has-art' : ''}${art && HERO_SCENES.has(heroStyle) ? ' art-scene' : ''} top-card d-hero` },
@@ -237,7 +244,7 @@ export function dashboardPage() {
     live ? allowanceCard() : null,
     live ? homeTripCard() : null,
     live ? firstSteps() : null,
-    quickLinksRow(),
+    state.settings.showQuickLinks ? quickLinksRow() : null,
     monthCard(tot),
     welcome,
     tiles,

@@ -1,7 +1,7 @@
-import { state, uid, commit, PALETTE } from '../store.js';
-import { plural } from '../fmt.js';
+import { state, uid, commit, PALETTE, modOn } from '../store.js';
+import { plural, parseAmount } from '../fmt.js';
 import {
-  h, sectionHead, linkBtn, segmented, app, openSheet, field, textInput, btn, invalid, toast, confirmDialog, swipeRow, catIcon,
+  h, sectionHead, linkBtn, segmented, app, openSheet, field, textInput, amountInput, btn, invalid, toast, confirmDialog, swipeRow, catIcon,
   emojiPicker, colorPicker, onceHint
 } from '../ui.js';
 import { listRow } from '../components.js';
@@ -16,7 +16,12 @@ function openCatForm(existing) {
   const c = existing ? { ...existing } : { type, icon: '🏷️', color: PALETTE[state.categories.length % PALETTE.length] };
   const shown = existing ? catName(existing) : '';
   const name = textInput(shown, { placeholder: tr('ex. Cafea'), maxlength: 24 });
-  const typeSeg = segmented([{ value: 'cheltuiala', label: tr('Cheltuială') }, { value: 'venit', label: tr('Venit') }], c.type);
+  // Bugetul ține doar de cheltuieli și de modulul Bugete.
+  const budget = amountInput(c.budget || '', { placeholder: tr('Fără limită') });
+  const budBox = field(tr('Buget lunar (opțional)'), budget);
+  budBox.hidden = !modOn('bugete') || c.type !== 'cheltuiala';
+  const typeSeg = segmented([{ value: 'cheltuiala', label: tr('Cheltuială') }, { value: 'venit', label: tr('Venit') }], c.type,
+    v => { budBox.hidden = !modOn('bugete') || v !== 'cheltuiala'; });
   const used = existing ? state.transactions.filter(t => t.categoryId === c.id).length : 0;
   const sh = openSheet({
     title: existing ? tr('Editează categoria') : tr('Categorie nouă'),
@@ -24,7 +29,8 @@ function openCatForm(existing) {
       field(tr('Nume'), name),
       existing ? null : field(tr('Tip'), typeSeg),
       field(tr('Iconiță'), emojiPicker(EMOJIS, c.icon, v => { c.icon = v; })),
-      field(tr('Culoare'), colorPicker(PALETTE, c.color, v => { c.color = v; }))),
+      field(tr('Culoare'), colorPicker(PALETTE, c.color, v => { c.color = v; })),
+      budBox),
     footer: h('div', { class: 'btn-row' },
       existing ? btn(tr('Șterge'), () => confirmDel(existing, used, () => sh.close()), 'ghost danger-text') : null,
       btn(tr('Salvează'), () => {
@@ -34,6 +40,11 @@ function openCatForm(existing) {
         const t = existing ? c.type : typeSeg.get();
         if (state.categories.some(x => x.type === t && x.name.toLowerCase() === n.toLowerCase() && x.id !== c.id)) return invalid(name, tr('Există deja o categorie cu acest nume'));
         const out = { ...c, name: n, type: t };
+        if (t === 'cheltuiala' && modOn('bugete')) {
+          const b = budget.value.trim() ? parseAmount(budget.value) : null;
+          if (b != null && !(b > 0)) return invalid(budget, tr('Introdu o sumă'));
+          out.budget = b == null ? null : Math.round(b * 100) / 100;
+        } else if (t === 'cheltuiala' && !existing) out.budget = null;
         if (existing) Object.assign(state.categories.find(x => x.id === c.id), out);
         else state.categories.push({ ...out, id: uid() });
         commit();

@@ -22,6 +22,7 @@ import { categoriesPage } from './pages/categories.js';
 import { calculatorPage } from './pages/calculator.js';
 import { planPage } from './pages/plan.js';
 import { wishlistPage } from './pages/wishlist.js';
+import { budgetsPage } from './pages/budgets.js';
 import { startPage, needsOnboarding } from './pages/start.js';
 
 // Bara de jos: două tab-uri, butonul + la mijloc, alte două tab-uri. „Mai mult” e butonul rotund din header.
@@ -39,9 +40,10 @@ const ROUTES = [
   [/^economii$/, savingsPage, 'economii'],
   [/^economii\/f\/([\w-]+)$/, fundPage, 'economii'],
   [/^economii\/c\/([\w-]+)$/, tripPage, 'economii'],
-  [/^investitii$/, investmentsPage, 'investitii', 'investitii'],
-  [/^investitii\/b\/([\w-]+)$/, brokerPage, 'investitii', 'investitii'],
-  [/^investitii\/a\/([\w-]+)$/, assetPage, 'investitii', 'investitii'],
+  // Investițiile sunt o filă în Economii: dacă nu sunt în bara de jos, se evidențiază tab-ul Economii.
+  [/^investitii$/, investmentsPage, 'investitii', 'investitii', 'economii'],
+  [/^investitii\/b\/([\w-]+)$/, brokerPage, 'investitii', 'investitii', 'economii'],
+  [/^investitii\/a\/([\w-]+)$/, assetPage, 'investitii', 'investitii', 'economii'],
   [/^rapoarte$/, reportsPage, 'rapoarte'],
   [/^abonamente$/, subscriptionsPage, 'abonamente', 'abonamente'],
   [/^avere$/, netWorthTab, 'rapoarte', 'avere'],
@@ -53,6 +55,7 @@ const ROUTES = [
   [/^calculator$/, calculatorPage, 'calculator'],
   [/^plan$/, planPage, 'plan'],
   [/^dorinte$/, wishlistPage, 'dorinte', 'dorinte'],
+  [/^bugete$/, budgetsPage, 'bugete', 'bugete'],
   [/^start$/, startPage, 'start'],
 ];
 
@@ -63,8 +66,9 @@ document.body.prepend(side);
 function renderSide(route) {
   const items = [
     ['acasa', 'Acasă', 'home'], ['tranzactii', 'Tranzacții', 'list'], ['economii', 'Economii', 'wallet'],
-    modOn('investitii') && ['investitii', 'Investiții', 'trend'], ['plan', 'Calculator bani', 'calc'], ['rapoarte', 'Rapoarte', 'report'],
+    modOn('investitii') && ['investitii', 'Investiții', 'trend'], ['plan', 'Îmi permit?', 'calc'], ['rapoarte', 'Rapoarte', 'report'],
     modOn('abonamente') && ['abonamente', 'Abonamente', 'repeat'], modOn('datorii') && ['datorii', 'Datorii', 'card'],
+    modOn('bugete') && ['bugete', 'Bugete', 'budget'],
     modOn('dorinte') && ['dorinte', 'Listă de dorințe', 'gift'],
   ].filter(Boolean);
   const cur = route[2] === 'mai-mult' ? 'setari' : items.some(x => x[0] === route[2]) ? route[2] : route[4] || route[2];

@@ -44,6 +44,16 @@ export function moneyParts(v, opts = {}) {
   return { main: sign + i, rest: `${decimalSep()}${f} ${CURRENCIES[cur] || cur}` };
 }
 
+// Sumă rotunjită, cu separator de mii și monedă (ex. „45.120 lei”), pentru rezumate: pastile, centrul graficelor, plăci, legende.
+// Listele și formularele păstrează zecimalele (money).
+export function moneyRound(v, opts = {}) {
+  if (isPrivate() && !opts.show) return HIDDEN;
+  const cur = opts.cur || state.settings.currency;
+  const n = Math.round(Number(v) || 0);
+  const sign = n < 0 ? '−' : opts.sign && n > 0 ? '+' : '';
+  return `${sign}${num(Math.abs(n), 0)} ${CURRENCIES[cur] || cur}`;
+}
+
 // Sumă fără zecimale și fără monedă, pentru spații mici (ex. „9.800”).
 export const moneyShort = (v, opts = {}) => (isPrivate() ? HIDDEN : `${opts.sign && v > 0 ? '+' : v < 0 ? '−' : ''}${num(Math.round(Math.abs(v)), 0)}`);
 

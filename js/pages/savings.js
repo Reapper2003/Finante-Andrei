@@ -2,7 +2,7 @@
 
 import { state, uid, commit, PALETTE } from '../store.js';
 import { today } from '../dates.js';
-import { money, num, parseAmount, forInput, CURRENCIES } from '../fmt.js';
+import { money, moneyRound, num, parseAmount, forInput, CURRENCIES } from '../fmt.js';
 import {
   round2, convert, accountBalance, bucketBalance, bucketCurrency, bucketName, allBuckets, savingsByCurrency, efStats, goalStats,
 } from '../calc.js';
@@ -10,8 +10,8 @@ import {
   h, icon, card, sectionHead, linkBtn, stat, btn, go, app, emptyState, openSheet, field, textInput, amountInput,
   segmented, invalid, toast, confirmDialog, emojiPicker, colorPicker, swipeRow, onceHint
 } from '../ui.js';
-import { barBreakdown } from '../charts.js';
-import { listRow, exportButton, movesList } from '../components.js';
+import { barBreakdown, distinctColors } from '../charts.js';
+import { listRow, exportButton, movesList, savingsTabs } from '../components.js';
 import { openGoalForm, openBucketMove, currencySeg } from '../forms.js';
 import { deleteFund, deleteGoal, convertBucketHistory, saveTx } from '../actions.js';
 import { goalCard, bigMoney } from './dashboard.js';
@@ -113,9 +113,11 @@ export function savingsPage() {
 
   // În „Toate”, sumele în altă monedă sunt convertite în moneda implicită.
   const valueOf = b => (all ? convert(bucketBalance(b), bucketCurrency(b), base) : bucketBalance(b));
-  const colorOf = b => b === 'urgenta' ? '#4FD1DC' : b === '' ? '#C9CED6'
+  const colorOf = b => b === 'urgenta' ? '#1A9E8F' : b === '' ? '#C4C8CF'
     : (b.startsWith('f:') ? state.funds.find(f => 'f:' + f.id === b) : state.goals.find(g => 'g:' + g.id === b))?.color;
-  const alloc = allBuckets().filter(show).map(b => ({ id: b, label: bucketName(b), value: round2(valueOf(b)), color: colorOf(b) })).filter(i => i.value > 0);
+  // Cele mai mari primele (bara și legenda în aceeași ordine), cu culori care nu se confundă.
+  const alloc = distinctColors(allBuckets().filter(show).map(b => ({ id: b, label: bucketName(b), value: round2(valueOf(b)), color: colorOf(b) }))
+    .filter(i => i.value > 0).sort((a, b) => b.value - a.value));
 
   const ef = efStats();
   const goals = state.goals.filter(g => !g.tripId && show('g:' + g.id)); // banii strânși pentru o călătorie apar la Călătorii
@@ -124,7 +126,7 @@ export function savingsPage() {
   const fundRow = (b, title, emoji, color, onTap, onDelete) => {
     const cur = bucketCurrency(b), bal = bucketBalance(b);
     return swipeRow(listRow({
-      iconEl: h('span', { class: 'cat-ic', style: { background: (color || '#C9CED6') + '55', fontSize: '19px' } }, emoji),
+      iconEl: h('span', { class: 'cat-ic', style: { background: (color || '#C4C8CF') + '55', fontSize: '19px' } }, emoji),
       title, sub: cur,
       right: money(bal, { cur }),
       rightSub: all && cur !== base ? h('span', { class: 'row-sub' }, `≈ ${money(convert(bal, cur, base))}`) : null,
@@ -135,6 +137,7 @@ export function savingsPage() {
   const showOther = show('') && (!state.settings.hideOtherSavings || !ZERO(otherBal));
 
   const node = h('div', { class: 'page' },
+    savingsTabs('economii'),
     h('div', { class: 'total-center' },
       h('small', {}, !all ? tr('Total economii în {cur}', { cur: curLabel(curFilter) })
         : currencies.length > 1 ? tr('Total economii · convertit în {cur}', { cur: base }) : tr('Total economii')),
@@ -146,16 +149,16 @@ export function savingsPage() {
         onclick: () => { curFilter = curFilter === c ? 'all' : c; app.rerender(); },
       }, `${FLAGS[c] || ''} ${money(byCur[c] || 0, { cur: c })}`)))
       : null,
-    alloc.length ? card(barBreakdown({ items: alloc, format: v => money(v, { cur: totalCur }), legendOnly: true })) : null,
+    alloc.length ? card(barBreakdown({ items: alloc, format: v => moneyRound(v, { cur: totalCur }), legendOnly: true })) : null,
 
     sectionHead(tr('Fonduri de economii'), linkBtn(tr('Adaugă'), () => openFundForm())),
     h('div', { class: 'list' },
       show('urgenta') ? listRow({
-        iconEl: h('span', { class: 'cat-ic', style: { background: '#4FD1DC40', fontSize: '19px' } }, '🛡️'),
+        iconEl: h('span', { class: 'cat-ic', style: { background: '#1A9E8F40', fontSize: '19px' } }, '🛡️'),
         title: tr('Fond de urgență'), sub: tr('{n} luni din {m}', { n: num(ef.covered, 1), m: ef.months }),
         right: money(ef.balance), onTap: () => go('#/fond'), chevron: true,
       }) : null,
-      showOther ? fundRow('', tr('Alte economii'), '🗂️', '#C9CED6', () => go('#/economii/f/alte'), otherBal >= 0 ? removeOther : null) : null,
+      showOther ? fundRow('', tr('Alte economii'), '🗂️', '#C4C8CF', () => go('#/economii/f/alte'), otherBal >= 0 ? removeOther : null) : null,
       state.funds.filter(f => show('f:' + f.id)).map(f => fundRow('f:' + f.id, f.name, f.icon || '💰', f.color, () => go(`#/economii/f/${f.id}`), () => removeFund(f)))),
     !state.funds.length ? h('p', { class: 'hint' }, tr('Creează un fond pentru bani puși deoparte într-o anumită monedă, de exemplu „Economii în euro”.')) : null,
 

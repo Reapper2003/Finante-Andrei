@@ -310,5 +310,5 @@ export function planPage() {
     card2, card3,
     h('section', { class: 'card p-c4' }, h('h2', { class: 'p-h' }, tr('Îmi permit?')), buySub, priceInput, wishRow, srcSeg, monthsBox, buyOut));
   card2.classList.add('p-c2'); card3.classList.add('p-c3');
-  return { title: tr('Calculator bani'), node };
+  return { title: tr('Îmi permit?'), node };
 }

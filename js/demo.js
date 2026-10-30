@@ -27,6 +27,8 @@ export function buildDemo(keepSettings) {
   const t = today(), cm = currentMonth(), first = addMonths(cm, -4);
   const startDate = `${first}-01`;
   const cat = name => s.categories.find(c => c.name === name && c.type === (['Salariu', 'Freelance', 'Bonus', 'Dividende'].includes(name) ? 'venit' : 'cheltuiala')).id;
+  // Câteva bugete, ca pagina Bugete să nu fie goală.
+  for (const [n, b] of [['Mâncare', 1600], ['Distracție', 500], ['Transport', 800], ['Shopping', 700]]) s.categories.find(c => c.id === cat(n)).budget = b;
   const day = (m, d) => { const last = Number(monthEnd(m).slice(8)); return `${m}-${String(Math.min(d, last)).padStart(2, '0')}`; };
   const tx = (o) => { if (o.date > t) return null; const x = { id: uid(), accountId: 'curent', note: '', ...o }; s.transactions.push(x); return x; };
 

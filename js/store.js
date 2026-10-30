@@ -11,20 +11,22 @@ export const MODULES = [
   ['datorii', 'Datorii', 'Credite, rate și bani împrumutați'],
   ['avere', 'Avere netă', 'Tot ce ai minus tot ce datorezi'],
   ['dorinte', 'Listă de dorințe', 'Lucruri pe care ți le dorești și idei de cadouri'],
+  ['bugete', 'Bugete', 'Limite lunare pe categorii, puse de tine'],
 ];
 export const modOn = k => state.settings.modules?.[k] !== false;
 
 // Al patrulea tab din bara de jos, ales în Setări → Module: [id, nume scurt, iconiță, modul].
-// Implicit Investițiile (sau Rapoartele, dacă Investițiile sunt ascunse).
+// Implicit Rapoartele (Investițiile se deschid din Economii).
 export const TAB_SLOTS = [
   ['investitii', 'Investiții', 'trend', 'investitii'],
-  ['plan', 'Calc. bani', 'calc', null],
+  ['plan', 'Îmi permit?', 'calc', null],
   ['rapoarte', 'Rapoarte', 'report', null],
   ['abonamente', 'Abonamente', 'repeat', 'abonamente'],
   ['datorii', 'Datorii', 'card', 'datorii'],
   ['avere', 'Avere', 'scale', 'avere'],
   ['dorinte', 'Dorințe', 'gift', 'dorinte'],
   ['calculator', 'Calc. investiții', 'trend', null],
+  ['bugete', 'Bugete', 'budget', 'bugete'],
 ];
 export function slotTab() {
   const ok = x => x && (!x[3] || modOn(x[3]));
@@ -33,7 +35,7 @@ export function slotTab() {
 }
 
 // Crește odată cu VERSION din sw.js; apare în Setări ca să vezi ce versiune rulează.
-export const APP_VERSION = 80;
+export const APP_VERSION = 83;
 
 const KEY = 'finante.data.v1';
 // Tema și culoarea, păstrate și separat ca pagina să le aplice înainte de afișare (vezi index.html).
@@ -47,7 +49,12 @@ export const ACCOUNTS = [
 export const accountName = id => tr(ACCOUNTS.find(a => a.id === id)?.name || '—');
 
 // Nuanțe pastelate pentru categorii, goal-uri și grafice.
-export const PALETTE = ['#6FA8FF', '#FF8A80', '#5DD3A6', '#FFB45C', '#B48CFF', '#FFD157', '#4FD1DC', '#FF8AC6',
+// Culori pentru categorii, obiective și fonduri: luminozitate alternată (închis / mediu / deschis), fără roșu sau verde pur
+// (verdele și roșul rămân pentru plus / minus).
+export const PALETTE = ['#2F3B8F', '#F08A24', '#1A9E8F', '#8FB8FF', '#6C47FF', '#E9C46A', '#E4579A', '#7A8494',
+  '#B9A6FF', '#C2571A', '#4FB3D9', '#9C6B30', '#3E7CB1', '#F2A7C3', '#5E548E', '#A3B18A'];
+// Paleta de dinainte (pastelată); culorile din ea trec la nuanța cu același loc din paleta nouă (vezi migrate).
+const PREV_PALETTE = ['#6FA8FF', '#FF8A80', '#5DD3A6', '#FFB45C', '#B48CFF', '#FFD157', '#4FD1DC', '#FF8AC6',
   '#A3D96B', '#FF9F7A', '#8C9EFF', '#E3B77A', '#7CCBFF', '#E58CFF', '#4CC9A8', '#FFC48A'];
 const OLD_PALETTE = ['#8FB8DE', '#F4A7A3', '#A8D5BA', '#F6C89F', '#C3B1E1', '#F3D58A', '#9AD1D4', '#E8A9C9',
   '#B5C99A', '#F2B5A0', '#A7BED3', '#D9C4A3', '#B9D7EA', '#E6C0E9', '#9FC5B0', '#F0C6A5'];
@@ -65,11 +72,14 @@ const slug = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().repla
 
 export function defaultCategories() {
   let vi = 0, ci = 0;
-  return DEFAULT_CATS.map(([type, name, icon]) => ({
-    id: `${type === 'venit' ? 'v' : 'c'}-${slug(name)}`,
-    type, name, icon,
-    color: PALETTE[type === 'venit' ? (vi++ * 3 + 2) % PALETTE.length : ci++ % PALETTE.length],
-  }));
+  return DEFAULT_CATS.map(([type, name, icon]) => {
+    const id = `${type === 'venit' ? 'v' : 'c'}-${slug(name)}`;
+    return {
+      id, type, name, icon,
+      color: PALETTE[type === 'venit' ? (vi++ * 3 + 2) % PALETTE.length : ci++ % PALETTE.length],
+      ...(type === 'cheltuiala' ? { budget: null } : {}),
+    };
+  });
 }
 
 export function defaultState() {
@@ -90,6 +100,9 @@ export function defaultState() {
       includeReceivables: false,
       opening: { curent: 0, economii: 0 },
       payConfirm: true,
+      showQuickLinks: false, // rândul de scurtături de pe Acasă (Setări → Aspect)
+      tabSlot: 'rapoarte',
+      navV2: true, // bara de jos cu Rapoarte; Investițiile ca filă în Economii
     },
     emergency: { initial: 0, months: 6, manualAvg: null, red: 1, orange: 3 },
     categories: defaultCategories(),
@@ -125,9 +138,27 @@ function migrate(raw) {
     for (const x of s.subscriptions) x.autoRecord = false;
     s.settings.payConfirm = true;
   }
+  // Scurtăturile de pe Acasă sunt ascunse implicit; cine și le-a ales deja le păstrează.
+  if (raw.settings?.showQuickLinks === undefined) s.settings.showQuickLinks = Array.isArray(raw.settings?.quickLinks);
+  // Bugete: categoriile de cheltuieli primesc o limită goală. Împărțirea 50/30/20 (din v82) a fost scoasă.
+  for (const c of s.categories) {
+    delete c.group;
+    if (c.type === 'cheltuiala' && c.budget === undefined) c.budget = null;
+  }
+  delete s.settings.budgetSplit;
+  // O singură dată: Rapoartele iau locul Investițiilor în bara de jos (cine a ales altceva păstrează).
+  if (!raw.settings?.navV2) {
+    if (!raw.settings?.tabSlot || raw.settings.tabSlot === 'investitii') s.settings.tabSlot = 'rapoarte';
+    s.settings.navV2 = true;
+  }
   // Culorile din paleta veche (prea șterse) trec la nuanța corespunzătoare din paleta nouă.
   for (const x of [...s.categories, ...s.goals, ...s.funds]) {
     const i = OLD_PALETTE.indexOf(String(x.color).toUpperCase());
+    if (i >= 0) x.color = PREV_PALETTE[i];
+  }
+  // Apoi paleta de dinainte → paleta nouă (în ordinea asta, ca datele foarte vechi să ajungă tot la cea nouă).
+  for (const x of [...s.categories, ...s.goals, ...s.funds]) {
+    const i = PREV_PALETTE.indexOf(String(x.color).toUpperCase());
     if (i >= 0) x.color = PALETTE[i];
   }
   return s;

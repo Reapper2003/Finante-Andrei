@@ -2,15 +2,15 @@
 
 import { state, modOn, save, catByName } from '../store.js';
 import { slotTab } from '../store.js';
-import { today, addDays, fmtDate, fmtDayMonth, weekdayInitials, currentMonth } from '../dates.js';
-import { money, moneyShort, num, pct } from '../fmt.js';
-import {
+import { today, addDays, fmtDate, fmtDayMonth, weekdayInitials, currentMonth, monthName } from '../dates.js';
+import { money, moneyRound, moneyShort, num, pct, plural } from '../fmt.js';
+import { budgetStats,
   expenseByCategory, incomeByCategory, savingsBreakdown, goalStats, efStats, netWorth, monthTotals, accountBalance, portfolioStats, subTotals, debtTotals, convert,
 } from '../calc.js';
 import { h, s, icon, go, openSheet, app, catGlyph, withEmoji, btn, linkBtn, toast } from '../ui.js';
 import { paySubscription, saveDebtPayment } from '../actions.js';
 import { openGoalForm } from '../forms.js';
-import { t as tr } from '../i18n.js';
+import { t as tr, catName } from '../i18n.js';
 
 const kindIcon = c => (c.kind === tr('Rată') ? 'card' : 'repeat');
 
@@ -101,7 +101,7 @@ const DEFAULT_TILES = ['week', 'fond', 'rata', 'abonamente'];
 const TILES = [
   ['week', 'Ultimele 7 zile', 'calendar', null, () => {
     const { total } = weekData();
-    return [h('b', { class: 't-val' }, money(total)), weekBars(true)];
+    return [h('b', { class: 't-val' }, moneyRound(total)), weekBars(true)];
   }, '#/tranzactii'],
   ['goal', 'Obiectiv', 'target', null, () => {
     const goal = state.goals.filter(g => !g.done).map(g => ({ g, st: goalStats(g) })).sort((x, y) => y.st.pct - x.st.pct)[0];
@@ -118,41 +118,51 @@ const TILES = [
   ['categorie', 'Top categorie', 'tag', null, () => {
     const c = expenseByCategory(currentMonth())[0];
     const tot = monthTotals(currentMonth()).expense || 1;
-    return c ? [h('span', { class: 't-emoji', style: { color: c.color } }, catGlyph(c.icon, c.label, 44)), h('b', { class: 't-name' }, c.label), h('small', {}, `${money(c.value)} · ${Math.round((c.value / tot) * 100)}%`)]
+    return c ? [h('span', { class: 't-emoji', style: { color: c.color } }, catGlyph(c.icon, c.label, 44)), h('b', { class: 't-name' }, c.label), h('small', {}, `${moneyRound(c.value)} · ${Math.round((c.value / tot) * 100)}%`)]
       : [h('b', { class: 't-name' }, tr('Nicio cheltuială încă'))];
   }, '#/tranzactii'],
   ['azi', 'Cheltuit azi', 'minus', null, () => {
     const t = today();
     const v = state.transactions.filter(x => x.type === 'cheltuiala' && x.date === t).reduce((a, x) => a + x.amount, 0);
     const n = state.transactions.filter(x => x.type === 'cheltuiala' && x.date === t).length;
-    return [h('b', { class: 't-val' }, money(v)), h('small', {}, n ? tr('{n} cheltuieli', { n }) : tr('nimic încă'))];
+    return [h('b', { class: 't-val' }, moneyRound(v)), h('small', {}, n ? tr('{n} cheltuieli', { n }) : tr('nimic încă'))];
   }, '#/tranzactii'],
   ['rata', 'Rată de economisire', 'trend', null, () => {
     const tt = monthTotals(currentMonth());
     const r = tt.income > 0 ? (tt.income - tt.expense) / tt.income : 0;
     return [ring(Math.max(0, r), 'var(--pos)', 58, h('span', {}, `${Math.round(r * 100)}%`)), h('small', {}, tr('din venituri, luna asta'))];
   }, '#/rapoarte'],
-  ['economii', 'Total economii', 'wallet', null, () => [h('b', { class: 't-val' }, money(accountBalance('economii'))), h('small', {}, tr('toate fondurile și obiectivele'))], '#/economii'],
+  ['economii', 'Total economii', 'wallet', null, () => [h('b', { class: 't-val' }, moneyRound(accountBalance('economii'))), h('small', {}, tr('toate fondurile și obiectivele'))], '#/economii'],
   ['investitii', 'Portofoliu', 'trend', 'investitii', () => {
     const p = portfolioStats();
-    return [h('b', { class: 't-val' }, money(p.value)), h('small', { class: p.profit >= 0 ? 'pos' : 'neg' }, `${p.profit >= 0 ? '▲' : '▼'} ${pct(p.pct, 1, true)}`)];
+    return [h('b', { class: 't-val' }, moneyRound(p.value)), h('small', { class: p.profit >= 0 ? 'pos' : 'neg' }, `${p.profit >= 0 ? '▲' : '▼'} ${pct(p.pct, 1, true)}`)];
   }, '#/investitii'],
   ['abonamente', 'Abonamente', 'repeat', 'abonamente', () => {
     const tot = subTotals();
-    return [h('b', { class: 't-val' }, money(tot.monthly)), h('small', {}, tr('pe lună · {n} active', { n: state.subscriptions.length }))];
+    return [h('b', { class: 't-val' }, moneyRound(tot.monthly)), h('small', {}, tr('pe lună · {n} active', { n: state.subscriptions.length }))];
   }, '#/abonamente'],
   ['datorii', 'Datorii rămase', 'card', 'datorii', () => {
     const d = debtTotals();
-    return [h('b', { class: 't-val' }, money(d.remaining)), h('small', {}, d.monthly > 0 ? tr('Rate: {sum}/lună', { sum: money(d.monthly) }) : tr('Nicio rată activă'))];
+    return [h('b', { class: 't-val' }, moneyRound(d.remaining)), h('small', {}, d.monthly > 0 ? tr('Rate: {sum}/lună', { sum: moneyRound(d.monthly) }) : tr('Nicio rată activă'))];
   }, '#/datorii'],
   ['avere', 'Avere netă', 'scale', 'avere', () => {
     const nw = netWorth();
-    return [h('b', { class: 't-val' }, money(modOn('investitii') ? nw.with : nw.without)), h('small', {}, modOn('investitii') ? tr('cu investiții') : tr('fără investiții'))];
+    return [h('b', { class: 't-val' }, moneyRound(modOn('investitii') ? nw.with : nw.without)), h('small', {}, modOn('investitii') ? tr('cu investiții') : tr('fără investiții'))];
   }, '#/avere'],
+  ['bugete', 'Bugete', 'budget', 'bugete', () => {
+    const list = budgetStats(currentMonth());
+    const over = list.filter(b => b.left < 0).length;
+    if (!list.length) return [h('span', { class: 't-ic' }, icon('budget', 18)), h('b', { class: 't-name' }, tr('Pune primul buget'))];
+    if (over) return [h('b', { class: 't-val neg' }, plural(over, tr('buget depășit'), tr('bugete depășite'))), h('small', {}, tr('din {n} cu limită', { n: list.length }))];
+    const b = list[0];
+    return [h('b', { class: 't-name' }, `${catName(b.cat)} · ${Math.round(b.pct * 100)}%`),
+      h('div', { class: 'bar' }, h('i', { style: { width: `${Math.min(100, b.pct * 100)}%`, background: b.pct >= 0.85 ? 'var(--warn)' : 'var(--accent)' } })),
+      h('small', {}, tr('cel mai aproape de limită'))];
+  }, '#/bugete'],
   ['dorinte', 'Listă de dorințe', 'gift', 'dorinte', () => {
     const open = (state.wishes || []).filter(w => !w.done);
     const sum = open.reduce((a, w) => a + (w.price != null ? convert(w.price, w.currency || state.settings.currency, state.settings.currency) : 0), 0);
-    return [h('b', { class: 't-val' }, money(sum)), h('small', {}, tr('{n} pe listă', { n: open.length }))];
+    return [h('b', { class: 't-val' }, moneyRound(sum)), h('small', {}, tr('{n} pe listă', { n: open.length }))];
   }, '#/dorinte'],
 ];
 const tileDef = id => TILES.find(x => x[0] === id && (!x[3] || modOn(x[3])));
@@ -186,7 +196,8 @@ const QUICK = [
   ['abonamente', 'Abonamente', 'repeat', '#/abonamente', 'abonamente'],
   ['datorii', 'Datorii', 'card', '#/datorii', 'datorii'],
   ['dorinte', 'Dorințe', 'gift', '#/dorinte', 'dorinte'],
-  ['plan', 'Calc. bani', 'calc', '#/plan', null],
+  ['plan', 'Îmi permit?', 'calc', '#/plan', null],
+  ['bugete', 'Bugete', 'budget', '#/bugete', 'bugete'],
   ['calculator', 'Calc. investiții', 'trend', '#/calculator', null],
   ['investitii', 'Investiții', 'trend', '#/investitii', 'investitii'],
   ['fond', 'Fond de urgență', 'shield', '#/fond', null],
@@ -318,26 +329,30 @@ export function cleanChart(m, upTo, { onCat, onInc, savingsIcons }) {
       type: 'button', role: 'tab', class: id === cleanTab ? 'on' : '', 'aria-selected': String(id === cleanTab),
       onclick: () => { cleanTab = id; paint(); },
     }, tr(label))));
-    let items, empty, onTap;
+    let items, empty, onTap, count;
+    // În centrul inelului: câte elemente sunt și luna (totalul e deja în pastilele de sub cardul cu sold).
     if (cleanTab === 'economii') {
       items = savingsIcons(savingsBreakdown(upTo)).sort((a, b) => b.value - a.value);
       empty = tr('Nu ai încă economii.');
       onTap = () => go('#/economii');
+      count = n => plural(n, tr('fond'), tr('fonduri'));
     } else if (cleanTab === 'venituri') {
       items = incomeByCategory(m);
       empty = tr('Niciun venit în această lună.');
       onTap = it => onInc(it);
+      count = n => plural(n, tr('sursă'), tr('surse'));
     } else {
       items = expenseByCategory(m);
       empty = tr('Nicio cheltuială în această lună.');
       onTap = it => onCat(it);
+      count = n => plural(n, tr('categorie'), tr('categorii'));
     }
     if (!items.length) { box.replaceChildren(h('p', { class: 'muted cc-empty' }, empty)); return; }
     const total = items.reduce((a, i) => a + i.value, 0);
     const top = items.slice(0, 4);
     const rest = items.slice(4);
     box.replaceChildren(
-      h('div', { class: 'cc-ring' }, segRing(items), h('div', { class: 'cc-center' }, h('small', {}, tr('Total')), h('b', {}, moneyShort(total)))),
+      h('div', { class: 'cc-ring' }, segRing(items), h('div', { class: 'cc-center' }, h('small', {}, count(items.length)), h('b', {}, monthName(m)))),
       h('div', { class: 'cc-legend' },
         top.map(it => h('button', { type: 'button', class: 'cc-row', onclick: () => onTap(it) },
           h('i', { style: { background: it.color } }),

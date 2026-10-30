@@ -78,7 +78,7 @@ export function subscriptionsPage() {
         const soon = s.nextPayment && s.nextPayment >= t && daysBetween(t, s.nextPayment) <= 7;
         const late = s.nextPayment && s.nextPayment < t && !s.autoRecord;
         const content = h('div', { class: 'row' + (soon ? ' soon' : '') },
-          catIcon(catById(s.categoryId) || { icon: '🔁', color: '#C9CED6' }),
+          catIcon(catById(s.categoryId) || { icon: '🔁', color: '#C4C8CF' }),
           h('div', { class: 'row-main' },
             h('div', { class: 'row-title' }, s.name, s.toCancel ? h('span', { class: 'tag warn' }, tr('De anulat?')) : null),
             h('div', { class: 'row-sub' }, [freqLabel(s.frequency), s.paymentMethod].filter(Boolean).join(' · ')),

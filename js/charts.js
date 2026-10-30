@@ -1,6 +1,7 @@
 // Grafice SVG simple: cerc (donut) interactiv și grafic linie.
 
 import { h, s, catGlyph } from './ui.js';
+import { PALETTE } from './store.js';
 import { pct, compact, isPrivate } from './fmt.js';
 import { t as tr } from './i18n.js';
 
@@ -202,15 +203,32 @@ export function barChart({ labels, series, format }) {
 
 // Împărțire pe categorii ca bară colorată + rânduri cu bare (în locul cercului).
 // legendOnly: doar bara și o legendă scurtă (fără rânduri).
+// Culori care se deosebesc în același grafic, doar pentru desen (culorile salvate nu se schimbă):
+// fiecare element își păstrează culoarea dacă nu seamănă cu una deja folosită, altfel ia următoarea liberă din paletă.
+const rgb = c => { const m = /^#?([\da-f]{6})$/i.exec(String(c || '').trim()); const n = m ? parseInt(m[1], 16) : 0; return [n >> 16, (n >> 8) & 255, n & 255]; };
+const tooClose = (a, b) => { const [x, y] = [rgb(a), rgb(b)]; return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 60; };
+export function distinctColors(items) {
+  const used = [];
+  return items.map(it => {
+    let color = it.color;
+    if (!color || used.some(u => tooClose(u, color))) color = PALETTE.find(p => !used.some(u => tooClose(u, p))) || color;
+    used.push(color);
+    return { ...it, color };
+  });
+}
+
 export function barBreakdown({ items, format, onTap, limit = 5, legendOnly = false }) {
   const total = items.reduce((a, i) => a + i.value, 0) || 1;
-  const stack = h('div', { class: 'stackbar' }, items.map(it => h('i', { style: { flex: String(it.value), background: it.color }, title: it.label })));
+  const stack = h('div', { class: 'stackbar', role: 'img', 'aria-label': items.map(it => `${it.label} ${pct(it.value / total, 0)}`).join(', ') },
+    items.map(it => h('i', { style: { flex: String(it.value), background: it.color }, title: it.label })));
   if (legendOnly) {
+    // Câte un rând pe element, în ordinea din bară: pătrățel, nume, sumă, procent.
     return h('div', {}, stack, h('div', { class: 'bk-legend' },
-      items.map(it => h('span', {}, h('i', { style: { background: it.color } }), `${it.label} ${pct(it.value / total, 0)}`))));
+      items.map(it => h('div', { class: 'bk-lg-row' }, h('i', { style: { background: it.color } }), h('span', {}, it.label),
+        h('b', {}, format(it.value)), h('small', {}, pct(it.value / total, 0))))));
   }
   const rows = items.map(it => h(onTap ? 'button' : 'div', { type: onTap ? 'button' : null, class: 'bk-row', onclick: onTap ? () => onTap(it) : null },
-    h('span', { class: 'cat-ic', style: { width: '40px', height: '40px', background: (it.color || '#C9CED6') + '40', fontSize: '19px', color: `color-mix(in srgb, ${it.color || '#C9CED6'} 62%, var(--text))` } }, catGlyph(it.icon, it.label, 40)),
+    h('span', { class: 'cat-ic', style: { width: '40px', height: '40px', background: (it.color || '#C4C8CF') + '40', fontSize: '19px', color: `color-mix(in srgb, ${it.color || '#C4C8CF'} 62%, var(--text))` } }, catGlyph(it.icon, it.label, 40)),
     h('div', { class: 'row-main' },
       h('div', { class: 'top-line' }, h('span', {}, it.label), h('span', {}, format(it.value))),
       h('div', { class: 'bar' }, h('i', { style: { width: `${(it.value / total) * 100}%`, background: it.color } })))));

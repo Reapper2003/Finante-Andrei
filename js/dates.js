@@ -99,6 +99,9 @@ export function monthLabel(key) {
   return cap(`${names().months[m - 1]} ${y}`);
 }
 
+// Doar numele lunii: „octombrie” / „October”.
+export const monthName = key => names().months[Number(key.slice(5, 7)) - 1];
+
 // Doar numele scurt al lunii: „oct” / „Oct”.
 export const monthAbbr = key => names().short[Number(key.slice(5, 7)) - 1];
 

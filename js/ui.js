@@ -83,6 +83,9 @@ const ICONS = {
   upload: '<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>',
   refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  budget: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5V12l6 6"/>',
+  arrowUp: '<path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/>',
+  arrowDown: '<path d="M12 5v14M5.5 12.5 12 19l6.5-6.5"/>',
   wallet: '<path d="M4 7.5V18a2 2 0 0 0 2 2h14V9H6a2 2 0 0 1-2-1.5zM4 7.5A2 2 0 0 1 6 5.5h11V9"/><circle cx="16" cy="14.5" r="1.2" fill="currentColor"/>',
 };
 
@@ -186,7 +189,11 @@ export function openSheet({ title, body, footer, onClose }) {
     footer ? h('div', { class: 'sheet-foot' }, footer) : null);
   overlay.addEventListener('click', () => api.close());
   dragToClose(panel, bodyEl, overlay, () => api.close());
+  // Focusul intră în panou (pentru tastatură) și se întoarce de unde a plecat la închidere.
+  const before = document.activeElement;
+  panel.tabIndex = -1;
   document.body.append(overlay, panel);
+  panel.focus({ preventScroll: true });
   document.body.classList.add('noscroll');
   requestAnimationFrame(() => { overlay.classList.add('open'); panel.classList.add('open'); });
 
@@ -200,6 +207,7 @@ export function openSheet({ title, body, footer, onClose }) {
       panel.classList.remove('open');
       setTimeout(() => { overlay.remove(); panel.remove(); }, 230);
       sheets = sheets.filter(x => x !== api);
+      if (before && before !== document.body && document.contains(before)) before.focus({ preventScroll: true });
       if (!sheets.length) {
         document.body.classList.remove('noscroll');
         if (!fromPop && historyPushed) {
@@ -218,6 +226,11 @@ export function openSheet({ title, body, footer, onClose }) {
 }
 
 export const sheetOpen = () => sheets.length > 0;
+
+// Esc închide ultimul panou deschis (inclusiv confirmările, care sunt tot panouri).
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && sheets.length) { e.preventDefault(); sheets.at(-1).close(); }
+});
 
 // Panoul se poate trage în jos ca să se închidă: de oriunde, dacă lista din el e derulată sus.
 function dragToClose(panel, body, overlay, close) {
@@ -287,12 +300,13 @@ export function confirmDialog({ title, message, ok = tr('Șterge'), danger = tru
 /* ---------- Toast ---------- */
 
 let toastEl, toastTimer;
-export function toast(msg) {
+export function toast(msg, opts = {}) {
   if (!toastEl) {
     toastEl = h('div', { class: 'toast', role: 'status', 'aria-live': 'polite' });
     document.body.append(toastEl);
   }
   toastEl.textContent = msg;
+  toastEl.classList.toggle('warn', !!opts.warn);
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
@@ -411,7 +425,7 @@ export function catGlyph(icon, label, size = 40) {
 export const withEmoji = (icon, label) => ((state.settings.iconStyle || 'emoji') === 'emoji' && icon ? `${icon} ${label}` : label);
 
 export function catIcon(c, size = 40) {
-  const color = c?.color || '#C9CED6';
+  const color = c?.color || '#C4C8CF';
   const plain = (state.settings.iconStyle || 'emoji') !== 'emoji';
   return h('span', {
     class: 'cat-ic' + (plain ? ' cat-ic-plain' : ''),

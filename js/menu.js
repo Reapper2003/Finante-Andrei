@@ -1,9 +1,11 @@
 // Luna afișată (comună pentru Acasă și Tranzacții) și meniul din butonul ⋯ din header.
 
-import { currentMonth, monthLabel, monthAbbr } from './dates.js';
+import { currentMonth, monthLabel, monthAbbr, today, daysBetween } from './dates.js';
 import { h, icon, openSheet, go, app, btn } from './ui.js';
 import { t as tr } from './i18n.js';
-import { modOn, slotTab } from './store.js';
+import { state, modOn, slotTab } from './store.js';
+import { money, moneyRound, plural } from './fmt.js';
+import { subTotals, debtTotals, budgetStats } from './calc.js';
 
 // Implicit e luna curentă; o lună aleasă din meniu rămâne până o schimbi sau redeschizi aplicația.
 let viewMonth = null;
@@ -56,32 +58,39 @@ export function openMonthSheet() {
 
 export function openMainMenu() {
   const inBar = id => slotTab()[0] === id;
-  const item = (ico, label, hash) => h('button', { type: 'button', class: 'menu-item', onclick: () => go(hash) },
-    h('span', { class: 'cat-ic neutral' }, icon(ico, 20)), h('span', {}, label), icon('chevR', 18));
+  // `right`: o informație scurtă, gri, înaintea săgeții (ex. totalul lunar la Abonamente).
+  const item = (ico, label, hash, right = null, tone = '') => h('button', { type: 'button', class: 'menu-item', onclick: () => go(hash) },
+    h('span', { class: 'cat-ic neutral' }, icon(ico, 20)), h('span', {}, label),
+    right ? h('small', { class: `mi-right ${tone}`.trim() }, right) : null, icon('chevR', 18));
+  const subs = state.subscriptions.length ? tr('{sum}/lună', { sum: money(subTotals().monthly) }) : null;
+  const debt = debtTotals().remaining;
+  const buds = modOn('bugete') ? budgetStats(currentMonth()) : [];
+  const over = buds.filter(b => b.left < 0).length;
+  // Backup: niciodată sau mai vechi de 30 de zile → în culoarea de avertizare.
+  const last = state.settings.lastBackupAt;
+  const ago = last ? daysBetween(last, today()) : null;
+  const backup = ago == null ? tr('backup: niciodată') : ago <= 0 ? tr('backup: azi') : ago === 1 ? tr('backup: ieri') : tr('backup: acum {n} zile', { n: ago });
   // Secțiune cu titlu; dispare dacă toate rândurile ei sunt ascunse.
   const group = (title, rows) => {
     const vis = rows.filter(Boolean);
     return vis.length ? [h('div', { class: 'menu-sec' }, title), h('div', { class: 'list' }, vis)] : [];
   };
-  const sh = openSheet({
+  openSheet({
     title: tr('Meniu'),
     body: h('div', {},
-      h('div', { class: 'menu-sec' }, tr('Luna afișată')),
-      monthPicker(() => sh.close()),
-      isCurrentMonth() ? null : btn(tr('Luna curentă'), () => { sh.close(); setMonth(currentMonth()); }, 'secondary'),
       ...group(tr('Analiză'), [
-        modOn('investitii') && !inBar('investitii') && item('trend', tr('Investiții'), '#/investitii'),
         !inBar('rapoarte') && item('report', tr('Rapoarte'), '#/rapoarte'),
       ]),
       ...group(tr('Planificare'), [
-        modOn('abonamente') && item('repeat', tr('Abonamente'), '#/abonamente'),
-        modOn('datorii') && item('card', tr('Datorii'), '#/datorii'),
+        modOn('abonamente') && item('repeat', tr('Abonamente'), '#/abonamente', subs),
+        modOn('datorii') && item('card', tr('Datorii'), '#/datorii', debt > 0 ? tr('{sum} rămase', { sum: moneyRound(debt) }) : null),
+        modOn('bugete') && item('budget', tr('Bugete'), '#/bugete', over ? plural(over, tr('buget depășit'), tr('bugete depășite')) : buds.length ? tr('toate în limită') : null, over ? 'neg' : ''),
         modOn('dorinte') && item('gift', tr('Listă de dorințe'), '#/dorinte')]),
       ...group(tr('Unelte'), [
-        !inBar('plan') && item('calc', tr('Calculator bani'), '#/plan'),
+        !inBar('plan') && item('calc', tr('Îmi permit?'), '#/plan'),
         item('trend', tr('Calculator investiții'), '#/calculator'),
         item('tag', tr('Categorii'), '#/categorii')]),
-      h('div', { class: 'list menu-settings' }, item('settings', tr('Setări'), '#/setari'))),
+      h('div', { class: 'list menu-settings' }, item('settings', tr('Setări'), '#/setari', backup, ago == null || ago > 30 ? 'warn' : ''))),
   });
 }
 

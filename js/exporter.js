@@ -7,7 +7,7 @@ import { buildXlsx } from './xlsx.js';
 import { deliverFile } from './ui.js';
 import {
   round2, bucketName, assetStats, brokerStats, assetTypeLabel, brokerOfAsset, debtTypeLabel, debtStats,
-  goalStats, efStats, subMonthly, freqLabel, bucketCurrency, bucketBalance, convert,
+  goalStats, efStats, subMonthly, freqLabel, bucketCurrency, bucketBalance, convert, budgetStats,
 } from './calc.js';
 
 const H = (...names) => names.map(v => ({ v: tr(v), s: 'head' }));
@@ -120,6 +120,15 @@ export function buildAllSheets({ from, to } = {}) {
     name: tr('Bani de primit'), freeze: 1, cols: [20, 14, 12, 12, 28],
     rows: [H('Persoană', 'Sumă', 'Data', 'Status', 'Notă'),
       ...state.receivables.filter(r => inR(r.date)).sort(byDate).map(r => [r.person, M(r.amount), D(r.date), r.status === 'achitat' ? tr('Achitat') : tr('Neachitat'), r.note || ''])],
+  });
+
+  // Bugetele pe luna exportată (ultima lună din perioadă sau luna curentă).
+  const budMonth = (to || today()).slice(0, 7);
+  const buds = budgetStats(budMonth);
+  if (buds.length) sheets.push({
+    name: tr('Bugete'), freeze: 1, cols: [18, 20, 14, 14, 10],
+    rows: [H('Luna', 'Categorie', 'Limită', 'Cheltuit', 'Procent'),
+      ...buds.map(b => [monthLabel(budMonth), catName(b.cat), M(b.limit), M(b.spent), P(b.pct)])],
   });
 
   sheets.push({
