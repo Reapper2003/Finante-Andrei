@@ -305,7 +305,6 @@ export const EN = {
   "Din fond: rămân {a} luni (acum {b})": "From the fund: {a} months left (now {b})",
   "Disponibil la {date}": "Available on {date}",
   "Disponibil · cont Curent": "Available · Current account",
-  "Disponibil: {sum}": "Available: {sum}",
   "Diversificare": "Diversification",
   "Doar {a}/zi {until} (acum {b})": "Only {a}/day {until} (now {b})",
   "Doar în {cur}": "Only in {cur}",
@@ -485,7 +484,6 @@ export const EN = {
   "Luni acoperite": "Months covered",
   "Luni țintă": "Target months",
   "Mai economisești {sum}/lună": "You still save {sum}/month",
-  "Mai lipsesc {sum}": "{sum} still needed",
   "Mai mult": "More",
   "Marcat achitat": "Marked as paid",
   "Marcat neachitat": "Marked as unpaid",
@@ -745,7 +743,6 @@ export const EN = {
   "Sumele existente nu se convertesc, se schimbă doar afișarea.": "Existing amounts are not converted; only the display changes.",
   "Sumele sunt ascunse la deschidere": "Amounts are hidden when the app opens",
   "Sumă": "Amount",
-  "Sumă ({cur})": "Amount ({cur})",
   "Sumă de pornire": "Starting amount",
   "Sumă depusă ({cur})": "Amount deposited ({cur})",
   "Sumă inițială": "Original amount",
@@ -1092,5 +1089,7 @@ export const EN = {
   "— Nu ține de o călătorie —": "— Not part of a trip —",
   "Rămași {sum}, puși deoparte": "{sum} left, set aside",
   "Călătorie: {name}": "Trip: {name}",
-  "În {name} sunt doar {sum}": "There's only {sum} in {name}"
+  "În {name} sunt doar {sum}": "There's only {sum} in {name}",
+  "Nu sunt bani de mutat de aici": "No money to move from here",
+  "Poți muta maxim {sum}": "You can move up to {sum}"
 };

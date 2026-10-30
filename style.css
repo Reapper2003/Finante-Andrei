@@ -1820,3 +1820,7 @@ body.nav-fara-text .tabs a { height: 48px; }
 .tr-lbl { fill: var(--muted); font-size: 11px; font-weight: 650; }
 .tr-plane text { font-size: 20px; }
 .trip-hero .tr-route + .bar { margin-top: 10px; }
+
+/* Mutare bani: cât se poate muta maxim, cu buton de completare */
+.max-hint { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -4px 0 14px; font-size: 13px; color: var(--muted); }
+.max-btn { flex: none; border: 0; border-radius: 99px; padding: 6px 14px; background: var(--accent-soft); color: var(--accent); font: inherit; font-weight: 700; font-size: 12.5px; cursor: pointer; }
