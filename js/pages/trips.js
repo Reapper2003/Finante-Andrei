@@ -5,7 +5,7 @@ import { state, uid, commit, PALETTE } from '../store.js';
 import { today, fmtDate } from '../dates.js';
 import { money, parseAmount, plural } from '../fmt.js';
 import { round2, tripStats, bucketBalance } from '../calc.js';
-import { h, card, sectionHead, linkBtn, btn, go, openSheet, field, textInput, amountInput, dateInput, invalid, toast, confirmDialog, emojiPicker, progress, emptyState } from '../ui.js';
+import { h, s, card, sectionHead, linkBtn, btn, go, openSheet, field, textInput, amountInput, dateInput, invalid, toast, confirmDialog, emojiPicker, progress, emptyState } from '../ui.js';
 import { openBucketMove } from '../forms.js';
 import { txRow } from '../components.js';
 import { runAutomations, deleteGoal } from '../actions.js';
@@ -101,13 +101,57 @@ function status(trip, st) {
   };
 }
 
+/* ---------- Traseul: avionul merge de acasă spre destinație ---------- */
+// Înainte de plecare, avionul arată cât ai strâns din buget; în călătorie, câte zile au trecut; la final e la destinație.
+
+const CURVE = [[14, 44], [96, -6], [204, -6], [286, 36]]; // curbă Bezier în viewBox 300×64
+const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+// Punctul de pe curbă la t și bucata de curbă de la plecare până la el (de Casteljau).
+function curveAt(t) {
+  const [p0, p1, p2, p3] = CURVE;
+  const a = lerp(p0, p1, t), b = lerp(p1, p2, t), c = lerp(p2, p3, t), d = lerp(a, b, t), e = lerp(b, c, t), f = lerp(d, e, t);
+  return { at: f, d: `M${p0} C${a} ${d} ${f}` };
+}
+function routePct(trip, st) {
+  if (trip.status === 'done') return 1;
+  if (trip.status === 'active') return Math.min(1, Math.max(0, (st.days - st.daysLeft + 1) / st.days));
+  return trip.budget ? Math.min(1, st.saved / trip.budget) : 0;
+}
+// Avionul „decolează” o singură dată pe sesiune pentru fiecare călătorie; după aceea apare direct la locul lui.
+const flown = new Set();
+
+function route(trip, st, warn) {
+  const pct = routePct(trip, st);
+  const fill = s('path', { class: 'tr-fill', d: curveAt(Math.max(pct, 0.001)).d });
+  // mașina și vaporul sunt desenate cu fața spre stânga: le întoarcem ca să meargă spre destinație
+  const icon = trip.icon || '✈️', flip = ['🚗', '🚙', '🚢', '⛵', '🚌', '🏍️', '🚲'].includes(icon);
+  const plane = s('g', { class: 'tr-plane' }, s('g', { transform: flip ? 'scale(-1 1)' : null }, s('text', { x: -11, y: 7 }, icon)));
+  const place = t => { const c = curveAt(t); plane.setAttribute('transform', `translate(${c.at[0]} ${c.at[1]})`); fill.setAttribute('d', c.d); };
+  const name = trip.name.length > 18 ? trip.name.slice(0, 17) + '…' : trip.name;
+  const svg = s('svg', { class: 'tr-route' + (warn ? ' warn' : ''), viewBox: '0 0 300 64', width: '100%', height: 64, 'aria-hidden': 'true' },
+    s('path', { class: 'tr-track', d: `M${CURVE[0]} C${CURVE[1]} ${CURVE[2]} ${CURVE[3]}` }),
+    fill,
+    s('circle', { class: 'tr-dot on', cx: 14, cy: 44, r: 4.5 }),
+    s('circle', { class: 'tr-dot' + (pct >= 1 ? ' on' : ''), cx: 286, cy: 36, r: 4.5 }),
+    s('text', { class: 'tr-lbl', x: 2, y: 62 }, tr('Acasă')),
+    s('text', { class: 'tr-lbl', x: 298, y: 62, 'text-anchor': 'end' }, name),
+    plane);
+  if (flown.has(trip.id) || pct === 0 || matchMedia('(prefers-reduced-motion: reduce)').matches) { place(pct); return svg; }
+  flown.add(trip.id);
+  place(0.001);
+  const t0 = performance.now(), dur = 1100, ease = u => 1 - Math.pow(1 - u, 3);
+  const step = now => { const u = Math.min(1, (now - t0) / dur); place(Math.max(0.001, pct * ease(u))); if (u < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+  return svg;
+}
+
 export function tripCard(trip) {
   const st = tripStats(trip), s = status(trip, st);
   return h('button', { type: 'button', class: 'card trip-card' + (trip.status === 'done' ? ' faded' : ''), onclick: () => go(`#/economii/c/${trip.id}`) },
     h('div', { class: 'tc-head' }, h('span', { class: 'tc-ic' }, trip.icon || '✈️'),
       h('span', { class: 'tc-t' }, h('b', {}, trip.name), h('small', {}, period(trip)))),
+    route(trip, st, s.warn),
     h('div', { class: 'tc-line' + (s.warn ? ' warn' : '') }, s.line),
-    progress(s.pct, s.warn ? 'var(--warn)' : null),
     h('small', { class: 'muted' }, s.sub));
 }
 
@@ -123,11 +167,11 @@ export function tripsSection() {
   ];
 }
 
-// Pe Acasă: călătoria în desfășurare, cea care începe în cel mult 14 zile, sau rezumatul uneia tocmai încheiate.
+// Pe Acasă: călătoria în desfășurare, cea care începe în cel mult 7 zile, sau rezumatul uneia tocmai încheiate.
 export function homeTripCard() {
   const t = today();
   const active = state.trips.find(x => x.status === 'active');
-  const soon = state.trips.filter(x => x.status === 'planned').sort((a, b) => a.start.localeCompare(b.start)).find(x => tripStats(x).daysTo <= 14);
+  const soon = state.trips.filter(x => x.status === 'planned').sort((a, b) => a.start.localeCompare(b.start)).find(x => tripStats(x).daysTo <= 7);
   const trip = active || soon;
   if (trip) return tripCard(trip);
   const ended = state.trips.find(x => x.status === 'done' && !x.summarySeen);
@@ -158,7 +202,9 @@ export function tripPage(id) {
       h('span', { class: 'label' }, `${period(trip)} · ${plural(st.days, tr('zi'), tr('zile'))}`),
       h('strong', { class: 'big' + (s.warn ? ' warn' : '') }, trip.status === 'planned' ? money(st.saved) : trip.status === 'active' && trip.reserved ? money(st.reserveLeft) : money(st.spent)),
       h('p', { class: 'muted' }, s.line),
-      progress(s.pct, s.warn ? 'var(--warn)' : null),
+      route(trip, st, s.warn),
+      // în călătorie, bara arată cât a mai rămas din rezervă (traseul arată zilele)
+      trip.status === 'active' && trip.reserved ? progress(s.pct, s.warn ? 'var(--warn)' : null) : null,
       h('small', { class: 'muted' }, s.sub)),
     trip.status === 'planned' && g ? h('div', { class: 'btn-row' },
       st.saved > 0 ? btn(tr('Retrage bani'), () => openBucketMove({ bucket: 'g:' + g.id, dir: 'out' }), 'secondary') : null,

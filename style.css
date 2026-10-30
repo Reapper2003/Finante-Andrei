@@ -1809,3 +1809,14 @@ body.nav-fara-text .tabs a { height: 48px; }
 .trip-card.faded { opacity: .7; }
 .trip-done { cursor: default; }
 .tc-x { flex: none; }
+
+/* Traseul călătoriei: linie punctată de acasă la destinație, partea parcursă în culoarea principală, avionul pe ea */
+.tr-route { display: block; overflow: visible; margin: 2px 0 -2px; }
+.tr-track { fill: none; stroke: color-mix(in srgb, var(--text) 22%, transparent); stroke-width: 2.5; stroke-dasharray: 2 7; stroke-linecap: round; }
+.tr-fill { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+.tr-route.warn .tr-fill { stroke: var(--warn); }
+.tr-dot { fill: color-mix(in srgb, var(--text) 25%, transparent); }
+.tr-dot.on { fill: var(--accent); }
+.tr-lbl { fill: var(--muted); font-size: 11px; font-weight: 650; }
+.tr-plane text { font-size: 20px; }
+.trip-hero .tr-route + .bar { margin-top: 10px; }
