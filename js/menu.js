@@ -45,6 +45,15 @@ function monthPicker(close) {
   return box;
 }
 
+// Alegerea lunii, deschisă din data de sus de pe Acasă și din Tranzacții.
+export function openMonthSheet() {
+  const sh = openSheet({
+    title: tr('Alege luna'),
+    body: h('div', {}, monthPicker(() => sh.close()),
+      isCurrentMonth() ? null : btn(tr('Luna curentă'), () => { sh.close(); setMonth(currentMonth()); }, 'secondary')),
+  });
+}
+
 export function openMainMenu() {
   const inBar = id => slotTab()[0] === id;
   const item = (ico, label, hash) => h('button', { type: 'button', class: 'menu-item', onclick: () => go(hash) },
@@ -63,7 +72,7 @@ export function openMainMenu() {
       ...group(tr('Analiză'), [
         modOn('investitii') && !inBar('investitii') && item('trend', tr('Investiții'), '#/investitii'),
         !inBar('rapoarte') && item('report', tr('Rapoarte'), '#/rapoarte'),
-        modOn('avere') && item('scale', tr('Avere netă'), '#/avere')]),
+      ]),
       ...group(tr('Planificare'), [
         modOn('abonamente') && item('repeat', tr('Abonamente'), '#/abonamente'),
         modOn('datorii') && item('card', tr('Datorii'), '#/datorii'),

@@ -1,4 +1,6 @@
 import { state, commit, setState } from '../store.js';
+import { openMonthSheet } from '../menu.js';
+import { slotTab, modOn } from '../store.js';
 import { today, currentMonth, monthEnd, fmtDate, fmtDayMonth, weekdayName, longDate, addDays } from '../dates.js';
 import { money, moneyParts, moneyShort, plural } from '../fmt.js';
 import { accountBalance, monthTotals, goalStats, dailyAllowance } from '../calc.js';
@@ -10,7 +12,7 @@ import { runAutomations } from '../actions.js';
 import { t as tr } from '../i18n.js';
 import { HERO_ART, HERO_SCENES, fitHeroAmount } from '../heroArt.js';
 import { showTransactions } from './transactions.js';
-import { upcomingRow, confirmPaid, dueText, tilesGrid, cleanChart } from './homeParts.js';
+import { upcomingRow, confirmPaid, dueText, tilesGrid, cleanChart, quickLinksRow } from './homeParts.js';
 
 export function loadDemo() {
   setState(buildDemo(state.settings));
@@ -45,16 +47,6 @@ export function goalCard(g, onDelete) {
   const cls = 'goal' + (g.done ? ' done' : '');
   if (onDelete) return swipeRow(h('div', { class: cls }, body), { onTap: () => openGoalActions(g), onDelete: () => onDelete(g), trash: true, cls: 'goal-swipe' });
   return h('button', { type: 'button', class: cls, onclick: () => openGoalActions(g) }, body);
-}
-
-// Card mic de goal, pentru șirul orizontal de pe Acasă.
-function goalMini(g) {
-  const st = goalStats(g);
-  return h('button', { type: 'button', class: 'gcard', onclick: () => openGoalActions(g) },
-    h('span', { class: 'cat-ic', style: { width: '40px', height: '40px', background: g.color + '40', fontSize: '19px' } }, g.icon || '🎯'),
-    h('b', {}, g.name),
-    h('small', {}, tr('{a} din {b}', { a: money(st.saved, { cur: st.cur }), b: money(g.target, { cur: st.cur }) })),
-    progress(st.pct, g.color));
 }
 
 function greeting() {
@@ -113,6 +105,27 @@ function payCard(a) {
         h('b', {}, money(c.amount)),
         h('button', { type: 'button', class: 'pay-ok', onclick: () => confirmPaid(c, list) }, tr('Plătit')))))
       : h('p', { class: 'muted' }, a.payday ? tr('Nicio plată programată până la salariu') : tr('Nicio plată programată până la final de lună')));
+}
+
+// „Primii pași”: o listă scurtă pentru cine abia a început; dispare când e gata sau când o închizi.
+function firstSteps() {
+  const st = state.settings;
+  if (st.stepsHidden) return null;
+  const steps = [
+    [tr('Adaugă prima cheltuială'), state.transactions.some(t => t.type === 'cheltuiala' && !t.subscriptionId), () => openTxForm()],
+    [tr('Setează ziua salariului'), !!st.salaryDay, openSalaryDay],
+    [tr('Creează un obiectiv'), state.goals.length > 0, () => openGoalForm(null)],
+    [tr('Fă primul backup'), !!st.lastBackupAt, () => go('#/setari/date')],
+  ];
+  const done = steps.filter(s => s[1]).length;
+  if (done === steps.length) return null;
+  return h('section', { class: 'card first-steps' },
+    h('div', { class: 'fs-head' },
+      h('div', {}, h('h2', {}, tr('Primii pași')), h('small', { class: 'muted' }, tr('{a} din {b} gata', { a: done, b: steps.length }))),
+      h('button', { type: 'button', class: 'icon-btn', 'aria-label': tr('Ascunde'), onclick: () => { st.stepsHidden = true; commit(); } }, icon('x', 18))),
+    h('div', { class: 'fs-bar' }, h('i', { style: { width: `${done / steps.length * 100}%` } })),
+    h('div', { class: 'fs-list' }, steps.map(([label, ok, act]) => h('button', { type: 'button', class: 'fs-row' + (ok ? ' ok' : ''), disabled: ok, onclick: act },
+      h('span', { class: 'fs-check' }, ok ? '✓' : ''), h('span', { class: 'fs-t' }, label), ok ? null : icon('chevR', 18)))));
 }
 
 function gauge(fraction, label, color) {
@@ -202,14 +215,7 @@ export function dashboardPage() {
     // Doar pe laptop: „Azi mai poți cheltui” devine o linie informativă în card.
     a && a.free > 0 ? h('span', { class: 'hero-daily' }, tr('Buget pe zi'), ' ', h('b', {}, money(a.perDay)), ' · ', tr('azi mai ai'), ' ', h('b', {}, money(Math.max(0, a.leftToday)))) : null);
 
-  const active = state.goals.filter(g => !g.done);
-  const goals = [
-    sectionHead(tr('Goal-uri'), linkBtn(tr('Toate'), () => go('#/economii'), null)),
-    h('div', { class: 'carousel' },
-      active.map(goalMini),
-      h('button', { type: 'button', class: 'gcard add', onclick: () => openGoalForm() }, icon('plus', 24), active.length ? tr('Goal nou') : tr('Creează primul goal'))),
-  ];
-
+  // Obiectivele nu mai au secțiune pe Acasă: sunt în Economii (și pot apărea ca placă, „Obiectiv”).
   const welcome = isEmpty ? card(
     h('h2', {}, tr('Bun venit! 👋')),
     h('p', { class: 'muted' }, tr('Adaugă prima tranzacție cu butonul +, sau încarcă date demo ca să vezi cum arată aplicația.')),
@@ -221,8 +227,6 @@ export function dashboardPage() {
   // Plăcile (4, alese din Setări → Aspect) vin după „Azi mai poți cheltui”.
   // Pe laptop (vezi style.css, .home-tablou), pagina devine o grilă: sold + „Luna aceasta”, plăcile pe un rând,
   // graficul lângă „Plăți care urmează”; plăcile mici de sub sold și „Azi mai poți cheltui” se ascund acolo.
-  const [goalsHead, goalsRow] = goals;
-  goalsHead.classList.add('d-gh'); goalsRow.classList.add('d-goals');
   const tiles = live ? tilesGrid() : null;
   tiles?.classList.add('d-tiles');
   chart.classList.add('d-chart');
@@ -230,12 +234,13 @@ export function dashboardPage() {
   const node = h('div', { class: 'page home-tablou' },
     monthChip(), hero, pills,
     live ? allowanceCard() : null,
+    live ? firstSteps() : null,
+    quickLinksRow(),
     monthCard(tot),
     welcome,
     tiles,
     chart,
-    live ? payCard(a) : null,
-    goalsHead, goalsRow);
+    live ? payCard(a) : null);
   if (art) fitHeroAmount(hero);
-  return { title: `${greeting()} 👋`, subtitle: longDate(today()), node };
+  return { title: `${greeting()} 👋`, subtitle: longDate(today()), onSubtitle: openMonthSheet, node };
 }

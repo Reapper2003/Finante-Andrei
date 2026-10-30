@@ -1,6 +1,6 @@
 import { state, commit, setState, resetAll, isValidBackup, accountName, dataSize, APP_VERSION, MODULES, modOn, TAB_SLOTS, slotTab } from '../store.js';
 import { money, num, parseAmount, forInput, CURRENCIES, NUMBER_FORMATS } from '../fmt.js';
-import { DATE_FORMATS } from '../dates.js';
+import { DATE_FORMATS, fmtDate } from '../dates.js';
 import { round2 } from '../calc.js';
 import {
   h, icon, sectionHead, segmented, switchRow, openSheet, field, amountInput, btn, invalid, toast, confirmDialog, go, applyTheme,
@@ -14,7 +14,8 @@ import { openEfSettings } from './emergency.js';
 import { t as tr } from '../i18n.js';
 import { HERO_ART, INV_ART, INV_PLAIN } from '../heroArt.js';
 import { HERO_ACCENT, followsHero } from '../heroColors.js';
-import { openTileEditor, chosenTileNames } from './homeParts.js';
+import { openTileEditor, chosenTileNames, openQuickEditor, chosenQuickNames } from './homeParts.js';
+import { refreshRates } from '../rates.js';
 
 const CUR_OPTS = Object.keys(CURRENCIES).map(c => ({ value: c, label: c }));
 const LANG_OPTS = [{ value: 'ro', label: 'Română' }, { value: 'en', label: 'English' }];
@@ -158,20 +159,43 @@ function stackRow(title, control, hint) {
 }
 
 function openRates() {
-  const eur = amountInput(state.settings.rates.EUR), usd = amountInput(state.settings.rates.USD);
+  const st = state.settings;
+  const eur = amountInput(st.rates.EUR), usd = amountInput(st.rates.USD);
+  let auto = !!st.autoRates;
+  const when = h('p', { class: 'hint' });
+  const paintWhen = () => { when.textContent = st.ratesDate ? tr('Ultima actualizare: cursul din {date}', { date: fmtDate(st.ratesDate) }) : ''; when.hidden = !st.ratesDate; };
+  paintWhen();
+  // „Actualizează acum”: completează câmpurile cu cursul de azi (BCE); dacă nu merge, câmpurile rămân cum erau.
+  const nowBtn = btn(tr('Actualizează acum'), async () => {
+    nowBtn.disabled = true;
+    const r = await refreshRates({ force: true });
+    nowBtn.disabled = false;
+    if (!r.ok) return toast(tr('Nu am putut lua cursul acum · rămâne cel salvat'));
+    eur.value = forInput(r.EUR); usd.value = forInput(r.USD);
+    paintWhen();
+    toast(tr('Curs actualizat'));
+  }, 'secondary');
   const sh = openSheet({
     title: tr('Curs de schimb'),
     body: h('div', {},
       h('div', { class: 'two' }, field(tr('1 EUR în lei'), eur), field(tr('1 USD în lei'), usd)),
-      h('p', { class: 'hint' }, tr('Folosit pentru brokerii în altă monedă și la totalurile portofoliului. Îl actualizezi manual.'))),
+      h('div', { class: 'list' }, switchRow(tr('Actualizează automat'), auto, v => { auto = v; },
+        tr('La fiecare intrare în aplicație (cel mult o dată pe oră) ia cursul oficial al Băncii Centrale Europene, foarte apropiat de cel BNR. Are nevoie de internet; dacă nu merge, rămâne cursul salvat.'))),
+      nowBtn, when,
+      // sursa cursului: pagina oficială BCE cu cursul euro–leu (datele ajung în aplicație prin serviciul Frankfurter)
+      h('a', { class: 'link-btn small', href: 'https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/eurofxref-graph-ron.en.html', target: '_blank', rel: 'noopener noreferrer' },
+        icon('link', 16), tr('Vezi cursul pe site-ul BCE')),
+      h('p', { class: 'hint' }, tr('Folosit pentru brokerii în altă monedă și la totalurile portofoliului.'))),
     footer: btn(tr('Salvează'), () => {
       const e = parseAmount(eur.value), u = parseAmount(usd.value);
       if (!(e > 0)) return invalid(eur, tr('Curs invalid'));
       if (!(u > 0)) return invalid(usd, tr('Curs invalid'));
-      state.settings.rates = { EUR: e, USD: u };
+      st.rates = { EUR: e, USD: u };
+      st.autoRates = auto;
       commit();
       sh.close();
       toast(tr('Curs salvat'));
+      if (auto) refreshRates();
     }),
   });
 }
@@ -292,6 +316,7 @@ function sectionContent(sub) {
       sectionHead(tr('Afișare')),
       h('div', { class: 'list' },
         navRow(tr('Plăcile de pe Acasă'), chosenTileNames().join(' · '), openTileEditor),
+        navRow(tr('Scurtăturile de pe Acasă'), chosenQuickNames().join(' · '), openQuickEditor),
         stackRow(tr('Iconițele categoriilor'), iconStylePicker(st.iconStyle || 'emoji', v => set('iconStyle', v))),
         switchRow(tr('Pornește aplicația în mod privat'), st.privateOnStart, v => { st.privateOnStart = v; commit(); }, tr('Sumele sunt ascunse la deschidere'))),
       // tot ce ține de bara de jos, într-un singur loc
@@ -313,7 +338,7 @@ function sectionContent(sub) {
   if (sub === 'bani') {
     return [h('div', { class: 'list' },
       stackRow(tr('Monedă implicită'), segmented(CUR_OPTS, st.currency, v => { st.currency = v; commit(); toast(tr('Monedă schimbată')); }), tr('Sumele existente nu se convertesc, se schimbă doar afișarea.')),
-      navRow(tr('Curs de schimb'), tr('1 EUR = {eur} lei · 1 USD = {usd} lei', { eur: num(st.rates.EUR, 4), usd: num(st.rates.USD, 4) }), openRates),
+      navRow(tr('Curs de schimb'), tr('1 EUR = {eur} lei · 1 USD = {usd} lei', { eur: num(st.rates.EUR, 4), usd: num(st.rates.USD, 4) }) + (st.autoRates ? ` · ${tr('automat')}` : ''), openRates),
       navRow(tr('Ziua salariului'), st.salaryDay ? tr('Pe {d} ale lunii · în weekend, vinerea dinainte', { d: st.salaryDay }) : tr('Nesetată · banii se împart până la final de lună'), openSalaryDay),
       navRow(tr('Ținta fondului de urgență'), tr('{n} luni', { n: state.emergency.months }), openEfSettings),
       navRow(tr('Solduri inițiale'), `${accountName('curent')} ${money(st.opening.curent)} · ${accountName('economii')} ${money(st.opening.economii)}`, openOpening))];

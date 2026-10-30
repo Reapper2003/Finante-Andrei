@@ -1,6 +1,7 @@
 // Pornirea aplicației: rutare, header, bara de jos, butonul +, pull-to-refresh, PWA.
 
 import { state, load, save, subscribe, onSaveError, commit, APP_VERSION, modOn, slotTab } from './store.js';
+import { refreshRates } from './rates.js';
 import { h, icon, app, toast, applyTheme, sheetOpen } from './ui.js';
 import { runAutomations } from './actions.js';
 import { openTxForm } from './forms.js';
@@ -9,7 +10,7 @@ import { t as tr } from './i18n.js';
 import { dashboardPage } from './pages/dashboard.js';
 import { transactionsPage } from './pages/transactions.js';
 import { investmentsPage, brokerPage, assetPage } from './pages/investments.js';
-import { reportsPage } from './pages/reports.js';
+import { reportsPage, netWorthTab } from './pages/reports.js';
 import { subscriptionsPage } from './pages/subscriptions.js';
 import { networthPage } from './pages/networth.js';
 import { emergencyPage } from './pages/emergency.js';
@@ -41,7 +42,7 @@ const ROUTES = [
   [/^investitii\/a\/([\w-]+)$/, assetPage, 'investitii', 'investitii'],
   [/^rapoarte$/, reportsPage, 'rapoarte'],
   [/^abonamente$/, subscriptionsPage, 'abonamente', 'abonamente'],
-  [/^avere$/, networthPage, 'avere', 'avere'],
+  [/^avere$/, netWorthTab, 'rapoarte', 'avere'],
   [/^fond$/, emergencyPage, 'fond', null, 'economii'],
   [/^datorii$/, debtsPage, 'datorii', 'datorii'],
   [/^datorii\/([\w-]+)$/, debtPage, 'datorii', 'datorii'],
@@ -62,7 +63,7 @@ function renderSide(route) {
     ['acasa', 'Acasă', 'home'], ['tranzactii', 'Tranzacții', 'list'], ['economii', 'Economii', 'wallet'],
     modOn('investitii') && ['investitii', 'Investiții', 'trend'], ['plan', 'Calculator bani', 'calc'], ['rapoarte', 'Rapoarte', 'report'],
     modOn('abonamente') && ['abonamente', 'Abonamente', 'repeat'], modOn('datorii') && ['datorii', 'Datorii', 'card'],
-    modOn('avere') && ['avere', 'Avere netă', 'scale'], modOn('dorinte') && ['dorinte', 'Listă de dorințe', 'gift'],
+    modOn('dorinte') && ['dorinte', 'Listă de dorințe', 'gift'],
   ].filter(Boolean);
   const cur = route[2] === 'mai-mult' ? 'setari' : items.some(x => x[0] === route[2]) ? route[2] : route[4] || route[2];
   const link = ([id, label, ico]) => h('a', { href: `#/${id}`, class: 'side-item' + (id === cur ? ' on' : ''), 'aria-current': id === cur ? 'page' : null },
@@ -135,6 +136,10 @@ function render() {
   titleEl.textContent = res.title;
   subtitleEl.hidden = !res.subtitle;
   subtitleEl.textContent = res.subtitle || '';
+  // subtitlul poate fi apăsat (ex. data de pe Acasă deschide alegerea lunii)
+  subtitleEl.onclick = res.onSubtitle || null;
+  subtitleEl.classList.toggle('sub-tap', !!res.onSubtitle);
+  if (res.onSubtitle) subtitleEl.append(' ▾');
   const inBar = id => TABS.some(t => t[0] === id);
   const tabKey = inBar(route[2]) ? route[2] : inBar(route[4]) ? route[4] : null;
   moreEl.classList.toggle('on', route[2] !== 'start' && !tabKey);
@@ -271,11 +276,14 @@ async function start() {
   window.addEventListener('scroll', onBleedScroll, { passive: true });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && runAutomations()) render();
+    if (document.visibilityState === 'visible') refreshRates();
   });
   setupPullToRefresh();
   // Prima pornire, fără date: configurarea în 3 pași.
   if (needsOnboarding()) location.replace('#/start');
   render();
+  // Cursul automat (dacă e pornit): la fiecare intrare, cel mult o dată pe oră, în fundal; dacă nu merge, rămâne cel salvat.
+  refreshRates();
 
   // După o actualizare automată, confirmă versiunea nouă.
   try {

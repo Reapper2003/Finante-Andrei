@@ -182,6 +182,7 @@ export function exportYearReport(y) {
 }
 
 export function exportBackup() {
+  state.settings.lastBackupAt = today();
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
   return deliverFile(blob, `${tr('finante')}_backup_${today()}.json`);
 }

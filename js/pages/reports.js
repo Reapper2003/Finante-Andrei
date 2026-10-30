@@ -1,4 +1,6 @@
 import { state, save, catById } from '../store.js';
+import { modOn } from '../store.js';
+import { networthPage } from './networth.js';
 import { currentMonth, monthLabel, monthAbbr, fmtDate } from '../dates.js';
 import { money, pct, num } from '../fmt.js';
 import { buildReport, buildYearReport, availableYears } from '../calc.js';
@@ -109,9 +111,15 @@ function yearlyView() {
   ];
 }
 
+// Avere netă e o filă a Rapoartelor (#/avere deschide direct fila).
+export function netWorthTab() { mode = 'avere'; return reportsPage(); }
+
 export function reportsPage() {
-  const modeSeg = segmented([{ value: 'lunar', label: tr('Lunar') }, { value: 'anual', label: tr('Anual') }], mode, v => { mode = v; app.rerender(); });
+  const tabs = [{ value: 'lunar', label: tr('Lunar') }, { value: 'anual', label: tr('Anual') }, modOn('avere') && { value: 'avere', label: tr('Avere netă') }].filter(Boolean);
+  if (!tabs.some(t => t.value === mode)) mode = 'lunar';
+  const modeSeg = segmented(tabs, mode, v => { mode = v; app.rerender(); });
   if (mode === 'anual') return { title: tr('Rapoarte'), back: '#/acasa', node: h('div', { class: 'page' }, modeSeg, yearlyView()) };
+  if (mode === 'avere') { const nw = networthPage(); nw.node.prepend(modeSeg); return { title: tr('Rapoarte'), back: '#/acasa', node: nw.node }; }
   const cm = currentMonth();
   const stored = [...state.reports].sort((a, b) => b.month.localeCompare(a.month));
   const options = [{ value: cm, label: tr('{month} (în curs)', { month: monthLabel(cm) }) }, ...stored.map(r => ({ value: r.month, label: monthLabel(r.month) }))];

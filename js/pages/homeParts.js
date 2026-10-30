@@ -1,6 +1,7 @@
 // Piese pentru pagina Acasă: rândul „Urmează”, plăcile alese de tine și graficul pe categorii.
 
 import { state, modOn, save, catByName } from '../store.js';
+import { slotTab } from '../store.js';
 import { today, addDays, fmtDate, fmtDayMonth, weekdayInitials, currentMonth } from '../dates.js';
 import { money, moneyShort, num, pct } from '../fmt.js';
 import {
@@ -93,7 +94,8 @@ export function weekBars(compact = false) {
 
 /* ---------- Tablou: 4 plăci, fiecare aleasă de tine ---------- */
 
-const DEFAULT_TILES = ['week', 'goal', 'fond', 'categorie'];
+// Fără „Obiectiv” și „Top categorie”: obiectivele și categoriile apar oricum mai jos pe Acasă.
+const DEFAULT_TILES = ['week', 'fond', 'rata', 'abonamente'];
 
 // [id, nume, iconiță, modulul de care ține (sau null), construire]
 const TILES = [
@@ -176,6 +178,82 @@ export function tilesGrid() {
 }
 
 // Alegi o placă (sus), apoi ce să arate (jos). Se salvează pe loc.
+/* ---------- Scurtăturile de pe Acasă (cel mult 4, alese din Setări → Aspect) ---------- */
+
+// [id, nume, iconiță, adresă, modul necesar]. Cele aflate deja în bara de jos nu apar (ar fi de două ori pe ecran).
+const QUICK = [
+  ['rapoarte', 'Rapoarte', 'report', '#/rapoarte', null],
+  ['abonamente', 'Abonamente', 'repeat', '#/abonamente', 'abonamente'],
+  ['datorii', 'Datorii', 'card', '#/datorii', 'datorii'],
+  ['dorinte', 'Dorințe', 'gift', '#/dorinte', 'dorinte'],
+  ['plan', 'Calc. bani', 'calc', '#/plan', null],
+  ['calculator', 'Calc. investiții', 'trend', '#/calculator', null],
+  ['investitii', 'Investiții', 'trend', '#/investitii', 'investitii'],
+  ['fond', 'Fond de urgență', 'shield', '#/fond', null],
+  ['categorii', 'Categorii', 'tag', '#/categorii', null],
+];
+const DEFAULT_QUICK = ['rapoarte', 'abonamente', 'datorii', 'plan'];
+const MAX_QUICK = 4;
+// Pagina deschisă de fiecare placă (Avere netă e acum o filă din Rapoarte).
+const tilePages = () => chosenTiles().map(id => { const pg = (tileDef(id)?.[5] || '').slice(2); return pg === 'avere' ? 'rapoarte' : pg; });
+// Nu apar: paginile din bara de jos și cele care au deja o placă pe Acasă (ar fi de două ori pe ecran).
+const quickAvailable = () => {
+  const taken = new Set([slotTab()[0], ...tilePages()]);
+  return QUICK.filter(q => (!q[4] || modOn(q[4])) && !taken.has(q[0]));
+};
+// Mereu 4: cele alese de tine (dacă se pot afișa), completate cu următoarele din listă.
+function chosenQuick() {
+  const saved = Array.isArray(state.settings.quickLinks) ? state.settings.quickLinks : DEFAULT_QUICK;
+  const ok = quickAvailable().map(q => q[0]);
+  const out = saved.filter(id => ok.includes(id));
+  for (const id of ok) if (out.length < MAX_QUICK && !out.includes(id)) out.push(id);
+  return out.slice(0, MAX_QUICK);
+}
+const quickName = id => tr(QUICK.find(q => q[0] === id)[1]);
+export const chosenQuickNames = () => chosenQuick().map(quickName);
+
+export function quickLinksRow() {
+  const ids = chosenQuick();
+  if (!ids.length) return null;
+  return h('div', { class: 'quick-links', style: { '--n': ids.length } }, ids.map(id => {
+    const [, label, ico, hash] = QUICK.find(q => q[0] === id);
+    return h('button', { type: 'button', class: 'ql', onclick: () => go(hash) }, h('span', { class: 'ql-ic' }, icon(ico, 20)), h('span', {}, tr(label)));
+  }));
+}
+
+// Ca la plăci: alegi un loc, apoi pagina; dacă pagina e deja în alt loc, cele două își schimbă locul.
+export function openQuickEditor() {
+  let slot = 0;
+  const slots = h('div', { class: 'te-slots' }), options = h('div', { class: 'te-options' });
+  const paint = () => {
+    const cur = chosenQuick();
+    if (slot >= cur.length) slot = 0;
+    slots.replaceChildren(...cur.map((id, i) => h('button', {
+      type: 'button', class: 'te-slot' + (i === slot ? ' on' : ''), onclick: () => { slot = i; paint(); },
+    }, h('small', {}, tr('Locul {n}', { n: i + 1 })), h('b', {}, quickName(id)))));
+    options.replaceChildren(...quickAvailable().map(([id, name, ico]) => h('button', {
+      type: 'button', class: 'te-opt' + (cur[slot] === id ? ' on' : '') + (cur.includes(id) && cur[slot] !== id ? ' used' : ''),
+      onclick: () => {
+        const next = [...cur], other = next.indexOf(id);
+        if (other >= 0) next[other] = next[slot];
+        next[slot] = id;
+        state.settings.quickLinks = next;
+        save(); app.rerender();
+        slot = (slot + 1) % next.length;
+        paint();
+      },
+    }, icon(ico, 20), h('span', {}, tr(name)))));
+  };
+  paint();
+  openSheet({
+    title: tr('Scurtăturile de pe Acasă'),
+    body: h('div', {},
+      h('p', { class: 'muted' }, tr('Alege un loc, apoi pagina. Nu apar paginile din bara de jos și cele care au deja o placă pe Acasă.')),
+      slots, options,
+      h('button', { type: 'button', class: 'link-btn small', onclick: () => { state.settings.quickLinks = null; save(); app.rerender(); paint(); } }, icon('refresh', 16), tr('Revino la cele implicite'))),
+  });
+}
+
 export function openTileEditor() {
   let slot = 0;
   const preview = h('div', { class: 'te-slots' });
