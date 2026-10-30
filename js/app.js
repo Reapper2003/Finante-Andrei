@@ -99,9 +99,9 @@ function desktopize(page) {
   if (!hasHead && cards.length >= 3 && !kids.some(e => e.classList.contains('stack'))) { page.classList.add('d-flow'); return; }
   // formular + rezultate (Calculator investiții): unul lângă altul
   const res = kids.findIndex(e => e.classList.contains('stack'));
-  if (!hasHead && res > 0 && !page.querySelector(':scope > .view-seg')) { wrap('d-pair', kids); return; }
+  if (!hasHead && res > 0 && !page.classList.contains('tx-page')) { wrap('d-pair', kids); return; }
   // pagini scurte (lista din Setări): centrate
-  if (!hasHead && cards.length <= 1 && !page.querySelector(':scope > .view-seg')) { page.classList.add('d-narrow'); return; }
+  if (!hasHead && cards.length <= 1 && !page.classList.contains('tx-page')) { page.classList.add('d-narrow'); return; }
   // carduri de rezumat consecutive (ex. două carduri sumar) → pe un rând
   let run = [];
   const flush = () => { if (run.length >= 2) wrap('d-row', run); run = []; };

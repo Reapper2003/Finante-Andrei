@@ -104,7 +104,7 @@ function txGroupRow(key, kind, txs) {
           h('div', { class: 'row-sub' }, names)),
         h('span', { class: 'amt muted' }, money(txs.reduce((a, t) => a + t.amount, 0))),
         h('span', { class: 'tx-grp-chev' }, icon('chevR', 18))),
-      open ? h('div', { class: 'tx-grp-items' }, txs.map(t => txRow(t))) : null);
+      ...(open ? [h('div', { class: 'tx-grp-items' }, txs.map(t => txRow(t)))] : []));
   };
   paint();
   return box;

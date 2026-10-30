@@ -197,10 +197,9 @@ body.noscroll .fab { visibility: hidden; }
 .chev { color: var(--muted); display: inline-flex; }
 /* Transferurile strânse într-un rând pliabil (Tranzacții) */
 .tx-grp-head { font: inherit; cursor: pointer; }
-.tx-grp-head .row-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tx-grp-chev { color: var(--muted); display: inline-flex; flex: none; transform: rotate(90deg); transition: transform .2s; }
 .tx-grp.open .tx-grp-chev { transform: rotate(-90deg); }
-.tx-grp-items { border-top: 1px solid var(--line); background: var(--soft); padding-left: 10px; }
+.tx-grp-items { border-top: 1px solid var(--line); }
 .tx-grp-items > * + * { border-top: 1px solid var(--line); }
 .day-head { color: var(--muted); font-size: 14px; font-weight: 600; margin: 6px 4px 6px; }
 .day + .day { margin-top: 6px; }
@@ -475,24 +474,7 @@ body.noscroll .toast { bottom: calc(var(--safe-b) + 96px); }
   * { transition: none !important; }
 }
 
-/* ---------- Calendar cheltuieli + confetti ---------- */
-:root { --heat: #6C47FF; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
-.card > .cal-grid { margin-top: 6px; }
-.cal-week span { text-align: center; color: var(--muted); font-size: 14px; font-weight: 600; }
-.cal-day {
-  aspect-ratio: 1; min-height: 38px; padding: 0; border: 0; border-radius: 10px;
-  background: var(--soft); color: var(--text); font-size: 14px; font-weight: 600;
-}
-.cal-day:disabled { opacity: 0.35; cursor: default; }
-.cal-day.today { box-shadow: inset 0 0 0 2px var(--accent); }
-.cal-day:not(:disabled):active { transform: scale(0.94); }
-.l1 { background: color-mix(in srgb, var(--heat) 22%, var(--soft)); }
-.l2 { background: color-mix(in srgb, var(--heat) 45%, var(--soft)); }
-.l3 { background: color-mix(in srgb, var(--heat) 72%, var(--soft)); color: var(--on-hero, #fff); }
-.l4 { background: var(--heat); color: var(--on-hero, #fff); }
-.cal-legend { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 14px; }
-.cal-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+/* ---------- Confetti ---------- */
 .confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 70; pointer-events: none; }
 
 /* ---------- Comutator mic în card ---------- */
@@ -973,7 +955,6 @@ button.pill:active { transform: scale(0.97); }
 .allow2.over .allow2-sub { color: var(--warn-text); font-weight: 600; }
 
 /* Tranzacții: Listă | Calendar */
-.view-seg { margin-top: 2px; }
 
 /* Meniu: Setări separat, la final */
 .menu-settings { margin-top: 16px; }

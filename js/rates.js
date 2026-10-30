@@ -1,4 +1,4 @@
-// Cursul de schimb automat (opțional, din Setări → Bani și conturi → Curs de schimb).
+// Cursul de schimb automat (opțional, din Setări → Bani → Curs de schimb).
 // Sursa: cursul de referință al Băncii Centrale Europene (prin serviciul gratuit Frankfurter), apropiat de cel BNR.
 // BNR nu permite citirea cursului direct dintr-o aplicație web. Orice problemă (fără internet, sursă căzută,
 // valori ciudate) lasă cursul neschimbat: aplicația merge mai departe cu ultimul curs salvat.

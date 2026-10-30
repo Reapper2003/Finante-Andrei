@@ -10,6 +10,7 @@ import { budgetStats,
 import { h, s, icon, go, openSheet, app, catGlyph, withEmoji, btn, linkBtn, toast } from '../ui.js';
 import { paySubscription, saveDebtPayment } from '../actions.js';
 import { openGoalForm } from '../forms.js';
+import { distinctColors } from '../charts.js';
 import { t as tr, catName } from '../i18n.js';
 
 const kindIcon = c => (c.kind === tr('Rată') ? 'card' : 'repeat');
@@ -348,6 +349,7 @@ export function cleanChart(m, upTo, { onCat, onInc, savingsIcons }) {
       count = n => plural(n, tr('categorie'), tr('categorii'));
     }
     if (!items.length) { box.replaceChildren(h('p', { class: 'muted cc-empty' }, empty)); return; }
+    items = distinctColors(items); // două felii vecine nu au aceeași culoare
     const total = items.reduce((a, i) => a + i.value, 0);
     const top = items.slice(0, 4);
     const rest = items.slice(4);

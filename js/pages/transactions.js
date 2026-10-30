@@ -1,5 +1,5 @@
 import { state, catById, ACCOUNTS, accountName } from '../store.js';
-import { currentMonth, today, dayLabel, monthLabel, weekdayInitials } from '../dates.js';
+import { currentMonth, monthLabel } from '../dates.js';
 import { money, num, parseAmount, forInput, CURRENCIES } from '../fmt.js';
 import { monthTotals, txCurrency, txAmountIn } from '../calc.js';
 import { h, icon, app, go, openSheet, segmented, selectInput, field, btn, emptyState, card } from '../ui.js';
@@ -10,11 +10,10 @@ import { t as tr, catName } from '../i18n.js';
 
 // cur = doar tranzacțiile în această monedă; min / max = interval de sumă, în moneda rangeCur.
 const f = { type: '', cat: '', acc: '', q: '', cur: '', min: null, max: null, rangeCur: '' };
-let view = 'list';
 const curLabel = c => (c === 'RON' ? 'lei' : CURRENCIES[c]);
 const rangeCur = () => f.rangeCur || f.cur || state.settings.currency;
 
-// Filtrele comune listei și calendarului: categorie, cont, monedă, interval de sumă.
+// Filtrele de sub căutare: categorie, cont, monedă, interval de sumă.
 function extraMatch(t) {
   if (f.cat && t.categoryId !== f.cat) return false;
   if (f.acc && t.accountId !== f.acc && t.toAccountId !== f.acc) return false;
@@ -49,60 +48,6 @@ function matches(t) {
     return hit;
   }
   return t.date.startsWith(getMonth());
-}
-
-/* ---------- Calendar pe zile ---------- */
-// Calendarul urmează filtrele: tipul ales (la „Toate” arată cheltuielile), categoria și contul.
-
-const CAL_TYPE = { '': 'cheltuiala', cheltuiala: 'cheltuiala', venit: 'venit', transfer: 'transfer' };
-const CAL_LABEL = { cheltuiala: 'Cheltuieli', venit: 'Venituri', transfer: 'Transferuri' };
-
-function calendarMatches(t) {
-  return t.type === CAL_TYPE[f.type] && extraMatch(t);
-}
-
-function openDay(date) {
-  const all = state.transactions.map((t, i) => [t, i]).filter(([t]) => t.date === date).sort((a, b) => b[1] - a[1]).map(x => x[0]);
-  // În panoul zilei vezi tranzacțiile filtrate (la „Toate”, pe toate).
-  const txs = f.type || f.cat || f.acc || f.cur || f.min != null || f.max != null ? all.filter(calendarMatches) : all;
-  const type = CAL_TYPE[f.type];
-  const total = all.filter(calendarMatches).reduce((a, t) => a + t.amount, 0);
-  const sh = openSheet({
-    title: dayLabel(date),
-    body: h('div', {},
-      h('p', { class: 'muted' }, `${tr(CAL_LABEL[type])}: ${money(total)}`),
-      txs.length ? h('div', { class: 'list' }, txs.map(t => txRow(t))) : h('p', { class: 'muted' }, tr('Nicio tranzacție în această zi.'))),
-    footer: btn(tr('Adaugă tranzacție în această zi'), () => { sh.close(); setTimeout(() => openTxForm(null, { date }), 0); }),
-  });
-}
-
-function calendar(m) {
-  const [y, mo] = m.split('-').map(Number);
-  const days = new Date(y, mo, 0).getDate();
-  const offset = (new Date(y, mo - 1, 1).getDay() + 6) % 7; // luni = prima zi
-  const totals = new Map();
-  for (const t of state.transactions) {
-    if (t.date.startsWith(m) && calendarMatches(t)) totals.set(t.date, (totals.get(t.date) || 0) + t.amount);
-  }
-  const type = CAL_TYPE[f.type];
-  const max = Math.max(0, ...totals.values());
-  const t0 = today();
-  const cells = Array.from({ length: offset }, () => h('span', {}));
-  for (let d = 1; d <= days; d++) {
-    const date = `${m}-${String(d).padStart(2, '0')}`;
-    const v = totals.get(date) || 0;
-    const lvl = v > 0 && max > 0 ? Math.max(1, Math.ceil((v / max) * 4)) : 0;
-    cells.push(h('button', {
-      type: 'button', class: `cal-day l${lvl}${date === t0 ? ' today' : ''}`, disabled: date > t0,
-      'aria-label': `${d} ${monthLabel(m).toLowerCase()}: ${v ? money(v) : '—'}`,
-      onclick: () => openDay(date),
-    }, d));
-  }
-  const legend = h('span', { class: 'cal-legend' }, tr('puțin'), [1, 2, 3, 4].map(l => h('i', { class: `l${l}` })), tr('mult'));
-  return card(
-    h('div', { class: 'card-head' }, h('div', {}, h('h2', {}, tr('Calendar')), h('small', { class: 'muted' }, tr('{type} pe zile', { type: tr(CAL_LABEL[type]) }))), legend),
-    h('div', { class: 'cal-grid cal-week' }, weekdayInitials().map(x => h('span', {}, x))),
-    h('div', { class: 'cal-grid' }, cells));
 }
 
 function openFilters() {
@@ -205,7 +150,7 @@ export function transactionsPage() {
   const tot = monthTotals(getMonth());
   paintList();
 
-  const node = h('div', { class: 'page' },
+  const node = h('div', { class: 'page tx-page' },
     monthChip(),
     h('div', { class: 'search-row' },
       h('label', { class: 'search' }, icon('search', 18), search),
@@ -220,7 +165,6 @@ export function transactionsPage() {
     h('div', { class: 'sum2' },
       sumCard('venit', 'plus', 'pos', tr('Venituri'), money(tot.income, { sign: true }), tot.income > 0 ? 'pos' : ''),
       sumCard('cheltuiala', 'minus', 'neg', tr('Cheltuieli'), money(-tot.expense), '')),
-    segmented([{ value: 'list', label: tr('Listă') }, { value: 'cal', label: tr('Calendar') }], view, v => { view = v; app.rerender(); }, 'view-seg'),
-    view === 'cal' ? calendar(getMonth()) : listBox);
+    listBox);
   return { title: tr('Tranzacții'), subtitle: monthLabel(getMonth()), onSubtitle: openMonthSheet, node };
 }

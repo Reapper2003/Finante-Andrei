@@ -138,7 +138,6 @@ export function applyTheme() {
     '--on-hero': onHero,
     '--hero-pos': onHero === '#FFFFFF' ? '#B8F7D9' : '#0B5E3B',
     '--hero-neg': onHero === '#FFFFFF' ? '#FFD0D0' : '#8A1C1C',
-    '--heat': base,
   };
   for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
 

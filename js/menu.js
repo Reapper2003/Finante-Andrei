@@ -56,6 +56,14 @@ export function openMonthSheet() {
   });
 }
 
+// Data ultimului backup; `old` = niciodată sau mai vechi de 30 de zile (se arată în culoarea de avertizare).
+export function backupInfo() {
+  const last = state.settings.lastBackupAt;
+  const ago = last ? daysBetween(last, today()) : null;
+  const text = ago == null ? tr('backup: niciodată') : ago <= 0 ? tr('backup: azi') : ago === 1 ? tr('backup: ieri') : tr('backup: acum {n} zile', { n: ago });
+  return { text, old: ago == null || ago > 30 };
+}
+
 export function openMainMenu() {
   const inBar = id => slotTab()[0] === id;
   // `right`: o informație scurtă, gri, înaintea săgeții (ex. totalul lunar la Abonamente).
@@ -66,10 +74,7 @@ export function openMainMenu() {
   const debt = debtTotals().remaining;
   const buds = modOn('bugete') ? budgetStats(currentMonth()) : [];
   const over = buds.filter(b => b.left < 0).length;
-  // Backup: niciodată sau mai vechi de 30 de zile → în culoarea de avertizare.
-  const last = state.settings.lastBackupAt;
-  const ago = last ? daysBetween(last, today()) : null;
-  const backup = ago == null ? tr('backup: niciodată') : ago <= 0 ? tr('backup: azi') : ago === 1 ? tr('backup: ieri') : tr('backup: acum {n} zile', { n: ago });
+  const { text: backup, old: backupOld } = backupInfo();
   // Secțiune cu titlu; dispare dacă toate rândurile ei sunt ascunse.
   const group = (title, rows) => {
     const vis = rows.filter(Boolean);
@@ -90,7 +95,7 @@ export function openMainMenu() {
         !inBar('plan') && item('calc', tr('Îmi permit?'), '#/plan'),
         item('trend', tr('Calculator investiții'), '#/calculator'),
         item('tag', tr('Categorii'), '#/categorii')]),
-      h('div', { class: 'list menu-settings' }, item('settings', tr('Setări'), '#/setari', backup, ago == null || ago > 30 ? 'warn' : ''))),
+      h('div', { class: 'list menu-settings' }, item('settings', tr('Setări'), '#/setari', backup, backupOld ? 'warn' : ''))),
   });
 }
 
