@@ -1091,5 +1091,8 @@ export const EN = {
   "Călătorie: {name}": "Trip: {name}",
   "În {name} sunt doar {sum}": "There's only {sum} in {name}",
   "Nu sunt bani de mutat de aici": "No money to move from here",
-  "Poți muta maxim {sum}": "You can move up to {sum}"
+  "Poți muta maxim {sum}": "You can move up to {sum}",
+  "Fără transfer (bani din afara aplicației)": "No transfer (money from outside the app)",
+  "Suma se adaugă direct în sold: nu apare în tranzacții și nu scade din niciun cont.": "The amount goes straight into the balance: it doesn't show in transactions and isn't taken from any account.",
+  "Poți adăuga maxim {sum}": "You can add up to {sum}"
 };

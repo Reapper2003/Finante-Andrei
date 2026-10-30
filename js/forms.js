@@ -200,6 +200,15 @@ function goalRoom(bucket, minus = 0) {
 }
 const roomMsg = (room, cur) => (room > 0 ? tr('Obiectivului îi mai lipsesc doar {sum}', { sum: money(room, { cur, show: true }) }) : tr('Obiectivul e deja atins'));
 
+// Bani pe care îi aveai deja, adăugați fără tranzacție: cresc suma de pornire a compartimentului (în moneda lui).
+function addOwned(bucket, amt) {
+  const add = (o, k) => { o[k] = round2((o[k] || 0) + amt); };
+  if (bucket.startsWith('g:')) add(state.goals.find(g => 'g:' + g.id === bucket), 'initial');
+  else if (bucket.startsWith('f:')) add(state.funds.find(f => 'f:' + f.id === bucket), 'initial');
+  else if (bucket === 'urgenta') add(state.emergency, 'initial');
+  else add(state.settings.opening, 'economii');
+}
+
 export function openBucketMove({ bucket, dir, existing }) {
   const isEdit = !!existing;
   const label = bucketName(bucket);
@@ -213,7 +222,7 @@ export function openBucketMove({ bucket, dir, existing }) {
   const baseField = field(tr('Echivalent în {cur}', { cur: base }), baseAmt, tr('Calculat cu cursul din Setări; îl poți corecta dacă banca a folosit alt curs.'));
   let baseEdited = isEdit, useMax = false;
   const paintBase = () => {
-    baseField.hidden = entryCur === base && cur === base;
+    baseField.hidden = (entryCur === base && cur === base) || other.value === 'extern';
     if (baseEdited) return;
     const v = parseAmount(amount.value);
     baseAmt.value = !(v > 0) ? '' : forInput(entryCur === base ? v : round2(convert(v, entryCur, base)));
@@ -236,20 +245,22 @@ export function openBucketMove({ bucket, dir, existing }) {
   const prevOther = !existing ? 'curent'
     : dir === 'in' ? (existing.accountId === 'economii' ? 'sav:' + (existing.fromBucket || '') : 'curent')
       : (existing.toAccountId === 'economii' ? 'sav:' + (existing.toBucket || '') : 'curent');
+  // „Fără transfer”: bani pe care îi aveai deja în afara aplicației (ex. cash) intră direct în sold, fără tranzacție.
   const otherOpts = [{ value: 'curent', label: tr('Cont Curent') },
+    ...(dir === 'in' && !isEdit ? [{ value: 'extern', label: tr('Fără transfer (bani din afara aplicației)') }] : []),
     ...bucketOptions(prevOther.startsWith('sav:') ? prevOther.slice(4) : null).filter(o => o.value !== bucket).map(o => ({ value: 'sav:' + o.value, label: o.label }))];
   const other = selectInput(otherOpts, prevOther);
-  other.addEventListener('change', () => { useMax = false; paintMax(); });
-  const sel = () => { const sav = other.value.startsWith('sav:'); return { sav, ob: sav ? other.value.slice(4) : null }; };
+  other.addEventListener('change', () => { useMax = false; paintMax(); paintBase(); paintMode(); });
+  const sel = () => { const sav = other.value.startsWith('sav:'); return { sav, ob: sav ? other.value.slice(4) : null, extern: other.value === 'extern' }; };
   const ownRoom = () => goalRoom(bucket, isEdit ? prevAmt : 0);
   const destRoom = ob => goalRoom(ob, isEdit && (existing.toBucket || '') === ob ? bucketIn(existing) : 0);
 
   // Cât se poate muta acum, în moneda compartimentului: ce e în sursă și cât mai încape în destinație (dacă e un obiectiv).
   // Limitele, fiecare în moneda ei: [sumă, monedă].
   function limits() {
-    const { sav, ob } = sel(), out = [];
+    const { sav, ob, extern } = sel(), out = [];
     if (dir === 'in') {
-      if (sav) {
+      if (extern) { /* nu vine din niciun cont: limita e doar cât mai încape */ } else if (sav) {
         const prevOut = isEdit && existing.accountId === 'economii' && (existing.fromBucket || '') === ob ? bucketOut(existing) : 0;
         out.push([bucketBalance(ob) + prevOut, bucketCurrency(ob)]);
       } else out.push([accountBalance('curent') + (isEdit && existing.accountId === 'curent' ? existing.amount : 0), base]);
@@ -263,17 +274,19 @@ export function openBucketMove({ bucket, dir, existing }) {
     return out;
   }
   // Maximul într-o monedă: fiecare limită se convertește direct din moneda ei (fără drum dus-întors, deci fără bani pierduți la rotunjire).
-  const maxIn = c => Math.max(0, round2(Math.min(...limits().map(([a, lc]) => (lc === c ? a : convert(a, lc, c))))));
+  const maxIn = c => { const l = limits(); return l.length ? Math.max(0, round2(Math.min(...l.map(([a, lc]) => (lc === c ? a : convert(a, lc, c)))))) : Infinity; };
   const maxMove = () => maxIn(cur);
   const maxHint = h('div', { class: 'max-hint' });
   function paintMax() {
     const mx = maxMove(), inEntry = maxIn(entryCur);
+    if (mx === Infinity) { maxHint.replaceChildren(); return; } // fără limită (bani din afara aplicației, într-un fond)
     if (!(mx > 0)) {
       maxHint.replaceChildren(h('span', {}, dir === 'in' && ownRoom() === 0 ? tr('Obiectivul e deja atins') : tr('Nu sunt bani de mutat de aici')));
       return;
     }
     maxHint.replaceChildren(
-      h('span', {}, tr('Poți muta maxim {sum}', { sum: money(inEntry, { cur: entryCur, show: true }) }), entryCur !== cur ? ` (${money(mx, { cur, show: true })})` : ''),
+      h('span', {}, (o => (sel().extern ? tr('Poți adăuga maxim {sum}', o) : tr('Poți muta maxim {sum}', o)))({ sum: money(inEntry, { cur: entryCur, show: true }) }),
+        entryCur !== cur ? ` (${money(mx, { cur, show: true })})` : ''),
       h('button', { type: 'button', class: 'max-btn', onclick: () => { amount.value = forInput(inEntry); baseEdited = false; paintBase(); useMax = true; } }, tr('Max')));
   }
 
@@ -297,6 +310,15 @@ export function openBucketMove({ bucket, dir, existing }) {
       return invalid(amount, tr('Poți muta maxim {sum}', { sum: money(mx, { cur, show: true }) }));
     }
     amt = round2(amt);
+    if (sel().extern) {
+      const before = goalSnapshot();
+      addOwned(bucket, amt);
+      commit();
+      sh.close();
+      toast(tr('Bani adăugați în {name}', { name: label }));
+      celebrate(goalsReached(before));
+      return;
+    }
     if (useMax && !baseEdited) baseValue = entryCur === base ? v : cur === base ? amt : round2(convert(amt, cur, base));
     // celălalt compartiment poate fi în altă monedă: suma lui se convertește din suma în moneda implicită
     const obCur = sav ? bucketCurrency(ob) : base;
@@ -312,7 +334,15 @@ export function openBucketMove({ bucket, dir, existing }) {
     celebrate(reached);
   }
 
-  paintBase(); paintMax();
+  const dateNote = h('div', { class: 'two' }, field(tr('Data'), date), field(tr('Notă'), note));
+  const modeHint = h('p', { class: 'hint' });
+  function paintMode() {
+    const extern = other.value === 'extern';
+    dateNote.hidden = extern;
+    modeHint.textContent = extern ? tr('Suma se adaugă direct în sold: nu apare în tranzacții și nu scade din niciun cont.')
+      : tr('Se înregistrează ca transfer, nu ca cheltuială.');
+  }
+  paintBase(); paintMax(); paintMode();
   const sh = openSheet({
     title: `${dir === 'in' ? tr('Adaugă bani') : tr('Retrage bani')} · ${label}`,
     body: h('div', {},
@@ -321,8 +351,8 @@ export function openBucketMove({ bucket, dir, existing }) {
       h('div', { class: 'cur-row' }, curSeg),
       maxHint,
       baseField,
-      h('div', { class: 'two' }, field(tr('Data'), date), field(tr('Notă'), note)),
-      h('p', { class: 'hint' }, tr('Se înregistrează ca transfer, nu ca cheltuială.'))),
+      dateNote,
+      modeHint),
     footer: btn(dir === 'in' ? tr('Adaugă') : tr('Retrage'), submit),
   });
   if (!isEdit) amount.focus({ preventScroll: true });
