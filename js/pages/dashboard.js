@@ -13,6 +13,7 @@ import { t as tr } from '../i18n.js';
 import { HERO_ART, HERO_SCENES, fitHeroAmount } from '../heroArt.js';
 import { showTransactions } from './transactions.js';
 import { upcomingRow, confirmPaid, dueText, tilesGrid, cleanChart, quickLinksRow } from './homeParts.js';
+import { homeTripCard } from './trips.js';
 
 export function loadDemo() {
   setState(buildDemo(state.settings));
@@ -234,6 +235,7 @@ export function dashboardPage() {
   const node = h('div', { class: 'page home-tablou' },
     monthChip(), hero, pills,
     live ? allowanceCard() : null,
+    live ? homeTripCard() : null,
     live ? firstSteps() : null,
     quickLinksRow(),
     monthCard(tot),

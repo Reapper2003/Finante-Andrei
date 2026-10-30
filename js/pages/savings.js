@@ -15,6 +15,7 @@ import { listRow, exportButton, movesList } from '../components.js';
 import { openGoalForm, openBucketMove, currencySeg } from '../forms.js';
 import { deleteFund, deleteGoal, convertBucketHistory, saveTx } from '../actions.js';
 import { goalCard, bigMoney } from './dashboard.js';
+import { tripsSection } from './trips.js';
 import { t as tr } from '../i18n.js';
 
 const FUND_EMOJIS = ['💰', '🏦', '💶', '💵', '🐷', '🔒', '🌍', '🏠', '🚗', '🎓', '🧳', '📦'];
@@ -117,7 +118,7 @@ export function savingsPage() {
   const alloc = allBuckets().filter(show).map(b => ({ id: b, label: bucketName(b), value: round2(valueOf(b)), color: colorOf(b) })).filter(i => i.value > 0);
 
   const ef = efStats();
-  const goals = state.goals.filter(g => show('g:' + g.id));
+  const goals = state.goals.filter(g => !g.tripId && show('g:' + g.id)); // banii strânși pentru o călătorie apar la Călătorii
   const active = goals.filter(g => !g.done), done = goals.filter(g => g.done);
 
   const fundRow = (b, title, emoji, color, onTap, onDelete) => {
@@ -157,6 +158,8 @@ export function savingsPage() {
       showOther ? fundRow('', tr('Alte economii'), '🗂️', '#C9CED6', () => go('#/economii/f/alte'), otherBal >= 0 ? removeOther : null) : null,
       state.funds.filter(f => show('f:' + f.id)).map(f => fundRow('f:' + f.id, f.name, f.icon || '💰', f.color, () => go(`#/economii/f/${f.id}`), () => removeFund(f)))),
     !state.funds.length ? h('p', { class: 'hint' }, tr('Creează un fond pentru bani puși deoparte într-o anumită monedă, de exemplu „Economii în euro”.')) : null,
+
+    ...tripsSection(),
 
     sectionHead(tr('Goal-uri'), linkBtn(tr('Adaugă'), () => openGoalForm())),
     goals.length ? null : card(emptyState(tr('Niciun goal în această monedă.'))),

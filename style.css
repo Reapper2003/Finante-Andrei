@@ -1794,3 +1794,18 @@ body.nav-fara-text .tabs a { height: 48px; }
   /* „Primii pași” stă sub sold + „Luna aceasta”, fără să lase gol în grilă */
   .home-tablou { grid-auto-flow: row dense; }
 }
+
+
+/* ===================== Călătorii ===================== */
+.trip-card { display: grid; gap: 8px; width: 100%; border: 0; text-align: left; color: var(--text); font: inherit; cursor: pointer; }
+.trip-card .bar { margin: 2px 0; }
+.tc-head { display: flex; align-items: center; gap: 12px; }
+.tc-ic { width: 42px; height: 42px; flex: none; border-radius: 13px; display: grid; place-items: center; font-size: 22px; background: var(--accent-soft); }
+.tc-t { flex: 1; min-width: 0; }
+.tc-t b { display: block; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-t small { color: var(--muted); font-size: 12.5px; }
+.tc-line { font-weight: 750; font-size: 16px; font-variant-numeric: tabular-nums; }
+.tc-line.warn, .trip-hero .big.warn { color: var(--warn); }
+.trip-card.faded { opacity: .7; }
+.trip-done { cursor: default; }
+.tc-x { flex: none; }

@@ -33,7 +33,7 @@ export function slotTab() {
 }
 
 // Crește odată cu VERSION din sw.js; apare în Setări ca să vezi ce versiune rulează.
-export const APP_VERSION = 74;
+export const APP_VERSION = 75;
 
 const KEY = 'finante.data.v1';
 // Tema și culoarea, păstrate și separat ca pagina să le aplice înainte de afișare (vezi index.html).
@@ -107,6 +107,7 @@ export function defaultState() {
     snapshots: [],
     reports: [],
     wishes: [], // listă de dorințe / cadouri; nu intră în niciun calcul
+    trips: [], // călătorii: bani strânși înainte, rezervă la plecare, restul devine fond la final (vezi calc.js, actions.js)
   };
 }
 

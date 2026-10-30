@@ -1,10 +1,10 @@
 // Modificări ale datelor care țin legăturile în ordine
 // (tranzacție ↔ contribuție la investiții, tranzacție ↔ plată datorie).
 
-import { state, uid, commit, save, catByName } from './store.js';
+import { state, uid, commit, save, catByName, PALETTE } from './store.js';
 import { today, addMonthsDate } from './dates.js';
 import { t as tr } from './i18n.js';
-import { round2, convert, brokerOfAsset, FREQ, ensureSnapshots, ensureReports, bucketBalance, bucketCurrency } from './calc.js';
+import { round2, convert, brokerOfAsset, FREQ, ensureSnapshots, ensureReports, bucketBalance, bucketCurrency, tripStats } from './calc.js';
 
 const base = () => state.settings.currency;
 const assetById = id => state.assets.find(a => a.id === id);
@@ -183,8 +183,48 @@ export function paySubscription(sub, record = true) {
 }
 
 // La pornire / revenire în aplicație: plăți automate de abonamente, snapshot-uri, rapoarte.
+// Călătorii: în ziua plecării, banii strânși în goal-ul călătoriei trec în Curent ca rezervă;
+// după ultima zi, ce a rămas din rezervă trece într-un fond de economii nou („Rămas din …”), pe care îl muți tu unde vrei.
+function runTrips() {
+  let changed = false;
+  const t = today(), cur0 = base();
+  for (const trip of state.trips) {
+    if (trip.status === 'planned' && trip.start <= t) {
+      const g = state.goals.find(x => x.id === trip.goalId);
+      const bal = g ? bucketBalance('g:' + g.id) : 0;
+      trip.reserved = 0;
+      if (g && bal > 0) {
+        const cur = g.currency || cur0, amount = round2(convert(bal, cur, cur0));
+        const tx = { id: uid(), type: 'transfer', date: trip.start, amount, accountId: 'economii', fromBucket: 'g:' + g.id, toAccountId: 'curent',
+          note: `${trip.icon} ${trip.name} · ${tr('bani pentru călătorie')}`, tripId: trip.id };
+        if (cur !== cur0) tx.fromAmount = bal;
+        state.transactions.push(tx);
+        trip.reserved = amount;
+      }
+      if (g) g.done = true;
+      trip.status = 'active';
+      changed = true;
+    }
+    if (trip.status === 'active' && trip.end < t) {
+      const st = tripStats(trip);
+      Object.assign(trip, { status: 'done', spent: st.spent, leftover: 0, doneAt: t, summarySeen: false });
+      if (st.reserveLeft >= 1) {
+        const f = { id: uid(), name: tr('Rămas din {name}', { name: trip.name }), icon: trip.icon, color: PALETTE[(state.funds.length + 5) % PALETTE.length],
+          currency: cur0, initial: 0, note: '', createdAt: t };
+        state.funds.push(f);
+        state.transactions.push({ id: uid(), type: 'transfer', date: t, amount: st.reserveLeft, accountId: 'curent', toAccountId: 'economii', toBucket: 'f:' + f.id,
+          note: `${trip.icon} ${tr('Rămas din {name}', { name: trip.name })}`, tripId: trip.id });
+        Object.assign(trip, { leftover: st.reserveLeft, fundId: f.id });
+      }
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 export function runAutomations() {
   let changed = false;
+  if (runTrips()) changed = true;
   const t = today();
   for (const sub of state.subscriptions) {
     if (!sub.autoRecord || !sub.nextPayment) continue;

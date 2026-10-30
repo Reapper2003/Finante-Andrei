@@ -468,20 +468,50 @@ export function upcomingCommitments(end = monthEnd(currentMonth())) {
   return items.sort((a, b) => a.date.localeCompare(b.date));
 }
 
+/* ---------- Călătorii ---------- */
+// Înainte de plecare strângi bani într-un goal legat de călătorie. La plecare banii trec în Curent ca „rezervă”;
+// cheltuielile din perioada călătoriei se iau din rezervă, nu din bugetul zilnic. La final, ce rămâne devine un fond de economii.
+
+export const tripById = id => state.trips.find(x => x.id === id);
+// Călătoria (neîncheiată) în perioada căreia cade o dată.
+export const tripForDate = date => state.trips.find(x => x.status !== 'done' && x.start <= date && date <= x.end) || null;
+
+export function tripStats(trip) {
+  const txs = state.transactions.filter(t => t.type === 'cheltuiala' && t.tripId === trip.id);
+  const spent = round2(sum(txs, t => t.amount));
+  // Din rezervă se iau doar cheltuielile din Curent de la plecare încolo (biletul cumpărat înainte vine din banii obișnuiți).
+  const fromReserve = round2(sum(txs.filter(t => t.accountId === 'curent' && t.date >= trip.start), t => t.amount));
+  const g = state.goals.find(x => x.id === trip.goalId);
+  const saved = trip.status === 'planned' && g ? round2(convert(bucketBalance('g:' + g.id), g.currency || baseCur(), baseCur())) : 0;
+  const active = trip.status === 'active';
+  const t = today();
+  return {
+    txs, spent, saved,
+    reserveLeft: active ? Math.max(0, round2((trip.reserved || 0) - fromReserve)) : 0,
+    over: active ? Math.max(0, round2(fromReserve - (trip.reserved || 0))) : 0,
+    daysTo: daysBetween(t, trip.start), daysLeft: daysBetween(t, trip.end) + 1, days: daysBetween(trip.start, trip.end) + 1,
+  };
+}
+
+// Banii din Curent rezervați pentru călătoriile în desfășurare (nu intră în „Azi mai poți cheltui”).
+export const tripReserveLeft = () => round2(sum(state.trips.filter(x => x.status === 'active'), x => tripStats(x).reserveLeft));
+
 // Banii din Curent se împart până în ziua dinaintea următorului salariu (dacă e setată ziua), altfel până la final de lună.
 export function dailyAllowance() {
   const t = today();
   const salaryDay = state.settings.salaryDay;
   const payday = salaryDay ? nextPayday(salaryDay, t) : null;
   const end = payday ? addDays(payday, -1) : monthEnd(currentMonth());
-  // Ratele și abonamentele plătite azi sunt plăți planificate, nu cheltuieli din „bugetul zilei”.
+  // Ratele și abonamentele plătite azi sunt plăți planificate, nu cheltuieli din „bugetul zilei”; la fel cheltuielile
+  // unei călătorii în desfășurare, care se iau din rezerva ei.
+  const fromTrip = x => x.tripId && tripById(x.tripId)?.status === 'active' && x.date >= tripById(x.tripId).start;
   const spentToday = round2(sum(state.transactions.filter(x =>
-    x.type === 'cheltuiala' && x.accountId === 'curent' && x.date === t && !x.debtId && !x.subscriptionId), x => x.amount));
+    x.type === 'cheltuiala' && x.accountId === 'curent' && x.date === t && !x.debtId && !x.subscriptionId && !fromTrip(x)), x => x.amount));
   const available = accountBalance('curent');
   const commitments = upcomingCommitments(end);
   const committed = round2(sum(commitments, c => c.amount));
   const daysLeft = daysBetween(t, end) + 1;
-  const free = round2(available + spentToday - committed);
+  const free = round2(available + spentToday - committed - tripReserveLeft());
   const perDay = free > 0 ? round2(free / daysLeft) : 0;
   return { available, spentToday, committed, commitments, daysLeft, free, perDay, leftToday: round2(perDay - spentToday), end, payday };
 }

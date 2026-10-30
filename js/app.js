@@ -11,6 +11,7 @@ import { dashboardPage } from './pages/dashboard.js';
 import { transactionsPage } from './pages/transactions.js';
 import { investmentsPage, brokerPage, assetPage } from './pages/investments.js';
 import { reportsPage, netWorthTab } from './pages/reports.js';
+import { tripPage } from './pages/trips.js';
 import { subscriptionsPage } from './pages/subscriptions.js';
 import { networthPage } from './pages/networth.js';
 import { emergencyPage } from './pages/emergency.js';
@@ -37,6 +38,7 @@ const ROUTES = [
   [/^tranzactii$/, transactionsPage, 'tranzactii'],
   [/^economii$/, savingsPage, 'economii'],
   [/^economii\/f\/([\w-]+)$/, fundPage, 'economii'],
+  [/^economii\/c\/([\w-]+)$/, tripPage, 'economii'],
   [/^investitii$/, investmentsPage, 'investitii', 'investitii'],
   [/^investitii\/b\/([\w-]+)$/, brokerPage, 'investitii', 'investitii'],
   [/^investitii\/a\/([\w-]+)$/, assetPage, 'investitii', 'investitii'],

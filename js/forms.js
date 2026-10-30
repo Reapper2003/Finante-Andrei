@@ -3,7 +3,7 @@
 import { state, uid, commit, save, catById, ACCOUNTS, PALETTE, accountName } from './store.js';
 import { today, monthLabel, fmtDate } from './dates.js';
 import { money, parseAmount, plural, forInput, CURRENCIES } from './fmt.js';
-import { round2, convert, bucketBalance, bucketOptions, bucketName, bucketCurrency, bucketIn, bucketOut, goalStats, brokerOfAsset } from './calc.js';
+import { round2, convert, bucketBalance, bucketOptions, bucketName, bucketCurrency, bucketIn, bucketOut, goalStats, brokerOfAsset, tripForDate } from './calc.js';
 import {
   h, openSheet, toast, confirmDialog, btn, field, amountInput, textInput, dateInput, selectInput, segmented,
   invalid, catIcon, emojiPicker, colorPicker, progress,
@@ -50,6 +50,17 @@ export function openTxForm(existing, preset = {}) {
   const date = dateInput(tx.date);
   const note = textInput(tx.note, { placeholder: tr('Opțional'), maxlength: 140, enterkeyhint: 'done' });
   const dyn = h('div');
+  // Călătoria: aleasă singură după dată (cât timp n-o alegi tu); se poate lega și o cheltuială din afara perioadei (ex. biletul de avion).
+  let tripId = isEdit ? tx.tripId || '' : tripForDate(tx.date)?.id || '', tripTouched = isEdit;
+  const tripBox = h('div');
+  const paintTrip = () => {
+    const trips = state.trips.filter(x => x.status !== 'done' || x.id === tripId);
+    if (tx.type !== 'cheltuiala' || !trips.length) { tripBox.replaceChildren(); return; }
+    const sel = selectInput([{ value: '', label: tr('— Nu ține de o călătorie —') }, ...trips.map(x => ({ value: x.id, label: `${x.icon || '✈️'} ${x.name}` }))], tripId);
+    sel.addEventListener('change', () => { tripId = sel.value; tripTouched = true; });
+    tripBox.replaceChildren(field(tr('Călătorie'), sel));
+  };
+  date.addEventListener('change', () => { if (!tripTouched) { tripId = tripForDate(date.value)?.id || ''; paintTrip(); } });
 
   const typeSeg = segmented(TYPES(), tx.type, v => {
     tx.type = v;
@@ -61,6 +72,7 @@ export function openTxForm(existing, preset = {}) {
       if (catById(tx.categoryId)?.type !== v) tx.categoryId = null;
     }
     paint();
+    paintTrip();
   });
 
   function paint() {
@@ -103,6 +115,7 @@ export function openTxForm(existing, preset = {}) {
     dyn.replaceChildren(...rows);
   }
   paint();
+  paintTrip();
 
   function submit() {
     const amt = parseAmount(amount.value);
@@ -135,6 +148,7 @@ export function openTxForm(existing, preset = {}) {
       if (!tx.categoryId) return toast(tr('Alege o categorie'));
       out.categoryId = tx.categoryId;
       out.accountId = tx.accountId === 'economii' ? 'economii' : 'curent';
+      if (tx.type === 'cheltuiala' && tripId && state.trips.some(x => x.id === tripId)) out.tripId = tripId;
       if (txCur !== base) {
         // Păstrăm conversia veche dacă suma și moneda nu s-au schimbat (cursul din Setări poate fi între timp altul).
         const same = isEdit && existing.origCurrency === txCur && existing.origAmount === out.amount;
@@ -152,7 +166,7 @@ export function openTxForm(existing, preset = {}) {
 
   const sh = openSheet({
     title: isEdit ? tr('Editează tranzacția') : tr('Tranzacție nouă'),
-    body: h('div', {}, typeSeg, field(tr('Sumă'), amount), curRow, dyn, h('div', { class: 'two' }, field(tr('Data'), date), field(tr('Notă'), note))),
+    body: h('div', {}, typeSeg, field(tr('Sumă'), amount), curRow, dyn, h('div', { class: 'two' }, field(tr('Data'), date), field(tr('Notă'), note)), tripBox),
     footer: h('div', { class: 'btn-row' },
       isEdit ? btn(tr('Șterge'), () => confirmDeleteTx(existing, () => sh.close()), 'ghost danger-text') : null,
       btn(isEdit ? tr('Salvează') : tr('Adaugă'), submit)),
