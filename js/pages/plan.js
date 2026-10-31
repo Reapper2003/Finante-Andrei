@@ -1,13 +1,12 @@
 // Calculatorul de bani, în pași: 1 cât am, 2 cât pun deoparte, 3 unde pun banii (doar economii: fond, investiții, fonduri, obiective),
 // 4 cheltuieli extra în luna aceea (cadouri, cumpărături), care se scad din banii de cheltuit, nu din economii;
-// plus „Îmi permit?” (din cont, din fond, în rate). Ce scrii tu se ține minte în Setări.
+// la final, un rezumat cu toate sumele. Ce scrii tu se ține minte în Setări.
 
 import { state, save, modOn } from '../store.js';
 import { currentMonth, addMonths } from '../dates.js';
-import { moneyShort, parseAmount, forInput, plural, CURRENCIES } from '../fmt.js';
-import { round2, convert, accountBalance, subTotals, debtTotals, efStats, goalStats, dailyAllowance, monthTotals, bucketIn, bucketOut, bucketCurrency, brokerOfAsset } from '../calc.js';
+import { moneyShort, parseAmount, forInput, CURRENCIES } from '../fmt.js';
+import { round2, convert, accountBalance, subTotals, subMonthly, debtTotals, debtRemaining, efStats, goalStats, dailyAllowance, bucketIn, bucketOut, bucketCurrency, brokerOfAsset } from '../calc.js';
 import { h, icon, btn, amountInput, textInput, segmented, openSheet } from '../ui.js';
-import { openGoalForm } from '../forms.js';
 import { t as tr } from '../i18n.js';
 
 const base = () => state.settings.currency;
@@ -37,12 +36,6 @@ function usualSpend() {
   const vals = lastMonths().map(m => state.transactions
     .filter(t => t.type === 'cheltuiala' && t.date.startsWith(m) && !t.subscriptionId && !t.debtId)
     .reduce((acc, t) => acc + t.amount, 0)).filter(v => v > 0);
-  return vals.length ? round2(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
-}
-
-// Cât economisești de obicei pe lună (venit − cheltuieli, media lunilor încheiate pe plus).
-function usualSaving() {
-  const vals = lastMonths().map(m => monthTotals(m).left).filter(v => v > 0);
   return vals.length ? round2(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
 }
 
@@ -89,7 +82,6 @@ function destinations() {
 // ca un obiectiv completat între timp să-și păstreze partea; la „Luna viitoare” e cât îi lipsește acum.
 const capOf = d => (d.cap == null ? null : calc().period === 'next' ? d.cap : round2(d.cap + d.put));
 
-const verdict = (cls, mark, title, text) => h('div', { class: `pv pv-${cls}` }, h('span', { class: 'pv-mark' }, mark), h('span', {}, h('b', {}, title), h('small', {}, text)));
 const range = (min, max, step, value, oninput) => {
   const r = h('input', { type: 'range', min, max, step, value });
   r.addEventListener('input', () => oninput(Number(r.value), r));
@@ -263,6 +255,7 @@ export function planPage() {
     R.ok.replaceChildren(n.usual > 0 ? h('div', { class: `p-ok${n.ok ? '' : ' bad'}` }, n.ok
       ? `✓ ${n.rest ? tr('Ajunge: cheltui de obicei ~{sum} în {n} zile', { sum: lei(n.usual), n: n.days }) : tr('Ajunge: cheltui de obicei ~{sum} pe lună', { sum: lei(n.usual) })}`
       : `✕ ${tr('Nu ajunge: cheltui de obicei ~{a} · lipsesc {b}', { a: lei(n.usual), b: lei(n.usual - n.spend) })}` + (n.fitPct > 0 ? ` · ${tr('economisește {p}% ca să ajungă', { p: n.fitPct })}` : '')) : '');
+    if (n.inc > 0) paintSum();
     if (!R.title3) return;
     R.title3.textContent = tr('Unde pun cei {sum}', { sum: lei(n.saveAmt) });
     R.pill.className = 'pd-left' + (wasBlocked ? ' warn' : l <= 0.5 ? ' done' : '');
@@ -368,66 +361,47 @@ export function planPage() {
   // Pașii 2, 3 și 4 apar după ce scrii suma.
   function paintAll() {
     const has = numbers().inc > 0;
-    card2.hidden = card3.hidden = card4.hidden = !has;
+    card2.hidden = card3.hidden = card4.hidden = cardSum.hidden = !has;
     const n = numbers();
     totalLine.hidden = !(c.plusOn && (parseAmount(c.plus) || 0) > 0);
     totalLine.replaceChildren(tr('Total') + ': ', h('b', {}, lei(n.inc)));
     if (has) { paint3(); paint4(); }
   }
 
-  /* --- Îmi permit? (din cont, din fond = neprevăzute, în rate) --- */
-  const ef = efStats(), monthlySave = usualSaving() || 0;
-  const a = now;
-  const SRC = { cont: [tr('Din cont'), tr('O cumpărătură din banii de cheltuit.')], fond: [tr('Din fond'), tr('Neprevăzute: reparații, amenzi, doctor…')], rate: [tr('În rate'), tr('Cât te costă pe lună.')] };
-  let src = SRC[c.buySrc] ? c.buySrc : 'cont', months = 6, buyName = '';
-  const priceInput = amountInput(c.price || '', { placeholder: tr('ex. {n}', { n: '1.299' }) });
-  const buyOut = h('div', { class: 'p-out' }), buySub = h('p', { class: 'muted p-sub' }), monthsBox = h('div', { class: 'p-out' });
-  priceInput.addEventListener('input', () => { c.price = priceInput.value; buyName = ''; save(); paintBuy(); });
-  const wishes = modOn('dorinte') ? state.wishes.filter(w => !w.done && w.price > 0).slice(0, 6) : [];
-  const wishRow = wishes.length ? h('div', { class: 'p-wish' }, wishes.map(w => h('button', {
-    type: 'button', onclick: () => { const p = round2(convert(w.price, w.currency || base(), base())); c.price = forInput(p); priceInput.value = c.price; buyName = w.name; save(); paintBuy(); },
-  }, `🎁 ${w.name}`))) : null;
-  const srcSeg = segmented(Object.entries(SRC).map(([value, [label]]) => ({ value, label })), src, v => { src = v; c.buySrc = v; save(); paintSrc(); });
-  function paintSrc() {
-    buySub.textContent = SRC[src][1];
-    const lbl = h('span', {}, String(months));
-    monthsBox.replaceChildren(...(src === 'rate' ? [h('div', { class: 'p-slh' }, h('span', {}, tr('Rate')), lbl),
-      range(2, 36, 1, months, v => { months = v; lbl.textContent = String(v); paintBuy(); })] : []));
-    paintBuy();
-  }
-  function paintBuy() {
-    const price = parseAmount(c.price) || 0;
-    if (!(price > 0)) { buyOut.replaceChildren(); return; }
-    const until = state.settings.salaryDay ? tr('până la salariu') : tr('până la final de lună');
-    if (src === 'cont') {
-      const freeAfter = a.free - price, perDay = Math.max(0, freeAfter / a.daysLeft), before = Math.max(0, a.free / a.daysLeft);
-      if (freeAfter >= 0 && perDay >= before / 2) buyOut.replaceChildren(verdict('ok', '✓', tr('Îți permiți'), tr('Rămân {a} în cont · {b}/zi {until}', { a: lei(a.available - price), b: lei(perDay), until })));
-      else if (freeAfter >= 0) buyOut.replaceChildren(verdict('mid', '!', tr('Strâns'), tr('Doar {a}/zi {until} (acum {b})', { a: lei(perDay), b: lei(before), until })));
-      else {
-        const m = monthlySave > 0 ? Math.ceil(-freeAfter / monthlySave) : null;
-        buyOut.replaceChildren(
-          verdict('no', '✕', tr('Nu acum'), tr('Lipsesc {sum}', { sum: lei(-freeAfter) }) + (m ? ` · ${tr('îi strângi în {n}', { n: plural(m, tr('lună'), tr('luni')) })}` : '')),
-          btn(tr('Fă-l obiectiv'), () => openGoalForm(null, { name: buyName, target: round2(price) })));
-      }
-    } else if (src === 'fond') {
-      const rest = ef.balance - price, m = ef.avg > 0 ? rest / ef.avg : 0;
-      const back = monthlySave > 0 ? Math.ceil(price / (monthlySave / 2)) : null;
-      buyOut.replaceChildren(rest >= 0
-        ? verdict(m >= 2 ? 'ok' : 'mid', '🛡️', tr('Acoperit'), tr('Din fond: rămân {a} luni (acum {b})', { a: comma(m), b: comma(ef.covered) }) + (back ? ` · ${tr('îl refaci în {n}', { n: plural(back, tr('lună'), tr('luni')) })}` : ''))
-        : verdict('no', '✕', tr('Neacoperit'), tr('Fondul nu ajunge · lipsesc {sum}', { sum: lei(-rest) })));
-    } else {
-      const r = price / months, after = monthlySave - r;
-      buyOut.replaceChildren(after >= monthlySave / 2 ? verdict('ok', '✓', `${lei(r)}/${tr('lună')}`, tr('Mai economisești {sum}/lună', { sum: lei(after) }))
-        : after >= 0 ? verdict('mid', '!', `${lei(r)}/${tr('lună')}`, tr('Ia peste jumătate din economii · rămân {sum}', { sum: lei(after) }))
-          : verdict('no', '✕', `${lei(r)}/${tr('lună')}`, tr('Rata e mai mare decât economiile tale')));
-    }
+  /* --- Rezumat: toate sumele de mai sus, pe rând --- */
+  const cardSum = h('section', { class: 'card p-c4 p-sum' });
+  // Plățile fixe scăzute: la „Restul lunii” cele încă neplătite până la salariu / final de lună, la „Luna viitoare” toate, pe o lună.
+  const fixedItems = () => (c.period !== 'next'
+    ? now.commitments.map(x => [x.label, x.amount, x.kind])
+    : [...state.subscriptions.map(x => [x.name, round2(subMonthly(x)), tr('Abonament')]),
+      ...state.debts.filter(d => debtRemaining(d) > 0 && d.monthly > 0).map(d => [d.creditor, d.monthly, tr('Rată')])]);
+  const sumGroup = (label, total, items, sign = '−') => h('div', { class: 'ps-g' },
+    h('div', { class: 'ps-head' }, h('span', {}, label), h('b', {}, `${sign}${lei(total)}`)),
+    items.length ? h('div', { class: 'ps-items' }, items.map(([name, v, kind]) => h('div', { class: 'ps-item' },
+      h('span', {}, name, kind ? h('small', {}, ` · ${kind}`) : null), h('span', {}, lei(v))))) : null);
+  function paintSum() {
+    const n = numbers();
+    const typed = parseAmount(c.inc) || 0, plus = c.plusOn ? parseAmount(c.plus) || 0 : 0;
+    const saved = chosen().filter(d => amt(d.id) > 0).map(d => [d.group === 'fond' ? tr('Fond de urgență') : d.name, amt(d.id)]);
+    if (left() > 0.5) saved.push([tr('neîmpărțit încă'), left()]);
+    // ce rămâne de fapt; sub zero înseamnă că nu ajung banii
+    const raw = round2(n.inc - n.fixed - n.saveAmt - n.extra);
+    cardSum.replaceChildren(...[
+      h('h2', { class: 'p-h' }, tr('Rezumat')),
+      h('p', { class: 'muted p-sub' }, n.rest ? tr('Restul lunii · {n} zile', { n: n.days }) : tr('Luna viitoare')),
+      sumGroup(tr('Cât am'), n.inc, plus > 0 ? [[tr('Suma scrisă'), typed], [tr('În plus'), plus]] : [], '+'),
+      sumGroup(tr('Plăți fixe'), n.fixed, fixedItems()),
+      sumGroup(tr('Pus deoparte ({p}%)', { p: c.save }), n.saveAmt, saved),
+      n.extra > 0 ? sumGroup(tr('Cheltuieli extra'), n.extra, extras().map(e => [e.name, e.amt])) : null,
+      h('div', { class: 'ps-total' + (raw < 0 ? ' neg' : '') }, h('span', {}, raw < 0 ? tr('Nu ajung banii, lipsesc') : tr('Îmi rămân de cheltuit')), h('b', {}, lei(Math.abs(raw)))),
+      raw >= 0 ? h('small', { class: 'muted ps-day' }, tr('{a} pe zi · {n} zile', { a: lei(n.spend / n.days), n: n.days })) : null,
+    ].filter(Boolean));
   }
 
-  paintAll(); paintSrc();
+  paintAll();
   const node = h('div', { class: 'page plan' },
     h('section', { class: 'card p-c1' }, step(1, tr('Cât am')), planSub, periodSeg, h('label', { class: 'field' }, incLbl, incInput), plusBox, totalLine),
-    card2, card3, card4,
-    h('section', { class: 'card p-c4' }, h('h2', { class: 'p-h' }, tr('Îmi permit?')), buySub, priceInput, wishRow, srcSeg, monthsBox, buyOut));
+    card2, card3, card4, cardSum);
   card2.classList.add('p-c2'); card3.classList.add('p-c3');
   return { title: tr('Îmi permit?'), node };
 }
