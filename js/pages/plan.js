@@ -141,7 +141,9 @@ export function planPage() {
   }
 
   /* --- 1. Cât am --- */
-  const incInput = amountInput(c.inc, { placeholder: tr('ex. {n}', { n: '7.800' }) });
+  // Sumele se țin exact cum le-ai scris (ex. „1742,5”), așa că intră în căsuță ca text, nu ca număr.
+  const incInput = amountInput('', { placeholder: tr('ex. {n}', { n: '7.800' }) });
+  incInput.value = c.inc || '';
   const incLbl = h('span', { class: 'field-label' }), planSub = h('p', { class: 'muted p-sub' });
   const paintHead = () => {
     const rest = c.period !== 'next';
@@ -154,7 +156,8 @@ export function planPage() {
     v => { c.period = v; paintHead(); fit(); save(); paintAll(); refresh(); });
   incInput.addEventListener('input', () => { c.inc = incInput.value; fit(); save(); paintAll(); });
   // „+ Mai am bani”: o sumă în plus față de cea scrisă (ex. ce mai e în contul Curent).
-  const plusInput = amountInput(c.plus, { placeholder: tr('ex. {n}', { n: '500' }) });
+  const plusInput = amountInput('', { placeholder: tr('ex. {n}', { n: '500' }) });
+  plusInput.value = c.plus || '';
   plusInput.addEventListener('input', () => { c.plus = plusInput.value; fit(); save(); paintAll(); });
   const plusBox = h('div', { class: 'p-plus' }), totalLine = h('p', { class: 'muted p-total' });
   function paintPlus() {

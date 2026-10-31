@@ -82,6 +82,8 @@ export function parseAmount(str) {
     if (t.includes(',') && !t.includes('.') && /,\d{1,2}$/.test(t)) t = t.replace(',', '.');
     else t = t.replace(/,/g, '');
   } else if (t.includes(',') && t.includes('.')) t = t.replace(/\./g, '').replace(',', '.');
+  // „7.800” sau „1.250.000”: punctul desparte miile (grupuri de exact 3 cifre); „12.5” rămâne zecimal
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
   else t = t.replace(',', '.');
   return /^-?\d*\.?\d+$/.test(t) ? Number(t) : NaN;
 }
