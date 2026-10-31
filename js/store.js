@@ -15,17 +15,17 @@ export const MODULES = [
 ];
 export const modOn = k => state.settings.modules?.[k] !== false;
 
-// Al patrulea tab din bara de jos, ales în Setări → Module: [id, nume scurt, iconiță, modul].
+// Al patrulea tab din bara de jos, ales în Setări → Module: [id, nume, iconiță, modul, nume scurt pentru bară (opțional)].
 // Implicit Rapoartele (Investițiile se deschid din Economii).
 export const TAB_SLOTS = [
   ['investitii', 'Investiții', 'trend', 'investitii'],
-  ['plan', 'Îmi permit?', 'calc', null],
+  ['plan', 'Îmi permit?', 'calc', null, 'Îmi permit?|tab'],
   ['rapoarte', 'Rapoarte', 'report', null],
-  ['abonamente', 'Abonamente', 'repeat', 'abonamente'],
+  ['abonamente', 'Abonamente', 'repeat', 'abonamente', 'Abonamente|tab'],
   ['datorii', 'Datorii', 'card', 'datorii'],
   ['avere', 'Avere', 'scale', 'avere'],
   ['dorinte', 'Dorințe', 'gift', 'dorinte'],
-  ['calculator', 'Calc. investiții', 'trend', null],
+  ['calculator', 'Calc. investiții', 'trend', null, 'Calculator'],
   ['bugete', 'Bugete', 'budget', 'bugete'],
 ];
 export function slotTab() {
@@ -35,7 +35,7 @@ export function slotTab() {
 }
 
 // Crește odată cu VERSION din sw.js; apare în Setări ca să vezi ce versiune rulează.
-export const APP_VERSION = 84;
+export const APP_VERSION = 89;
 
 const KEY = 'finante.data.v1';
 // Tema și culoarea, păstrate și separat ca pagina să le aplice înainte de afișare (vezi index.html).

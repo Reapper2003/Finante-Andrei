@@ -29,9 +29,9 @@ import { startPage, needsOnboarding } from './pages/start.js';
 // Al patrulea tab e cel ales în Setări → Module (implicit Investiții; Rapoarte dacă Investițiile sunt ascunse).
 const tabs = () => [
   ['acasa', 'Acasă', 'home'],
-  ['tranzactii', 'Tranzacții', 'list'],
+  ['tranzactii', 'Tranzacții|tab', 'list'], // în engleză „Activity”, ca să încapă la 12px
   ['economii', 'Economii', 'wallet'],
-  slotTab().slice(0, 3),
+  (s => [s[0], s[4] || s[1], s[2]])(slotTab()), // în bară, numele scurt (ex. „Afford it?” în engleză)
 ];
 
 const ROUTES = [
@@ -166,6 +166,9 @@ function render() {
   for (const a of tabsEl.querySelectorAll('a[data-tab]')) {
     const on = a.dataset.tab === tabKey;
     a.lastChild.textContent = tr(TABS.find(x => x[0] === a.dataset.tab)[1]);
+    // eticheta care tot nu încape se micșorează puțin, în loc să iasă din bară
+    a.classList.remove('tight');
+    if (a.lastChild.scrollWidth > a.clientWidth) a.classList.add('tight');
     a.classList.toggle('on', on);
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   }

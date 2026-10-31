@@ -13,8 +13,9 @@ const roWords = s => s.replace(/\b([Gg])oal(-urile|-uri|-ul)?(?![a-zăâîșț])
   return g === 'G' ? w[0].toUpperCase() + w.slice(1) : w;
 });
 
+// Același text cu altă traducere primește un context după „|”, care nu se afișează: t('Îmi permit?|tab').
 export function t(text, vars) {
-  let out = isEn() ? EN[text] ?? text : roWords(text);
+  let out = (isEn() ? EN[text] ?? text : roWords(text)).replace(/\|[\w-]+$/, '');
   if (vars) out = out.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
   return out;
 }

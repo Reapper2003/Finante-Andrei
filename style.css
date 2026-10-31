@@ -107,6 +107,8 @@ main { padding: 4px 16px calc(var(--nav-h) + var(--safe-b) + 96px); }
 }
 .tabs a span:last-child { white-space: nowrap; }
 .tabs a.on { color: var(--accent); }
+.tabs a span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.tabs a.tight { font-size: 10.5px; letter-spacing: -0.02em; }
 .fab {
   position: fixed; z-index: 31;
   right: max(16px, calc(50% - 240px + 16px));
@@ -1590,7 +1592,7 @@ body.nav-fara-text .tabs a { height: 48px; }
 .top-card + .pill-strip { margin: -30px 18px 0; gap: 6px; }
 .top-card + .pill-strip .pill { padding: 8px 6px; border-radius: 14px; gap: 1px; align-items: center; text-align: center; box-shadow: 0 10px 28px rgba(15, 17, 21, .13); }
 :root[data-theme="dark"] .top-card + .pill-strip .pill { box-shadow: 0 10px 28px rgba(0, 0, 0, .45); }
-.top-card + .pill-strip .pill small { font-size: 11px; }
+.top-card + .pill-strip .pill small { font-size: 12px; }
 .top-card + .pill-strip .pill b { font-size: 14px; }
 /* desenul stă lângă sumă, centrat pe înălțimea etichetei, sumei și câștigului, cu aer sus și în dreapta */
 .inv-hero.top-card .hero-art { top: 22px; right: 28px; height: 86px; width: 40%; max-width: 150px; }
@@ -1664,13 +1666,17 @@ body.nav-fara-text .tabs a { height: 48px; }
 .p-big { font-size: 26px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .p-ok { padding: 9px 12px; border-radius: 12px; font-size: 13px; font-weight: 650; background: color-mix(in srgb, var(--pos) 13%, var(--card)); color: var(--pos); }
 .p-ok.bad { background: color-mix(in srgb, var(--neg) 12%, var(--card)); color: var(--neg); }
-.pd-left { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; font-size: 13.5px; font-weight: 650;
+.pd-left { display: grid; gap: 6px; padding: 9px 12px; border-radius: 12px; font-size: 13.5px; font-weight: 650;
   background: color-mix(in srgb, var(--accent) 13%, var(--card)); color: var(--accent); }
 .pd-left b { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .pd-left.done { background: color-mix(in srgb, var(--pos) 13%, var(--card)); color: var(--pos); }
 .pd-left.warn { background: color-mix(in srgb, var(--warn) 15%, var(--card)); color: var(--warn-text); }
-.pd-lbar { height: 6px; border-radius: 99px; background: var(--soft); overflow: hidden; margin-top: -4px; }
-.pd-lbar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .15s; }
+.pd-lrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pd-lrow b { font-size: 14.5px; }
+/* bara „cât e împărțit”, în căsuța de deasupra: groasă, pe fond deschis, verde când e gata */
+.pd-lbar { height: 6px; border-radius: 99px; background: color-mix(in srgb, currentColor 16%, var(--card)); overflow: hidden; }
+.pd-lbar i { display: block; height: 100%; min-width: 6px; background: currentColor; border-radius: 99px; transition: width .2s; }
+.pd-lcap { font-size: 11.5px; font-weight: 600; opacity: .85; font-variant-numeric: tabular-nums; }
 .pv { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; font-weight: 650; }
 .pv .pv-mark { font-size: 24px; line-height: 1; }
 .pv small { display: block; font-weight: 500; font-size: 12.5px; opacity: .9; }
@@ -1678,6 +1684,41 @@ body.nav-fara-text .tabs a { height: 48px; }
 .pv-mid { background: color-mix(in srgb, var(--warn) 16%, var(--card)); color: var(--warn-text); }
 .pv-no { background: color-mix(in srgb, var(--neg) 13%, var(--card)); color: var(--neg); }
 .p-wish { display: flex; flex-wrap: wrap; gap: 6px; }
+/* „+ Mai am bani” (pasul 1) */
+.p-plus:empty { display: none; }
+.p-plus { display: grid; gap: 8px; }
+.p-plus-row { display: flex; align-items: flex-end; gap: 6px; }
+.p-plus-row .field { flex: 1; }
+.p-plus-link { justify-self: start; align-self: flex-start; padding: 2px 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.p-plus-link:hover { color: var(--accent); }
+.p-plus-chip { justify-self: start; padding: 6px 10px; border: 0; border-radius: 99px; background: var(--soft); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.plan .p-total { margin: -4px 0 0; font-size: 13.5px; }
+.plan .p-total[hidden] { display: none; }
+/* Pașii 3 și 4: rânduri pe card, alegerea într-un panou de jos */
+.px-empty { margin: 0; font-size: 13.5px; }
+.px-open { height: 44px; border: 0; border-radius: 14px; background: var(--accent-soft); color: var(--accent); font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
+.px-list { display: grid; }
+.px-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) 92px 28px; align-items: center; gap: 10px; min-height: 56px; padding: 8px 0; border-top: 1px solid var(--line); }
+.px-ic { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; font-size: 17px; background: var(--soft); }
+.px-name { min-width: 0; }
+.px-name b, .px-opt b { display: block; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.px-name small, .px-opt small { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.px-amt { width: 100%; height: 36px; border: 0; border-radius: 10px; background: var(--soft); padding: 0 10px; text-align: right; font: inherit; font-weight: 700; font-size: 14.5px; color: var(--text); font-variant-numeric: tabular-nums; }
+.px-x { width: 28px; height: 28px; border: 0; border-radius: 50%; background: none; color: var(--muted); display: grid; place-items: center; cursor: pointer; }
+.px-total { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 14px; background: var(--accent-soft); color: var(--accent); font-size: 14px; font-weight: 650; }
+.px-total b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.px-sheet { display: grid; gap: 12px; }
+.px-opts { display: grid; }
+.px-opt { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto 24px; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 8px 2px; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.px-opt:not(:has(.px-ic)) { grid-template-columns: minmax(0, 1fr) 24px; }
+.px-opt:disabled { opacity: .5; cursor: default; }
+.px-p { font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.px-chk { width: 22px; height: 22px; border-radius: 7px; box-shadow: inset 0 0 0 2px var(--line); display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 900; }
+.px-opt.on .px-chk { background: var(--accent); box-shadow: none; }
+.px-own { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 8px; }
+.px-own input, .px-own .px-amt { height: 46px; min-height: 0; border-radius: 12px; font-size: 15px; font-weight: 600; text-align: left; }
+.px-own .px-amt { text-align: right; }
+.px-own .btn { height: 46px; min-height: 0; padding: 0 14px; }
 .p-wish button { border: 0; padding: 6px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font: inherit; font-weight: 650; font-size: 12.5px; }
 
 /* ===================== Laptop / browser lat (varianta B) ===================== */
@@ -1770,8 +1811,8 @@ body.nav-fara-text .tabs a { height: 48px; }
 
   /* Calculator: planul lunii în stânga, neprevăzute și „Îmi permit?” în dreapta */
   /* pașii 1, 2 și „Îmi permit?” în stânga, „Unde pun banii” în dreapta */
-  .plan { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); grid-template-areas: "a c" "b c" "d c"; grid-template-rows: auto auto 1fr; gap: 16px; align-items: start; }
-  .plan > .p-c1 { grid-area: a; } .plan > .p-c2 { grid-area: b; } .plan > .p-c3 { grid-area: c; } .plan > .p-c4 { grid-area: d; }
+  .plan { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); grid-template-areas: "a c" "b c" "e c" "d c"; grid-template-rows: auto auto auto 1fr; gap: 16px; align-items: start; }
+  .plan > .p-c1 { grid-area: a; } .plan > .p-c2 { grid-area: b; } .plan > .p-c3 { grid-area: c; } .plan > .p-c4 { grid-area: d; } .plan > .p-c5 { grid-area: e; }
   .plan > .p-c3[hidden] + .p-c4, .plan > .p-c2[hidden] ~ .p-c4 { grid-area: c; }
 
   /* ferestrele (sheet) apar centrate pe ecran, nu lipite de jos */
