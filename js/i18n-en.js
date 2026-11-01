@@ -1095,7 +1095,6 @@ export const EN = {
   "{a} din {b} pornite": "{a} of {b} on",
   "Îmi permit?|tab": "Afford it?",
   "Abonamente|tab": "Subs",
-  "Soldul din Curent: {sum}": "Current account balance: {sum}",
   "Total": "Total",
   "Cheltuieli extra luna asta": "Extra spending this month",
   "Cheltuieli extra luna viitoare": "Extra spending next month",
@@ -1170,5 +1169,6 @@ export const EN = {
   "Niciuna": "None",
   "Alege în ce economii": "Choose which savings",
   "Alege din ce economii": "Choose which savings",
-  "în {name}": "into {name}"
+  "în {name}": "into {name}",
+  "Sold Curent": "Current balance"
 };

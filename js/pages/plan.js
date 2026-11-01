@@ -226,17 +226,17 @@ export function planPage() {
       rows.length ? h('span', { class: 'field-label' }, tr('Altă sumă')) : null,
       ...rows,
       h('div', { class: 'p-plus-acts' },
-        h('button', { type: 'button', class: 'p-plus-link', onclick: () => { c.others = [...c.others, newOther()]; save(); paintPlus(true); } }, `+ ${tr('Altă sumă')}`),
-        cur > 0 && !hasCurent ? h('button', { type: 'button', class: 'p-plus-link', onclick: () => {
+        h('button', { type: 'button', class: 'p-add', onclick: () => { c.others = [...c.others, newOther()]; save(); paintPlus(true); } }, icon('plus', 18), h('span', {}, tr('Altă sumă'))),
+        cur > 0 && !hasCurent ? h('button', { type: 'button', class: 'p-add', onclick: () => {
           const empty = c.others.find(o => !oRaw(o));
           if (empty) Object.assign(empty, { amt: forInput(round2(cur)), cur: '', fromCurent: true });
           else c.others = [...c.others, { ...newOther(forInput(round2(cur))), fromCurent: true }];
           fit(); save(); paintPlus(); paintAll();
-        } }, `+ ${tr('Soldul din Curent: {sum}', { sum: lei(cur) })}`) : null),
+        } }, icon('card', 18), h('span', {}, tr('Sold Curent')), h('small', {}, lei(cur))) : null,
+        modOn('bonuri') && !c.bonOn ? h('button', { type: 'button', class: 'p-add', onclick: () => { c.bonOn = true; save(); paintBon(); paintPlus(); bonInput.focus(); } }, h('span', { class: 'p-add-emoji' }, '🎫'), h('span', {}, tr('Bonuri'))) : null),
     ].filter(Boolean));
     if (focusLast && rows.length) rows.at(-1).input.focus();
   }
-  paintPlus();
   // „+ Bonuri de masă” (doar cu modulul pornit): suma de pe bonuri pentru perioada planului.
   const bonInput = amountInput('', { placeholder: tr('ex. {n}', { n: '800' }) });
   bonInput.value = c.bon || '';
@@ -248,12 +248,13 @@ export function planPage() {
     bonBox.replaceChildren(...(c.bonOn ? [
       h('div', { class: 'p-plus-row' },
         h('label', { class: 'field' }, h('span', { class: 'field-label' }, `🎫 ${tr('Bonuri de masă')}`), bonInput),
-        h('button', { type: 'button', class: 'icon-btn', 'aria-label': tr('Scoate bonurile'), onclick: () => { c.bonOn = false; c.bon = ''; bonInput.value = ''; save(); paintBon(); paintAll(); } }, icon('x', 18))),
+        h('button', { type: 'button', class: 'icon-btn', 'aria-label': tr('Scoate bonurile'), onclick: () => { c.bonOn = false; c.bon = ''; bonInput.value = ''; save(); paintBon(); paintPlus(); paintAll(); } }, icon('x', 18))),
       cur > 0 ? h('button', { type: 'button', class: 'p-plus-chip', onclick: () => { c.bon = forInput(round2(cur)); bonInput.value = c.bon; save(); paintAll(); } },
         tr('Pe bonuri acum: {sum}', { sum: lei(cur) })) : null,
-    ].filter(Boolean) : [h('button', { type: 'button', class: 'p-plus-link', onclick: () => { c.bonOn = true; save(); paintBon(); bonInput.focus(); } }, `+ ${tr('Bonuri de masă')}`)]));
+    ].filter(Boolean) : []));
   }
   paintBon();
+  paintPlus();
 
   /* --- 2. Cât pun deoparte --- */
   const R = { saveLbl: h('span', {}), spend: h('b', { class: 'p-big' }), perDay: h('small', { class: 'muted' }), ok: h('div', {}) };

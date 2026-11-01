@@ -1687,7 +1687,14 @@ body.nav-fara-text .tabs a { height: 48px; }
 .p-plus-fx { margin-top: 4px; font-size: 12.5px; display: block; }
 .p-other + .p-other { margin-top: 2px; }
 .p-plus-row > .p-amt-cur { flex: 1; min-width: 0; }
-.p-plus-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; }
+/* butoanele de adăugat la „Cât am”: pătrățele egale pe un rând, iconița sus, textul dedesubt */
+.p-plus-acts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
+.p-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 64px; padding: 8px 6px; border: 0; border-radius: 14px; background: var(--accent-soft); color: var(--accent); font: inherit; cursor: pointer; text-align: center; }
+.p-add:active { transform: scale(.97); }
+.p-add .ic { display: inline-flex; }
+.p-add > span:not(.ic):not(.p-add-emoji) { font-size: 13px; font-weight: 650; line-height: 1.15; max-width: 100%; overflow-wrap: anywhere; text-wrap: balance; }
+.p-add small { font-size: 12px; font-weight: 600; opacity: .8; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.p-add-emoji { font-size: 17px; line-height: 1; }
 .p-plus-fx[hidden] { display: none; }
 .p-plus-link { justify-self: start; align-self: flex-start; padding: 2px 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
 .p-plus-link:hover { color: var(--accent); }
