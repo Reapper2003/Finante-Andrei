@@ -1696,6 +1696,9 @@ body.nav-fara-text .tabs a { height: 48px; }
 .p-add small { font-size: 12px; font-weight: 600; opacity: .8; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .p-add-emoji { font-size: 17px; line-height: 1; }
 .p-plus-fx[hidden] { display: none; }
+.p-save-pct { display: grid; gap: 12px; }
+.p-save-pct[hidden], .p-amt-cur[hidden] { display: none; }
+.p-fixed-cur { flex: none; padding: 0 6px; font-weight: 700; color: var(--muted); }
 .p-plus-link { justify-self: start; align-self: flex-start; padding: 2px 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
 .p-plus-link:hover { color: var(--accent); }
 .p-plus-chip { justify-self: start; padding: 6px 10px; border: 0; border-radius: 99px; background: var(--soft); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }

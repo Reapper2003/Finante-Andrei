@@ -29,7 +29,8 @@ export function simulate({ initial, monthly, rate, years, growth }) {
 }
 
 export function calculatorPage() {
-  const saved = { ...DEFAULTS, ...(state.settings.calc || {}) };
+  // Valorile se țin în settings.invCalc (settings.calc e al calculatorului „Îmi permit?”).
+  const saved = { ...DEFAULTS, ...(state.settings.invCalc || {}) };
   const decimal = v => h('input', { type: 'text', inputmode: 'decimal', value: forInput(v), autocomplete: 'off' });
   const initial = amountInput(saved.initial || '');
   const monthly = amountInput(saved.monthly || '');
@@ -53,7 +54,7 @@ export function calculatorPage() {
   function paint() {
     const p = read();
     // Ultimele valori rămân salvate pentru data viitoare (fără să redesenăm pagina).
-    state.settings.calc = p;
+    state.settings.invCalc = p;
     save();
     const sim = simulate(p);
     const real = p.inflation > 0 ? round2(sim.value / Math.pow(1 + p.inflation / 100, p.years)) : null;

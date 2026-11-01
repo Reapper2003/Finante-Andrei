@@ -1170,5 +1170,9 @@ export const EN = {
   "Alege în ce economii": "Choose which savings",
   "Alege din ce economii": "Choose which savings",
   "în {name}": "into {name}",
-  "Sold Curent": "Current balance"
+  "Sold Curent": "Current balance",
+  "Sumă fixă": "Fixed amount",
+  "≈ {p}% din ce ai": "≈ {p}% of what you have",
+  "Mai mult decât ai: se pune deoparte tot ({sum})": "More than you have: everything is set aside ({sum})",
+  "pune deoparte cel mult {sum} ca să ajungă": "set aside at most {sum} for it to be enough"
 };

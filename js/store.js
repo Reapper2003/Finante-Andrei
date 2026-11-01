@@ -36,7 +36,7 @@ export function slotTab() {
 }
 
 // Crește odată cu VERSION din sw.js; apare în Setări ca să vezi ce versiune rulează.
-export const APP_VERSION = 103;
+export const APP_VERSION = 105;
 
 const KEY = 'finante.data.v1';
 // Tema și culoarea, păstrate și separat ca pagina să le aplice înainte de afișare (vezi index.html).
@@ -151,6 +151,12 @@ function migrate(raw) {
     if (c.type === 'cheltuiala' && c.budget === undefined) c.budget = null;
   }
   delete s.settings.budgetSplit;
+  // Calculatorul de investiții își salva valorile tot în settings.calc, peste cele din „Îmi permit?”: acum are locul lui (invCalc).
+  const INV_KEYS = ['initial', 'monthly', 'rate', 'years', 'growth', 'inflation'];
+  if (s.settings.calc && typeof s.settings.calc === 'object' && INV_KEYS.some(k => k in s.settings.calc)) {
+    if (!s.settings.invCalc) s.settings.invCalc = Object.fromEntries(INV_KEYS.filter(k => k in s.settings.calc).map(k => [k, s.settings.calc[k]]));
+    s.settings.calc = Object.fromEntries(Object.entries(s.settings.calc).filter(([k]) => !INV_KEYS.includes(k)));
+  }
   // Bonurile de masă: oprite până le pornești tu; setările lor primesc valorile implicite.
   if (raw.settings?.modules?.bonuri === undefined) s.settings.modules = { ...(s.settings.modules || {}), bonuri: false };
   s.settings.bonuri = { ...d.settings.bonuri, ...(raw.settings?.bonuri || {}) };

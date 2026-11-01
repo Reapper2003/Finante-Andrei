@@ -112,7 +112,10 @@ export function planPage() {
   const oBase = o => round2(convert(oRaw(o), oCur(o), base()));
   const plusBase = () => round2(c.others.reduce((x, o) => x + oBase(o), 0));
   const income = () => round2((parseAmount(c.inc) || 0) + plusBase());
-  const saveNow = () => round2(income() * c.save / 100);
+  // Cât pun deoparte: un procent din ce am sau o sumă fixă (în lei), după cum alegi la pasul 2.
+  const fixedMode = () => c.saveMode === 'fixed';
+  const saveNow = () => (fixedMode() ? round2(Math.min(parseAmount(c.saveFixed) || 0, income())) : round2(income() * c.save / 100));
+  const savePct = () => (income() > 0 ? Math.round(saveNow() / income() * 100) : 0);
   // Cheltuielile extra țin de luna planului: luna curentă la „Restul lunii”, luna viitoare la „Luna viitoare”.
   const planMonth = () => (c.period === 'next' ? addMonths(currentMonth(), 1) : currentMonth());
   for (const m of Object.keys(c.extras)) if (m < currentMonth()) delete c.extras[m]; // lunile trecute nu mai contează
@@ -156,7 +159,8 @@ export function planPage() {
     const covered = bon > 0 ? Math.min(bon, rest ? round2(usualFoodMonth * days / 30) : usualFoodMonth) : 0;
     const need = round2(usual - covered); // ce trebuie de fapt din bani
     return { inc, rest, fixed, extra, bon, covered, need, days, usual, saveAmt, spend, ok: need <= spend,
-      fitPct: inc > 0 ? Math.floor((inc - fixed - extra - need) / inc * 100 / 5) * 5 : 0 };
+      fitPct: inc > 0 ? Math.floor((inc - fixed - extra - need) / inc * 100 / 5) * 5 : 0,
+      fitAmt: Math.floor((inc - fixed - extra - need) / 50) * 50 };
   }
 
   /* --- 1. Cât am --- */
@@ -258,9 +262,24 @@ export function planPage() {
 
   /* --- 2. Cât pun deoparte --- */
   const R = { saveLbl: h('span', {}), spend: h('b', { class: 'p-big' }), perDay: h('small', { class: 'muted' }), ok: h('div', {}) };
-  const card2 = h('section', { class: 'card' }, step(2, tr('Cât pun deoparte')),
-    h('div', { class: 'p-slh' }, h('span', {}, tr('Economisesc')), R.saveLbl),
-    range(0, 60, 5, c.save, v => { c.save = v; fit(); save(); refresh(); }),
+  // Procent (bara) sau sumă fixă (un câmp, cu procentul pe care îl înseamnă dedesubt)
+  const saveBar = range(0, 60, 5, c.save, v => { c.save = v; fit(); save(); refresh(); });
+  const fixedInput = amountInput('', { placeholder: tr('ex. {n}', { n: '2.000' }), 'aria-label': tr('Sumă fixă') });
+  fixedInput.value = c.saveFixed || '';
+  fixedInput.addEventListener('input', () => { c.saveFixed = fixedInput.value; fit(); save(); refresh(); });
+  const fixedBox = h('div', { class: 'p-amt-cur' }, fixedInput, h('span', { class: 'p-fixed-cur' }, CURRENCIES[base()] || base()));
+  const pctBox = h('div', { class: 'p-save-pct' }, h('div', { class: 'p-slh' }, h('span', {}, tr('Economisesc')), R.saveLbl), saveBar);
+  R.fixedHint = h('small', { class: 'muted p-plus-fx' });
+  const paintMode = () => { pctBox.hidden = fixedMode(); fixedBox.hidden = R.fixedHint.hidden = !fixedMode(); };
+  const modeSeg = segmented([{ value: 'pct', label: tr('Procent') }, { value: 'fixed', label: tr('Sumă fixă') }], fixedMode() ? 'fixed' : 'pct', v => {
+    c.saveMode = v;
+    // la trecerea pe sumă fixă, pornește de la suma pe care o dădea procentul
+    if (v === 'fixed' && !c.saveFixed) { c.saveFixed = forInput(Math.round(income() * c.save / 100)); fixedInput.value = c.saveFixed; }
+    paintMode(); fit(); save(); refresh();
+    if (v === 'fixed') fixedInput.focus({ preventScroll: true });
+  });
+  paintMode();
+  const card2 = h('section', { class: 'card' }, step(2, tr('Cât pun deoparte')), modeSeg, pctBox, fixedBox, R.fixedHint,
     h('div', { class: 'p-res' }, h('small', { class: 'muted' }, tr('Îmi rămân de cheltuit')), R.spend, R.perDay), R.ok);
 
   /* --- 3. Unde pun banii --- */
@@ -336,6 +355,11 @@ export function planPage() {
     const n = numbers(), l = left(), wasBlocked = blocked;
     blocked = false; // mesajul ține doar până la următoarea schimbare
     R.saveLbl.textContent = `${c.save}% · ${lei(n.saveAmt)}`;
+    // sumă fixă: cât procent înseamnă; dacă depășește ce ai, se oprește la tot
+    const typedFixed = parseAmount(c.saveFixed) || 0;
+    R.fixedHint.textContent = !(typedFixed > 0) ? '' : typedFixed > n.inc ? tr('Mai mult decât ai: se pune deoparte tot ({sum})', { sum: lei(n.saveAmt) })
+      : tr('≈ {p}% din ce ai', { p: savePct() });
+    R.fixedHint.hidden = !fixedMode() || !R.fixedHint.textContent;
     R.spend.textContent = lei(n.spend);
     R.perDay.textContent = tr('{a} pe zi · {n} zile · plăți fixe {b} scăzute', { a: lei(n.spend / n.days), n: n.days, b: lei(n.fixed) })
       + (n.extra > 0 ? ` · ${tr('extra {sum}', { sum: lei(n.extra) })}` : '')
@@ -345,7 +369,8 @@ export function planPage() {
         + (n.covered > 0 ? ` · ${tr('{sum} din bonuri', { sum: lei(n.covered) })}` : '')
       : `✕ ${tr('Nu ajunge: cheltui de obicei ~{a} · lipsesc {b}', { a: lei(n.usual), b: lei(n.need - n.spend) })}`
         + (n.covered > 0 ? ` · ${tr('{sum} din bonuri', { sum: lei(n.covered) })}` : '')
-        + (n.fitPct > 0 ? ` · ${tr('economisește {p}% ca să ajungă', { p: n.fitPct })}` : '')) : '');
+        + (fixedMode() ? (n.fitAmt > 0 ? ` · ${tr('pune deoparte cel mult {sum} ca să ajungă', { sum: lei(n.fitAmt) })}` : '')
+          : n.fitPct > 0 ? ` · ${tr('economisește {p}% ca să ajungă', { p: n.fitPct })}` : '')) : '');
     if (n.inc > 0) paintSum();
     if (!R.title3) return;
     R.title3.textContent = tr('Unde pun cei {sum}', { sum: lei(n.saveAmt) });
@@ -487,7 +512,7 @@ export function planPage() {
       h('p', { class: 'muted p-sub' }, n.rest ? tr('Restul lunii · {n} zile', { n: n.days }) : tr('Luna viitoare')),
       sumGroup(tr('Cât am'), n.inc, plus > 0 ? [[tr('Suma scrisă'), typed], ...others] : [], '+'),
       sumGroup(tr('Plăți fixe'), n.fixed, fixedItems()),
-      sumGroup(tr('Pus deoparte ({p}%)', { p: c.save }), n.saveAmt, saved),
+      sumGroup(tr('Pus deoparte ({p}%)', { p: fixedMode() ? savePct() : c.save }), n.saveAmt, saved),
       n.extra > 0 ? sumGroup(tr('Cheltuieli extra'), n.extra, extras().map(e => [e.name, e.amt])) : null,
       h('div', { class: 'ps-total' + (raw < 0 ? ' neg' : '') }, h('span', {}, raw < 0 ? tr('Nu ajung banii, lipsesc') : tr('Îmi rămân de cheltuit')), h('b', {}, lei(Math.abs(raw)))),
       raw >= 0 ? h('small', { class: 'muted ps-day' }, tr('{a} pe zi · {n} zile', { a: lei(n.spend / n.days), n: n.days })) : null,
