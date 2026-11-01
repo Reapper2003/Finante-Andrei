@@ -3,7 +3,7 @@ import { openMonthSheet } from '../menu.js';
 import { slotTab, modOn } from '../store.js';
 import { today, currentMonth, monthEnd, fmtDate, fmtDayMonth, weekdayName, longDate, addDays } from '../dates.js';
 import { money, moneyParts, moneyRound, plural } from '../fmt.js';
-import { accountBalance, monthTotals, goalStats, dailyAllowance } from '../calc.js';
+import { accountBalance, monthTotals, goalStats, dailyAllowance, hasVouchers, voucherBalance } from '../calc.js';
 import { h, s, icon, card, sectionHead, linkBtn, progress, btn, go, toast, openSheet, swipeRow, helpBtn } from '../ui.js';
 import { getMonth, monthChip } from '../menu.js';
 import { openTxForm, openCategoryTxSheet, openGoalForm, openGoalActions, openSalaryDay } from '../forms.js';
@@ -220,6 +220,8 @@ export function dashboardPage() {
     art || sparkline(m),
     h('span', { class: 'label' }, m === cm ? tr('Disponibil · cont Curent') : tr('Disponibil la {date}', { date: fmtDate(upTo) })),
     bigMoney(avail),
+    // Bonurile de masă nu intră în sold; apar doar ca rând mic, informativ, dacă le folosești.
+    m === cm && hasVouchers() ? h('span', { class: 'hero-bon' }, `🎫 ${tr('+ {sum} bonuri de masă', { sum: moneyRound(voucherBalance()) })}`) : null,
     // Doar pe laptop: „Azi mai poți cheltui” devine o linie informativă în card.
     a && a.free > 0 ? h('span', { class: 'hero-daily' }, tr('Buget pe zi'), ' ', h('b', {}, money(a.perDay)), ' · ', tr('azi mai ai'), ' ', h('b', {}, money(Math.max(0, a.leftToday)))) : null);
 

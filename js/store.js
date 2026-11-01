@@ -12,6 +12,7 @@ export const MODULES = [
   ['avere', 'Avere netă', 'Tot ce ai minus tot ce datorezi'],
   ['dorinte', 'Listă de dorințe', 'Lucruri pe care ți le dorești și idei de cadouri'],
   ['bugete', 'Bugete', 'Limite lunare pe categorii, puse de tine'],
+  ['bonuri', 'Bonuri de masă', 'Cardul de bonuri, separat de contul Curent'],
 ];
 export const modOn = k => state.settings.modules?.[k] !== false;
 
@@ -35,7 +36,7 @@ export function slotTab() {
 }
 
 // Crește odată cu VERSION din sw.js; apare în Setări ca să vezi ce versiune rulează.
-export const APP_VERSION = 92;
+export const APP_VERSION = 96;
 
 const KEY = 'finante.data.v1';
 // Tema și culoarea, păstrate și separat ca pagina să le aplice înainte de afișare (vezi index.html).
@@ -46,7 +47,8 @@ export const ACCOUNTS = [
   { id: 'economii', name: 'Economii' },
   { id: 'investitii', name: 'Investiții' },
 ];
-export const accountName = id => tr(ACCOUNTS.find(a => a.id === id)?.name || '—');
+// Bonurile de masă sunt un cont aparte: au sold, dar nu apar la transferuri (nu pot ajunge în economii sau investiții).
+export const accountName = id => (id === 'bonuri' ? tr('Bonuri de masă') : tr(ACCOUNTS.find(a => a.id === id)?.name || '—'));
 
 // Nuanțe pastelate pentru categorii, goal-uri și grafice.
 // Culori pentru categorii, obiective și fonduri: luminozitate alternată (închis / mediu / deschis), fără roșu sau verde pur
@@ -103,6 +105,9 @@ export function defaultState() {
       showQuickLinks: false, // rândul de scurtături de pe Acasă (Setări → Aspect)
       tabSlot: 'rapoarte',
       navV2: true, // bara de jos cu Rapoarte; Investițiile ca filă în Economii
+      modules: { bonuri: false }, // modulele sunt pornite implicit, în afară de bonurile de masă
+      // Bonuri de masă: corecția soldului, categoriile plătite cu ele și încărcarea lunară (opțională)
+      bonuri: { opening: 0, cats: ['c-mancare'], auto: false, amount: 0, day: 10 },
     },
     emergency: { initial: 0, months: 6, manualAvg: null, red: 1, orange: 3 },
     categories: defaultCategories(),
@@ -146,6 +151,9 @@ function migrate(raw) {
     if (c.type === 'cheltuiala' && c.budget === undefined) c.budget = null;
   }
   delete s.settings.budgetSplit;
+  // Bonurile de masă: oprite până le pornești tu; setările lor primesc valorile implicite.
+  if (raw.settings?.modules?.bonuri === undefined) s.settings.modules = { ...(s.settings.modules || {}), bonuri: false };
+  s.settings.bonuri = { ...d.settings.bonuri, ...(raw.settings?.bonuri || {}) };
   // O singură dată: Rapoartele iau locul Investițiilor în bara de jos (cine a ales altceva păstrează).
   if (!raw.settings?.navV2) {
     if (!raw.settings?.tabSlot || raw.settings.tabSlot === 'investitii') s.settings.tabSlot = 'rapoarte';

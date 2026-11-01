@@ -4,7 +4,7 @@ import { state, catById, accountName, modOn } from './store.js';
 import { currentMonth, addMonths, monthLabel, dayLabel, fmtDate } from './dates.js';
 import { money, moneyRound, pct } from './fmt.js';
 import { t as tr, catName } from './i18n.js';
-import { bucketName, bucketCurrency, bucketIn, bucketOut, accountBalance, portfolioStats } from './calc.js';
+import { bucketName, bucketCurrency, bucketIn, bucketOut, txBucketAmt, accountBalance, portfolioStats } from './calc.js';
 import { h, icon, swipeRow, catIcon, toast, confirmDialog } from './ui.js';
 import { deleteTx } from './actions.js';
 import { openTxForm, openExportSheet, openBucketMove } from './forms.js';
@@ -53,7 +53,8 @@ export function txRow(t, { showDate = false } = {}) {
   const title = isTr ? t.note || tr('Transfer') : catName(c);
   const sub = [
     isTr ? null : t.note,
-    isTr ? transferLabel(t) : t.accountId === 'economii' ? tr('din Economii') : null,
+    isTr ? transferLabel(t) : t.accountId === 'economii' ? (t.type === 'venit' ? tr('în {name}', { name: bucketName(t.bucket || '') }) : tr('din {name}', { name: bucketName(t.bucket || '') }))
+      : t.accountId === 'bonuri' ? `🎫 ${tr('bonuri de masă')}` : null,
     showDate ? fmtDate(t.date) : null,
   ].filter(Boolean).join(' · ');
   // La transferurile spre / dintr-un compartiment în altă monedă, afișăm și suma în acea monedă.
@@ -141,7 +142,7 @@ export function movesList(bucket) {
   const cur = bucketCurrency(bucket);
   const touches = t => t.type === 'transfer'
     ? (t.toAccountId === 'economii' && (t.toBucket || '') === bucket) || (t.accountId === 'economii' && (t.fromBucket || '') === bucket)
-    : bucket === '' && t.accountId === 'economii';
+    : t.accountId === 'economii' && (t.bucket || '') === bucket;
   const moves = state.transactions.filter(touches).sort((a, b) => b.date.localeCompare(a.date));
   if (!moves.length) return h('p', { class: 'muted' }, tr('Nicio mișcare încă. Adaugă bani din contul Curent.'));
   return h('div', { class: 'list' }, moves.map(t => {
@@ -156,7 +157,7 @@ export function movesList(bucket) {
       simple = otherAcc === 'curent' || (otherAcc === 'economii' && !otherBucket);
     } else {
       isIn = t.type === 'venit';
-      amount = t.amount;
+      amount = txBucketAmt(t);
       other = catName(catById(t.categoryId));
       simple = false;
     }

@@ -1,17 +1,17 @@
 import { state, commit, setState, resetAll, isValidBackup, accountName, dataSize, APP_VERSION, MODULES, modOn, TAB_SLOTS, slotTab } from '../store.js';
 import { money, num, parseAmount, forInput, CURRENCIES, NUMBER_FORMATS } from '../fmt.js';
 import { DATE_FORMATS, fmtDate, today } from '../dates.js';
-import { round2 } from '../calc.js';
+import { round2, voucherBalance } from '../calc.js';
 import {
   h, icon, sectionHead, segmented, switchRow, openSheet, field, amountInput, btn, invalid, toast, confirmDialog, go, applyTheme,
   selectInput, DEFAULT_ACCENT, openColorPicker, nativeColorPicker, catIcon,
 } from '../ui.js';
 import { openExportSheet, openSalaryDay } from '../forms.js';
 import { exportBackup } from '../exporter.js';
-import { runAutomations } from '../actions.js';
+import { runAutomations, ensureVoucherCat } from '../actions.js';
 import { loadDemo } from './dashboard.js';
 import { openEfSettings } from './emergency.js';
-import { t as tr } from '../i18n.js';
+import { t as tr, catName } from '../i18n.js';
 import { HERO_ART, INV_ART, INV_PLAIN } from '../heroArt.js';
 import { HERO_ACCENT, followsHero } from '../heroColors.js';
 import { openTileEditor, chosenTileNames, openQuickEditor, chosenQuickNames } from './homeParts.js';
@@ -157,6 +157,46 @@ function navRow(title, sub, onclick, cls = '') {
 
 function stackRow(title, control, hint) {
   return h('div', { class: 'row stacked' }, h('div', { class: 'row-title' }, title), control, hint ? h('div', { class: 'row-sub' }, hint) : null);
+}
+
+// Bonuri de masă: corecția soldului (ex. bonuri expirate, fără să apară ca cheltuială), categoriile plătite cu ele, încărcarea lunară.
+function openVouchers() {
+  const b = state.settings.bonuri;
+  const now = voucherBalance();
+  const bal = amountInput(now);
+  let cats = [...(b.cats || [])], auto = !!b.auto;
+  const autoAmt = amountInput(b.amount || '', { placeholder: tr('ex. {n}', { n: '800' }) });
+  const autoDay = h('input', { type: 'number', min: 1, max: 28, value: b.day || 10, inputmode: 'numeric', 'aria-label': tr('Ziua') });
+  const autoBox = h('div', { class: 'two' }, field(tr('Sumă pe lună'), autoAmt), field(tr('Ziua'), autoDay));
+  autoBox.hidden = !auto;
+  const tags = h('div', { class: 'pd-tags' });
+  const paintTags = () => tags.replaceChildren(...state.categories.filter(c => c.type === 'cheltuiala').map(c => h('button', {
+    type: 'button', class: cats.includes(c.id) ? 'on' : '',
+    onclick: () => { cats = cats.includes(c.id) ? cats.filter(x => x !== c.id) : [...cats, c.id]; paintTags(); },
+  }, h('i', {}, cats.includes(c.id) ? '✓' : ''), `${c.icon} ${catName(c)}`)));
+  paintTags();
+  const sh = openSheet({
+    title: tr('Bonuri de masă'),
+    body: h('div', {},
+      field(tr('Ai acum pe card'), bal, tr('Pentru bonuri expirate sau o sumă greșită. Corecția nu apare ca cheltuială.')),
+      h('button', { type: 'button', class: 'link-btn small', onclick: () => { bal.value = forInput(0); } }, tr('Golește (au expirat)')),
+      field(tr('Se pot plăti cu bonuri'), tags),
+      switchRow(tr('Încărcare lunară automată'), auto, v => { auto = v; autoBox.hidden = !v; }, tr('Adaugă singur bonurile ca venit, în fiecare lună.')),
+      autoBox),
+    footer: btn(tr('Salvează'), () => {
+      const v = parseAmount(bal.value);
+      if (!(v >= 0)) return invalid(bal, tr('Introdu o sumă'));
+      const a = parseAmount(autoAmt.value) || 0;
+      if (auto && !(a > 0)) return invalid(autoAmt, tr('Introdu o sumă'));
+      b.opening = round2((b.opening || 0) + v - now);
+      Object.assign(b, { cats, auto, amount: round2(a), day: Math.min(28, Math.max(1, Math.round(Number(autoDay.value) || 1))) });
+      if (auto) ensureVoucherCat();
+      runAutomations();
+      commit();
+      sh.close();
+      toast(tr('Bonuri salvate'));
+    }),
+  });
 }
 
 function openRates() {
@@ -341,7 +381,7 @@ function sectionContent(sub) {
   if (sub === 'module') {
     return [
       h('div', { class: 'list' }, MODULES.map(([k, name, desc]) =>
-        switchRow(tr(name), modOn(k), v => { st.modules = { ...st.modules, [k]: v }; commit(); }, tr(desc)))),
+        switchRow(tr(name), modOn(k), v => { st.modules = { ...st.modules, [k]: v }; if (k === 'bonuri' && v) ensureVoucherCat(); commit(); }, tr(desc)))),
       h('p', { class: 'hint' }, tr('Ce ascunzi nu se șterge: datele rămân și reapar când activezi din nou modulul.')),
     ];
   }
@@ -392,6 +432,7 @@ export function settingsPage(sub) {
       iconRow('calendar', tr('Ziua salariului'), st.salaryDay ? tr('Pe {d} ale lunii · în weekend, vinerea dinainte', { d: st.salaryDay }) : tr('Nesetată · banii se împart până la final de lună'), openSalaryDay),
       iconRow('shield', tr('Ținta fondului de urgență'), tr('{n} luni', { n: state.emergency.months }), openEfSettings),
       iconRow('wallet', tr('Solduri inițiale'), `${accountName('curent')} ${money(st.opening.curent)} · ${accountName('economii')} ${money(st.opening.economii)}`, openOpening),
+      modOn('bonuri') ? iconRow('card', tr('Bonuri de masă'), tr('{sum} pe card', { sum: money(voucherBalance()) }), openVouchers) : null,
       iconRow('tag', tr('Categorii'), tr('{n} categorii', { n: state.categories.length }), () => go('#/categorii'))),
 
     sectionHead(tr('Aspect')),

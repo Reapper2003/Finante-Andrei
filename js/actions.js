@@ -2,9 +2,9 @@
 // (tranzacție ↔ contribuție la investiții, tranzacție ↔ plată datorie).
 
 import { state, uid, commit, save, catByName, PALETTE } from './store.js';
-import { today, addMonthsDate } from './dates.js';
+import { today, addMonthsDate, monthEnd } from './dates.js';
 import { t as tr } from './i18n.js';
-import { round2, convert, brokerOfAsset, FREQ, ensureSnapshots, ensureReports, bucketBalance, bucketCurrency, tripStats } from './calc.js';
+import { round2, convert, txBucketAmt, brokerOfAsset, FREQ, ensureSnapshots, ensureReports, bucketBalance, bucketCurrency, tripStats } from './calc.js';
 
 const base = () => state.settings.currency;
 const assetById = id => state.assets.find(a => a.id === id);
@@ -135,6 +135,12 @@ export function deleteFund(id) {
 export function convertBucketHistory(b, from, to) {
   if (from === to) return;
   for (const t of state.transactions) {
+    // cheltuială / venit din acest loc: suma în moneda lui se convertește la fel (în moneda implicită nu mai e nevoie de ea)
+    if (t.type !== 'transfer' && t.accountId === 'economii' && (t.bucket || '') === b) {
+      const v = round2(convert(txBucketAmt(t), from, to));
+      if (to === state.settings.currency) delete t.bucketAmt; else t.bucketAmt = v;
+      continue;
+    }
     if (t.type !== 'transfer') continue;
     if (t.toAccountId === 'economii' && t.toBucket === b) t.toAmount = round2(convert(t.toAmount ?? t.amount, from, to));
     if (t.accountId === 'economii' && t.fromBucket === b) t.fromAmount = round2(convert(t.fromAmount ?? t.amount, from, to));
@@ -227,9 +233,28 @@ function runTrips() {
   return changed;
 }
 
+// Categoria de venit „Bonuri de masă”, creată la nevoie (pentru încărcări).
+export function ensureVoucherCat() {
+  let c = state.categories.find(x => x.id === 'v-bonuri');
+  if (!c) { c = { id: 'v-bonuri', type: 'venit', name: 'Bonuri de masă', icon: '🎫', color: PALETTE[5] }; state.categories.push(c); }
+  return c.id;
+}
+
+// Încărcarea lunară a bonurilor (opțională, din Setări): un venit pe contul Bonuri, o dată pe lună, din ziua aleasă.
+function runVouchers() {
+  const b = state.settings.bonuri;
+  if (state.settings.modules?.bonuri === false || !b?.auto || !(b.amount > 0)) return false;
+  const t = today(), m = t.slice(0, 7), last = Number(monthEnd(m).slice(8));
+  const day = `${m}-${String(Math.min(b.day || 1, last)).padStart(2, '0')}`;
+  if (t < day || state.transactions.some(x => x.autoVoucher === m)) return false;
+  state.transactions.push({ id: uid(), type: 'venit', date: day, amount: round2(b.amount), accountId: 'bonuri', categoryId: ensureVoucherCat(), note: tr('Încărcare bonuri'), autoVoucher: m });
+  return true;
+}
+
 export function runAutomations() {
   let changed = false;
   if (runTrips()) changed = true;
+  if (runVouchers()) changed = true;
   const t = today();
   for (const sub of state.subscriptions) {
     if (!sub.autoRecord || !sub.nextPayment) continue;

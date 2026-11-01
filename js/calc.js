@@ -1,7 +1,7 @@
 // Toate calculele: solduri, economii, investiții, datorii, avere netă, rapoarte.
 // Parametrul `upTo` („AAAA-LL-ZZ”) calculează valoarea la o anumită dată; null = acum.
 
-import { state, catById, catByName, PALETTE } from './store.js';
+import { state, catById, catByName, PALETTE, modOn } from './store.js';
 import { t as tr, catName } from './i18n.js';
 import { today, currentMonth, addMonths, monthEnd, monthsRange, daysBetween, addDays, addMonthsDate, nextPayday } from './dates.js';
 
@@ -57,13 +57,15 @@ export const allBuckets = () => ['', 'urgenta', ...state.goals.map(g => 'g:' + g
 // Suma intrată în compartiment, respectiv ieșită din el, în moneda compartimentului.
 export const bucketIn = t => t.toAmount ?? t.amount;
 export const bucketOut = t => t.fromAmount ?? t.amount;
+// Cheltuială / venit din Economii: suma în moneda locului ales (fond în euro etc.).
+export const txBucketAmt = t => t.bucketAmt ?? t.amount;
 
 export function accountBalance(acc, upTo = null) {
   if (acc === 'economii') {
     const base = baseCur();
     return round2(allBuckets().reduce((a, b) => a + convert(bucketBalance(b, upTo), bucketCurrency(b), base), 0));
   }
-  let b = acc === 'curent' ? state.settings.opening.curent || 0 : 0;
+  let b = acc === 'curent' ? state.settings.opening.curent || 0 : acc === 'bonuri' ? state.settings.bonuri?.opening || 0 : 0;
   for (const t of state.transactions) {
     if (!inRange(t.date, upTo)) continue;
     if (t.type === 'venit' && t.accountId === acc) b += t.amount;
@@ -92,8 +94,9 @@ export function bucketBalance(bucket, upTo = null) {
     if (t.type === 'transfer') {
       if (t.toAccountId === 'economii' && (t.toBucket || '') === bucket) b += bucketIn(t);
       if (t.accountId === 'economii' && (t.fromBucket || '') === bucket) b -= bucketOut(t);
-    } else if (bucket === '' && t.accountId === 'economii') {
-      b += t.type === 'venit' ? t.amount : -t.amount;
+    } else if (t.accountId === 'economii' && (t.bucket || '') === bucket) {
+      // fără loc ales (tranzacțiile vechi): „Alte economii”
+      b += t.type === 'venit' ? txBucketAmt(t) : -txBucketAmt(t);
     }
   }
   return round2(b);
@@ -208,6 +211,14 @@ export function expenseByCategory(key, type = 'cheltuiala') {
 }
 
 export const incomeByCategory = key => expenseByCategory(key, 'venit');
+
+/* ---------- Bonuri de masă ---------- */
+
+export const voucherBalance = (upTo = null) => accountBalance('bonuri', upTo);
+// Rândul de pe Acasă apare doar dacă ai pornit bonurile și chiar le folosești.
+export const hasVouchers = () => modOn('bonuri') && ((state.settings.bonuri?.opening || 0) !== 0 || state.transactions.some(t => t.accountId === 'bonuri'));
+// Categoriile care se pot plăti cu bonuri (implicit Mâncare).
+export const voucherCat = id => !!id && (state.settings.bonuri?.cats || []).includes(id);
 
 /* ---------- Bugete ---------- */
 

@@ -1,4 +1,4 @@
-import { state, catById, ACCOUNTS, accountName } from '../store.js';
+import { state, catById, ACCOUNTS, accountName, modOn } from '../store.js';
 import { currentMonth, monthLabel } from '../dates.js';
 import { money, num, parseAmount, forInput, CURRENCIES } from '../fmt.js';
 import { monthTotals, txCurrency, txAmountIn } from '../calc.js';
@@ -58,7 +58,7 @@ function openFilters() {
   const catField = field(tr('Categorie'), cat);
   const wire = () => cat.addEventListener('change', () => { draft.cat = cat.value; });
   wire();
-  const acc = selectInput([{ value: '', label: tr('Toate conturile') }, ...ACCOUNTS.map(a => ({ value: a.id, label: accountName(a.id) }))], draft.acc);
+  const acc = selectInput([{ value: '', label: tr('Toate conturile') }, ...ACCOUNTS.map(a => ({ value: a.id, label: accountName(a.id) })), ...(modOn('bonuri') ? [{ value: 'bonuri', label: accountName('bonuri') }] : [])], draft.acc);
   acc.addEventListener('change', () => { draft.acc = acc.value; });
   const type = segmented([{ value: '', label: tr('Toate') }, { value: 'venit', label: tr('Venit') }, { value: 'cheltuiala', label: tr('Cheltuială') }, { value: 'transfer', label: tr('Transfer') }], draft.type, v => {
     draft.type = v;

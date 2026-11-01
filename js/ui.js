@@ -83,6 +83,7 @@ const ICONS = {
   upload: '<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>',
   refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  pen: '<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
   budget: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5V12l6 6"/>',
   arrowUp: '<path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/>',
   arrowDown: '<path d="M12 5v14M5.5 12.5 12 19l6.5-6.5"/>',

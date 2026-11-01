@@ -1,11 +1,11 @@
 // Formulare comune (bottom sheets): tranzacție, mutare bani în goal / fond, goal, export.
 
-import { state, uid, commit, save, catById, ACCOUNTS, PALETTE, accountName, modOn } from './store.js';
-import { today, monthLabel, fmtDate } from './dates.js';
-import { money, moneyRound, moneyShort, parseAmount, plural, forInput, CURRENCIES } from './fmt.js';
-import { budgetStats, round2, convert, bucketBalance, bucketOptions, bucketName, bucketCurrency, bucketIn, bucketOut, goalStats, brokerOfAsset, tripForDate, accountBalance } from './calc.js';
+import { state, uid, commit, save, catById, PALETTE, accountName, modOn } from './store.js';
+import { today, monthLabel, fmtDate, dayLabel, addDays } from './dates.js';
+import { money, moneyRound, moneyShort, parseAmount, plural, forInput, amountPlaceholder, CURRENCIES } from './fmt.js';
+import { budgetStats, voucherBalance, voucherCat, txBucketAmt, round2, convert, bucketBalance, bucketOptions, bucketName, bucketCurrency, bucketIn, bucketOut, goalStats, brokerOfAsset, tripForDate, accountBalance } from './calc.js';
 import {
-  h, openSheet, toast, confirmDialog, btn, field, amountInput, textInput, dateInput, selectInput, segmented,
+  h, icon, openSheet, toast, confirmDialog, btn, field, amountInput, textInput, dateInput, selectInput, segmented,
   invalid, catIcon, emojiPicker, colorPicker, progress,
 } from './ui.js';
 import { saveTx, deleteGoal, goalSnapshot, goalsReached, convertBucketHistory } from './actions.js';
@@ -21,114 +21,228 @@ function celebrate(goals) {
   toast(tr('Felicitări! Ai atins ținta pentru {name} 🎉', { name: goals.map(g => g.name).join(', ') }));
 }
 
-const TYPES = () => [{ value: 'venit', label: tr('Venit') }, { value: 'cheltuiala', label: tr('Cheltuială') }, { value: 'transfer', label: tr('Transfer') }];
+const TYPES = () => [{ value: 'cheltuiala', label: tr('Cheltuială') }, { value: 'venit', label: tr('Venit') }, { value: 'transfer', label: tr('Transfer') }];
 
 /* ---------- Tranzacție ---------- */
 
+// Formularul se completează pe rânduri: suma sus, apoi Categorie → Cont → (Din / În ce economii) → Data → Notă.
+// La o tranzacție nouă pașii se deschid pe rând (alegi, se închide, se deschide următorul); dacă atingi tu un rând,
+// se deschide doar el și șirul se oprește. La transfer: Din → În → (Activul) → Data → Notă.
 export function openTxForm(existing, preset = {}) {
   const isEdit = !!existing;
   const tx = isEdit ? { ...existing } : { type: 'cheltuiala', date: today(), accountId: 'curent', ...preset };
   if (tx.type === 'transfer' && !tx.toAccountId) tx.toAccountId = tx.accountId === 'curent' ? 'economii' : 'curent';
+  // Cheltuielile / veniturile vechi din Economii n-aveau loc ales: sunt la „Alte economii”.
+  if (tx.type !== 'transfer' && tx.accountId === 'economii' && tx.bucket == null && isEdit) tx.bucket = '';
 
   const base = state.settings.currency;
   // Cheltuielile și veniturile pot fi introduse în euro sau dolari; în lei se salvează convertite cu cursul din Setări.
   let txCur = tx.type !== 'transfer' && tx.origCurrency ? tx.origCurrency : base;
-  const amount = amountInput(txCur !== base ? tx.origAmount : tx.amount, { 'aria-label': tr('Sumă'), enterkeyhint: 'done' });
-  const fxHint = h('span', { class: 'fx-hint' });
+  const amount = amountInput(txCur !== base ? tx.origAmount : tx.amount, { 'aria-label': tr('Sumă'), enterkeyhint: 'done', placeholder: amountPlaceholder() });
+  const fxHint = h('span', { class: 'tf-fx' });
   const paintFx = () => {
     const v = parseAmount(amount.value);
-    fxHint.textContent = txCur === base ? ''
+    fxHint.textContent = tx.type === 'transfer' || txCur === base ? ''
       : v > 0 ? tr('≈ {sum} la cursul din Setări', { sum: money(convert(v, txCur, base), { show: true }) })
         : tr('1 {cur} = {rate} lei', { cur: txCur, rate: forInput(state.settings.rates[txCur]) });
+    fxHint.hidden = !fxHint.textContent;
   };
-  const curRow = h('div', { class: 'cur-row' },
-    segmented(Object.keys(CURRENCIES).map(c => ({ value: c, label: c === 'RON' ? 'lei' : CURRENCIES[c] })), txCur, v => { txCur = v; paintFx(); }, 'seg-sm'),
-    fxHint);
-  curRow.hidden = tx.type === 'transfer';
+  // Moneda: un buton care deschide o listă sub el.
+  const CUR_INFO = { RON: tr('Lei'), EUR: tr('Euro'), USD: tr('Dolari') };
+  const curLabel = c => (c === 'RON' ? 'lei' : CURRENCIES[c]);
+  const curBtn = h('button', { type: 'button', class: 'tf-cur', 'aria-haspopup': 'listbox' });
+  const curMenu = h('div', { class: 'tf-cur-menu', role: 'listbox' });
+  curMenu.hidden = true;
+  const paintCur = () => {
+    curBtn.textContent = `${curLabel(txCur)} ▾`;
+    curBtn.hidden = tx.type === 'transfer';
+    curMenu.replaceChildren(...Object.keys(CURRENCIES).map(c => h('button', {
+      type: 'button', role: 'option', class: c === txCur ? 'on' : '', 'aria-selected': String(c === txCur),
+      onclick: e => { e.stopPropagation(); txCur = c; curMenu.hidden = true; paintCur(); paintFx(); },
+    }, h('span', { class: 'tf-sym' }, curLabel(c)),
+      h('span', {}, h('b', {}, CUR_INFO[c]), h('small', {}, c === base ? `${c} · ${tr('moneda ta')}` : `${c} · 1 ${curLabel(c)} = ${forInput(state.settings.rates[c])} lei`)),
+      h('span', { class: 'tf-ok' }, c === txCur ? '✓' : ''))));
+  };
+  curBtn.addEventListener('click', e => { e.stopPropagation(); curMenu.hidden = !curMenu.hidden; });
   amount.addEventListener('input', paintFx);
-  paintFx();
-  const date = dateInput(tx.date);
-  const note = textInput(tx.note, { placeholder: tr('Opțional'), maxlength: 140, enterkeyhint: 'done' });
-  const dyn = h('div');
+  const amountBox = h('div', { class: 'tf-amount' }, amount, h('span', { class: 'tf-cur-wrap' }, curBtn, curMenu));
+
   // Călătoria: aleasă singură după dată (cât timp n-o alegi tu); se poate lega și o cheltuială din afara perioadei (ex. biletul de avion).
   let tripId = isEdit ? tx.tripId || '' : tripForDate(tx.date)?.id || '', tripTouched = isEdit;
-  const tripBox = h('div');
-  const paintTrip = () => {
-    const trips = state.trips.filter(x => x.status !== 'done' || x.id === tripId);
-    if (tx.type !== 'cheltuiala' || !trips.length) { tripBox.replaceChildren(); return; }
-    const sel = selectInput([{ value: '', label: tr('— Nu ține de o călătorie —') }, ...trips.map(x => ({ value: x.id, label: `${x.icon || '✈️'} ${x.name}` }))], tripId);
-    sel.addEventListener('change', () => { tripId = sel.value; tripTouched = true; });
-    tripBox.replaceChildren(field(tr('Călătorie'), sel));
+  const tripsOpen = () => state.trips.filter(x => x.status !== 'done' || x.id === tripId);
+
+  /* --- rândurile și pașii --- */
+  let open = null, flow = !isEdit;
+  const done = new Set();
+  const withV = () => modOn('bonuri') && (tx.type === 'venit' || voucherCat(tx.categoryId) || tx.accountId === 'bonuri');
+  // Locurile între care se poate face un transfer: Curent, fiecare loc din Economii, Investiții.
+  const places = () => [{ acc: 'curent', bucket: null }, ...bucketOptions(tx.fromBucket ?? tx.toBucket).map(o => ({ acc: 'economii', bucket: o.value })), { acc: 'investitii', bucket: null }];
+  const placeName = (acc, bucket) => (acc === 'economii' ? bucketName(bucket || '') : accountName(acc));
+  const placeKey = (acc, bucket) => `${acc}|${acc === 'economii' ? bucket || '' : ''}`;
+  const order = () => (tx.type === 'transfer'
+    ? ['from', 'to', ...(tx.toAccountId === 'investitii' && state.assets.length ? ['asset'] : []), 'date', 'note']
+    : ['cat', 'acc', ...(tx.accountId === 'economii' ? ['bucket'] : []), 'date', 'note']);
+  if (isEdit) order().forEach(k => done.add(k));
+  else open = tx.type === 'transfer' ? 'from' : 'cat';
+
+  function stepDone(k) {
+    done.add(k);
+    if (flow) { const o = order(); open = o[o.indexOf(k) + 1] || null; if (!open) flow = false; } else open = null;
+    paint();
+  }
+  // Lista de opțiuni mici (cont, dată): butoane pe un rând.
+  const opts = (list, cur, onPick) => h('div', { class: 'tf-opts' }, list.map(([v, label]) => h('button', {
+    type: 'button', class: v === cur ? 'on' : '', onclick: () => onPick(v),
+  }, label)));
+  // Lista de locuri (economii, transfer): rânduri cu sold și bifă.
+  const placeList = (items, isOn, onPick) => h('div', { class: 'tf-places' }, items.map(it => h('button', {
+    type: 'button', class: 'tf-place' + (isOn(it) ? ' on' : ''), onclick: () => onPick(it),
+  }, h('span', { class: 'cat-ic neutral' }, icon(it.acc === 'economii' ? 'wallet' : it.acc === 'investitii' ? 'trend' : 'card', 18)),
+    h('span', { class: 'tf-place-m' }, h('b', {}, placeName(it.acc, it.bucket)),
+      h('small', {}, it.acc === 'economii' ? money(bucketBalance(it.bucket || ''), { cur: bucketCurrency(it.bucket || '') }) : money(accountBalance(it.acc)))),
+    h('span', { class: 'tf-chk' }, isOn(it) ? '✓' : ''))));
+
+  function rows() {
+    const c = catById(tx.categoryId);
+    const out = [];
+    if (tx.type === 'transfer') {
+      const all = places();
+      out.push(['from', h('span', { class: 'cat-ic neutral' }, icon('upload', 18)), tr('Din'), placeName(tx.accountId, tx.fromBucket),
+        () => placeList(all, it => placeKey(it.acc, it.bucket) === placeKey(tx.accountId, tx.fromBucket), it => {
+          tx.accountId = it.acc; tx.fromBucket = it.acc === 'economii' ? it.bucket : undefined; stepDone('from');
+        })]);
+      out.push(['to', h('span', { class: 'cat-ic neutral' }, icon('download', 18)), tr('În'), placeName(tx.toAccountId, tx.toBucket),
+        () => placeList(all.filter(it => placeKey(it.acc, it.bucket) !== placeKey(tx.accountId, tx.fromBucket)),
+          it => placeKey(it.acc, it.bucket) === placeKey(tx.toAccountId, tx.toBucket), it => {
+            tx.toAccountId = it.acc; tx.toBucket = it.acc === 'economii' ? it.bucket : undefined;
+            if (it.acc !== 'investitii') delete tx.assetId;
+            stepDone('to');
+          })]);
+      if (tx.toAccountId === 'investitii' && state.assets.length) {
+        const a = state.assets.find(x => x.id === tx.assetId);
+        out.push(['asset', h('span', { class: 'cat-ic neutral' }, icon('trend', 18)), tr('Contribuție la activul'), a ? a.name : tr('— Niciun activ —'),
+          () => opts([['', tr('— Niciun activ —')], ...state.assets.map(x => [x.id, `${x.name} · ${brokerOfAsset(x)?.name || ''}`])], tx.assetId || '',
+            v => { tx.assetId = v || undefined; stepDone('asset'); })]);
+      }
+    } else {
+      out.push(['cat', c ? catIcon(c, 36) : h('span', { class: 'cat-ic neutral' }, icon('tag', 18)), tr('Categorie'), c ? catName(c) : tr('Alege categoria'), () =>
+        h('div', { class: 'cat-grid' }, state.categories.filter(x => x.type === tx.type).map(x => h('button', {
+          type: 'button', class: 'cat-btn' + (x.id === tx.categoryId ? ' on' : ''),
+          onclick: () => {
+            tx.categoryId = x.id;
+            // La mâncare, cu bani pe bonuri, se alege singur „Bonuri” (cât timp n-ai ales tu contul); altfel nu se poate plăti cu bonuri.
+            if (tx.type === 'cheltuiala' && voucherCat(x.id) && !done.has('acc') && !isEdit && modOn('bonuri') && voucherBalance() > 0) tx.accountId = 'bonuri';
+            else if (tx.type === 'cheltuiala' && !voucherCat(x.id) && tx.accountId === 'bonuri') tx.accountId = 'curent';
+            stepDone('cat');
+          },
+        }, catIcon(x, 42), h('span', {}, catName(x)))))]);
+      const accOpts = [['curent', accountName('curent')], ['economii', accountName('economii')], ...(withV() ? [['bonuri', `🎫 ${tr('Bonuri')}`]] : [])];
+      out.push(['acc', h('span', { class: 'cat-ic neutral' }, icon(tx.accountId === 'economii' ? 'wallet' : 'card', 18)), tr('Cont'),
+        tx.accountId === 'bonuri' ? `🎫 ${tr('Bonuri de masă')}` : accountName(tx.accountId), () => opts(accOpts, tx.accountId, v => {
+          // alegi Economii: urmează „Din ce economii?”, chiar dacă ai deschis rândul de mână
+          if (v === 'economii' && tx.accountId !== 'economii') { tx.accountId = v; tx.bucket = undefined; done.delete('bucket'); done.add('acc'); open = 'bucket'; paint(); return; }
+          if (v !== 'economii') { delete tx.bucket; done.delete('bucket'); }
+          tx.accountId = v; stepDone('acc');
+        })]);
+      if (tx.accountId === 'economii') {
+        out.push(['bucket', h('span', { class: 'cat-ic neutral' }, icon('wallet', 18)), tx.type === 'venit' ? tr('În ce economii?') : tr('Din ce economii?'),
+          tx.bucket == null ? tr('Alege') : bucketName(tx.bucket), () => placeList(bucketOptions(tx.bucket).map(o => ({ acc: 'economii', bucket: o.value })),
+            it => tx.bucket != null && (tx.bucket || '') === it.bucket, it => { tx.bucket = it.bucket; stepDone('bucket'); })]);
+      }
+    }
+    const t0 = today(), y = addDays(t0, -1);
+    out.push(['date', h('span', { class: 'cat-ic neutral' }, icon('calendar', 18)), tr('Data'), dayLabel(tx.date), () => {
+      const pick = dateInput(tx.date, { max: t0, 'aria-label': tr('Alege data') });
+      pick.addEventListener('change', () => { if (pick.value) setDate(pick.value); });
+      return h('div', { class: 'tf-date' }, opts([[t0, dayLabel(t0)], [y, dayLabel(y)]], tx.date, setDate), pick);
+    }]);
+    out.push(['note', h('span', { class: 'cat-ic neutral' }, icon('pen', 18)), tr('Notă'), tx.note || tr('Opțional'), () => {
+      const inp = textInput(tx.note, { placeholder: tr('ex. Lidl'), maxlength: 140, enterkeyhint: 'done' });
+      inp.addEventListener('input', () => { tx.note = inp.value; });
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); stepDone('note'); } });
+      setTimeout(() => inp.focus({ preventScroll: true }), 50);
+      return h('div', { class: 'tf-note' }, inp, h('button', { type: 'button', class: 'btn secondary', onclick: () => stepDone('note') }, tr('Gata')));
+    }]);
+    // Călătoria: doar la cheltuieli, dacă ai una; nu face parte din pași.
+    if (tx.type === 'cheltuiala' && tripsOpen().length) {
+      const trip = state.trips.find(x => x.id === tripId);
+      out.push(['trip', h('span', { class: 'cat-ic neutral' }, icon('globe', 18)), tr('Călătorie'), trip ? `${trip.icon || '✈️'} ${trip.name}` : tr('Niciuna'),
+        () => opts([['', tr('Niciuna')], ...tripsOpen().map(x => [x.id, `${x.icon || '✈️'} ${x.name}`])], tripId, v => { tripId = v; tripTouched = true; stepDone('trip'); })]);
+    }
+    return out;
+  }
+  function setDate(v) {
+    tx.date = v;
+    if (!tripTouched) tripId = tripForDate(v)?.id || '';
+    stepDone('date');
+  }
+
+  // Sub rânduri: ce rămâne pe bonuri, moneda la transferuri în alt fel de economii, explicația transferului.
+  const hint = h('p', { class: 'hint tf-hint' });
+  const paintHint = () => {
+    const parts = [];
+    if (tx.type !== 'transfer' && tx.accountId === 'bonuri') {
+      const bal = voucherBalance() + (isEdit && existing.accountId === 'bonuri' ? (existing.type === 'cheltuiala' ? existing.amount : -existing.amount) : 0);
+      const after = round2(bal - (parseAmount(amount.value) || 0));
+      parts.push(tx.type === 'venit' ? tr('Pe bonuri ai {sum}.', { sum: money(bal) })
+        : after >= 0 ? tr('Pe bonuri ai {a}. După plată rămân {b}.', { a: money(bal), b: money(after) })
+          : tr('Pe bonuri ai doar {a}: lipsesc {b}.', { a: money(bal), b: money(-after) }));
+      hint.classList.toggle('warn-text', tx.type === 'cheltuiala' && after < 0);
+    } else hint.classList.remove('warn-text');
+    if (tx.type === 'transfer') {
+      const foreign = [tx.accountId === 'economii' && (tx.fromBucket || ''), tx.toAccountId === 'economii' && (tx.toBucket || '')]
+        .filter(b => b !== false).map(bucketCurrency).find(c => c !== base);
+      if (foreign) parts.push(tr('Suma e în {base}; pentru compartimentul în {cur} se convertește cu cursul din Setări.', { base, cur: foreign }));
+      parts.push(tr('Transferurile nu apar la cheltuieli.'));
+    }
+    hint.textContent = parts.join(' ');
+    hint.hidden = !parts.length;
   };
-  date.addEventListener('change', () => { if (!tripTouched) { tripId = tripForDate(date.value)?.id || ''; paintTrip(); } });
+  amount.addEventListener('input', paintHint);
+
+  const list = h('div', { class: 'tf-list' });
+  function paint() {
+    const o = order(), cur = o.indexOf(open);
+    list.replaceChildren(...rows().flatMap(([k, ic, label, value, body]) => {
+      // în timpul pașilor, cei care urmează sunt mai șterși, ca să se vadă unde ești
+      const todo = flow && cur >= 0 && o.indexOf(k) > cur && !done.has(k);
+      const isOpen = open === k;
+      const row = h('button', {
+        type: 'button', class: 'tf-row' + (isOpen ? ' open' : '') + (todo ? ' todo' : '') + (done.has(k) ? ' done' : ''), 'aria-expanded': String(isOpen),
+        onclick: () => { flow = false; open = isOpen ? null : k; paint(); },
+      }, ic, h('span', { class: 'tf-row-m' }, h('small', {}, label), h('b', {}, value)),
+        h('span', { class: 'tf-chev' }, done.has(k) && !isOpen && k !== 'trip' ? '✓' : icon('chevR', 18)));
+      return isOpen ? [row, h('div', { class: 'tf-exp' }, body())] : [row];
+    }));
+    paintHint();
+  }
 
   const typeSeg = segmented(TYPES(), tx.type, v => {
     tx.type = v;
-    curRow.hidden = v === 'transfer';
     if (v === 'transfer') {
+      if (tx.accountId === 'bonuri') tx.accountId = 'curent';
       if (!tx.toAccountId || tx.toAccountId === tx.accountId) tx.toAccountId = tx.accountId === 'curent' ? 'economii' : 'curent';
     } else {
       if (tx.accountId === 'investitii') tx.accountId = 'curent';
       if (catById(tx.categoryId)?.type !== v) tx.categoryId = null;
     }
-    paint();
-    paintTrip();
+    // alt tip: pașii o iau de la capăt
+    flow = true; done.clear(); open = order()[0];
+    paintCur(); paintFx(); paint();
   });
-
-  function paint() {
-    if (tx.type !== 'transfer') {
-      const grid = h('div', { class: 'cat-grid' }, state.categories.filter(c => c.type === tx.type).map(c =>
-        h('button', {
-          type: 'button', class: 'cat-btn' + (c.id === tx.categoryId ? ' on' : ''),
-          onclick: e => { tx.categoryId = c.id; grid.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('on', b === e.currentTarget)); },
-        }, catIcon(c, 42), h('span', {}, catName(c)))));
-      dyn.replaceChildren(
-        field(tr('Categorie'), grid),
-        field(tr('Cont'), segmented([{ value: 'curent', label: accountName('curent') }, { value: 'economii', label: accountName('economii') }],
-          tx.accountId === 'economii' ? 'economii' : 'curent', v => { tx.accountId = v; })));
-      return;
-    }
-    const opts = ACCOUNTS.map(a => ({ value: a.id, label: accountName(a.id) }));
-    const from = selectInput(opts, tx.accountId), to = selectInput(opts, tx.toAccountId);
-    from.addEventListener('change', () => { tx.accountId = from.value; paint(); });
-    to.addEventListener('change', () => { tx.toAccountId = to.value; paint(); });
-    const rows = [h('div', { class: 'two' }, field(tr('Din contul'), from), field(tr('În contul'), to))];
-    if (tx.accountId === 'economii') {
-      const sel = selectInput(bucketOptions(tx.fromBucket), tx.fromBucket || '');
-      sel.addEventListener('change', () => { tx.fromBucket = sel.value; });
-      rows.push(field(tr('Din economii'), sel));
-    }
-    if (tx.toAccountId === 'economii') {
-      const sel = selectInput(bucketOptions(tx.toBucket), tx.toBucket || '');
-      sel.addEventListener('change', () => { tx.toBucket = sel.value; });
-      rows.push(field(tr('Pune în'), sel));
-    }
-    if (tx.toAccountId === 'investitii' && state.assets.length) {
-      const sel = selectInput([{ value: '', label: tr('— Niciun activ —') }, ...state.assets.map(a => ({ value: a.id, label: `${a.name} · ${brokerOfAsset(a)?.name || ''}` }))], tx.assetId || '');
-      sel.addEventListener('change', () => { tx.assetId = sel.value; });
-      rows.push(field(tr('Contribuție la activul'), sel, tr('Se adaugă automat la contribuțiile activului.')));
-    }
-    const foreign = [tx.accountId === 'economii' && (tx.fromBucket || ''), tx.toAccountId === 'economii' && (tx.toBucket || '')]
-      .filter(b => b !== false).map(bucketCurrency).find(c => c !== state.settings.currency);
-    if (foreign) rows.push(h('p', { class: 'hint' }, tr('Suma e în {base}; pentru compartimentul în {cur} se convertește cu cursul din Setări.', { base: state.settings.currency, cur: foreign })));
-    rows.push(h('p', { class: 'hint' }, tr('Transferurile nu apar la cheltuieli.')));
-    dyn.replaceChildren(...rows);
-  }
-  paint();
-  paintTrip();
+  paintCur(); paintFx(); paint();
 
   function submit() {
     const amt = parseAmount(amount.value);
     if (!(amt > 0)) return invalid(amount, tr('Introdu o sumă mai mare ca 0'));
-    if (!date.value) return invalid(date, tr('Alege data'));
-    const out = { id: tx.id, type: tx.type, amount: round2(amt), date: date.value, note: note.value.trim() };
+    if (!tx.date) { open = 'date'; paint(); return toast(tr('Alege data')); }
+    const out = { id: tx.id, type: tx.type, amount: round2(amt), date: tx.date, note: (tx.note || '').trim() };
     if (tx.subscriptionId) out.subscriptionId = tx.subscriptionId;
     if (tx.debtId) out.debtId = tx.debtId;
     if (tx.type === 'transfer') {
       const sameBucket = (tx.fromBucket || '') === (tx.toBucket || '');
-      if (tx.accountId === tx.toAccountId && !(tx.accountId === 'economii' && !sameBucket)) return toast(tr('Alege conturi diferite'));
+      if (tx.accountId === tx.toAccountId && !(tx.accountId === 'economii' && !sameBucket)) { open = 'to'; paint(); return toast(tr('Alege conturi diferite')); }
       Object.assign(out, { accountId: tx.accountId, toAccountId: tx.toAccountId });
-      const base = state.settings.currency;
       // Suma în moneda compartimentului: o păstrăm dacă nu s-au schimbat suma și compartimentul, altfel o convertim.
       const bucketAmt = (side, bucket) => {
         const cur = bucketCurrency(bucket);
@@ -145,9 +259,9 @@ export function openTxForm(existing, preset = {}) {
       }
       if (tx.toAccountId === 'investitii' && tx.assetId) out.assetId = tx.assetId;
     } else {
-      if (!tx.categoryId) return toast(tr('Alege o categorie'));
+      if (!tx.categoryId) { open = 'cat'; paint(); return toast(tr('Alege o categorie')); }
       out.categoryId = tx.categoryId;
-      out.accountId = tx.accountId === 'economii' ? 'economii' : 'curent';
+      out.accountId = ['economii', 'bonuri'].includes(tx.accountId) ? tx.accountId : 'curent';
       if (tx.type === 'cheltuiala' && tripId && state.trips.some(x => x.id === tripId)) out.tripId = tripId;
       if (txCur !== base) {
         // Păstrăm conversia veche dacă suma și moneda nu s-au schimbat (cursul din Setări poate fi între timp altul).
@@ -155,6 +269,18 @@ export function openTxForm(existing, preset = {}) {
         out.origAmount = out.amount;
         out.origCurrency = txCur;
         out.amount = same ? existing.amount : round2(convert(out.amount, txCur, base));
+      }
+      // Din / în ce economii: suma se scade (sau se adaugă) exact acolo, în moneda acelui loc.
+      if (out.accountId === 'economii') {
+        if (tx.bucket == null) { open = 'bucket'; paint(); return toast(tx.type === 'venit' ? tr('Alege în ce economii') : tr('Alege din ce economii')); }
+        out.bucket = tx.bucket || '';
+        const bcur = bucketCurrency(out.bucket);
+        if (bcur !== base) out.bucketAmt = out.origCurrency === bcur ? out.origAmount : round2(convert(out.amount, base, bcur));
+        if (tx.type === 'venit' && out.bucket.startsWith('g:')) {
+          const prev = isEdit && existing.type === 'venit' && existing.accountId === 'economii' && (existing.bucket || '') === out.bucket ? txBucketAmt(existing) : 0;
+          const room = goalRoom(out.bucket, prev);
+          if (room != null && txBucketAmt(out) > room + 0.001) return invalid(amount, roomMsg(room, bcur));
+        }
       }
     }
     const reached = saveTx(out);
@@ -165,11 +291,14 @@ export function openTxForm(existing, preset = {}) {
     else toast(isEdit ? tr('Tranzacție actualizată') : tr('Tranzacție adăugată'));
     celebrate(reached);
   }
-  amount.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  amount.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); amount.blur(); } });
 
+  const body = h('div', { class: 'tf' }, typeSeg, amountBox, fxHint, list, hint);
+  // lista monedelor se închide la orice atingere în afara ei
+  body.addEventListener('click', e => { if (!e.target.closest('.tf-cur-wrap')) curMenu.hidden = true; });
   const sh = openSheet({
     title: isEdit ? tr('Editează tranzacția') : tr('Tranzacție nouă'),
-    body: h('div', {}, typeSeg, field(tr('Sumă'), amount), curRow, dyn, h('div', { class: 'two' }, field(tr('Data'), date), field(tr('Notă'), note)), tripBox),
+    body,
     footer: h('div', { class: 'btn-row' },
       isEdit ? btn(tr('Șterge'), () => confirmDeleteTx(existing, () => sh.close()), 'ghost danger-text') : null,
       btn(isEdit ? tr('Salvează') : tr('Adaugă'), submit)),

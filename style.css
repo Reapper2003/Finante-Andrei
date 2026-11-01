@@ -1696,6 +1696,8 @@ body.nav-fara-text .tabs a { height: 48px; }
 .ps-total b { font-size: 18px; }
 .ps-total.neg { background: color-mix(in srgb, var(--neg) 12%, var(--card)); color: var(--neg); }
 .p-sum .ps-day { margin-top: -6px; font-size: 12.5px; }
+.ps-food { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: color-mix(in srgb, #E9C46A 26%, var(--card)); color: color-mix(in srgb, #7A5A0E 85%, var(--text)); font-weight: 650; font-size: 14px; }
+.ps-food b { font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* Pașii 3 și 4: rânduri pe card, alegerea într-un panou de jos */
 .px-empty { margin: 0; font-size: 13.5px; }
 .px-open { height: 44px; border: 0; border-radius: 14px; background: var(--accent-soft); color: var(--accent); font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
@@ -1896,3 +1898,61 @@ body.nav-fara-text .tabs a { height: 48px; }
 .avg-hint { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -4px 0 14px; font-size: 13px; color: var(--muted); }
 .avg-hint:empty { display: none; }
 .avg-hint .link-btn { flex: none; }
+
+/* Bonuri de masă: rândul mic din cardul principal de pe Acasă */
+.hero-bon { position: relative; z-index: 1; display: inline-block; align-self: flex-start; justify-self: start; margin-top: 2px; padding: 4px 10px; border: 0; border-radius: 99px;
+  background: color-mix(in srgb, var(--on-hero, #fff) 16%, transparent); color: var(--on-hero, #fff); font-size: 12.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+/* ---------- Formularul de tranzacție: suma sus, apoi rânduri care se deschid pe rând ---------- */
+.tf { display: grid; gap: 14px; }
+.tf-amount { position: relative; z-index: 3; display: flex; align-items: center; gap: 10px; height: 68px; padding: 0 8px 0 4px; border-radius: 16px; background: var(--soft); }
+.tf-amount input.amount { flex: 1; min-width: 0; height: 100%; border: 0; background: none; box-shadow: none; padding: 0 12px; }
+.tf-amount input.amount:focus { outline: none; }
+.tf-amount:focus-within { box-shadow: inset 0 0 0 2px var(--accent); }
+.tf-cur-wrap { position: relative; flex: none; }
+.tf-cur { padding: 6px 12px; border: 0; border-radius: 99px; background: var(--card); color: var(--text); font: inherit; font-weight: 650; font-size: 14px; cursor: pointer; }
+.tf-cur[hidden] { display: none; }
+.tf-cur-menu { position: absolute; top: calc(100% + 8px); right: 0; z-index: 5; min-width: 236px; padding: 6px; border-radius: 16px; background: var(--card); box-shadow: 0 12px 32px rgba(15, 17, 21, .18), 0 0 0 1px var(--line); display: grid; gap: 2px; }
+.tf-cur-menu[hidden] { display: none; }
+.tf-cur-menu button { display: grid; grid-template-columns: 34px minmax(0, 1fr) 18px; align-items: center; gap: 10px; padding: 8px 10px; border: 0; border-radius: 11px; background: none; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.tf-cur-menu button.on { background: var(--accent-soft); }
+.tf-sym { width: 34px; height: 34px; border-radius: 10px; background: var(--soft); display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+.tf-cur-menu button.on .tf-sym { background: var(--accent); color: #fff; }
+.tf-cur-menu b { display: block; font-size: 14.5px; }
+.tf-cur-menu small { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.tf-ok { color: var(--accent); font-weight: 900; }
+.tf-fx { margin: -8px 4px 0; font-size: 13px; color: var(--muted); }
+.tf-fx[hidden] { display: none; }
+.tf-list { display: grid; grid-template-columns: minmax(0, 1fr); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: var(--card); }
+.tf-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 8px 14px; border: 0; background: var(--card); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.tf-row + .tf-row, .tf-row + .tf-exp, .tf-exp + .tf-row { border-top: 1px solid var(--line); }
+.tf-row .cat-ic { width: 36px; height: 36px; flex: none; }
+.tf-row-m { flex: 1; min-width: 0; }
+.tf-row-m small { display: block; font-size: 12.5px; color: var(--muted); }
+.tf-row-m b { display: block; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tf-chev { flex: none; color: var(--muted); display: inline-flex; transition: transform .2s; }
+.tf-row.open { background: var(--soft); }
+.tf-row.open .tf-chev { transform: rotate(90deg); }
+.tf-row.done:not(.open) .tf-chev { color: var(--pos); font-weight: 900; font-size: 17px; }
+.tf-row.todo .tf-row-m b { color: var(--muted); font-weight: 500; }
+.tf-row.todo .cat-ic { opacity: .55; }
+.tf-exp { min-width: 0; padding: 10px 12px 14px; background: color-mix(in srgb, var(--soft) 45%, var(--card)); }
+.tf-exp .cat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tf-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.tf-opts button { min-height: 40px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); color: var(--text); font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; }
+.tf-opts button.on { background: var(--accent); color: var(--on-accent, #fff); box-shadow: none; }
+.tf-places { display: grid; gap: 6px; }
+.tf-place { display: grid; grid-template-columns: 34px minmax(0, 1fr) 22px; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 12px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.tf-place .cat-ic { width: 34px; height: 34px; }
+.tf-place-m { min-width: 0; }
+.tf-place-m b { display: block; font-size: 14.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tf-place-m small { display: block; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tf-place.on { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.tf-chk { width: 22px; height: 22px; border-radius: 7px; box-shadow: inset 0 0 0 2px var(--line); display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 900; }
+.tf-place.on .tf-chk { background: var(--accent); box-shadow: none; }
+.tf-date { display: grid; gap: 8px; }
+.tf-date input { width: 100%; }
+.tf-note { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.tf-note .btn { min-height: 0; height: 48px; padding: 0 16px; }
+.tf-hint { margin: -4px 4px 0; }
+.tf-hint[hidden] { display: none; }
