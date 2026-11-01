@@ -25,7 +25,7 @@ const TYPES = () => [{ value: 'cheltuiala', label: tr('Cheltuială') }, { value:
 
 /* ---------- Tranzacție ---------- */
 
-// Formularul se completează pe rânduri: suma sus, apoi Categorie → Cont → (Din / În ce economii) → Data → Notă.
+// Formularul se completează pe rânduri: suma sus, apoi Categorie → Cont → (Din / În ce economii) → Data → (Călătorie) → Notă.
 // La o tranzacție nouă pașii se deschid pe rând (alegi, se închide, se deschide următorul); dacă atingi tu un rând,
 // se deschide doar el și șirul se oprește. La transfer: Din → În → (Activul) → Data → Notă.
 export function openTxForm(existing, preset = {}) {
@@ -70,6 +70,8 @@ export function openTxForm(existing, preset = {}) {
   // Călătoria: aleasă singură după dată (cât timp n-o alegi tu); se poate lega și o cheltuială din afara perioadei (ex. biletul de avion).
   let tripId = isEdit ? tx.tripId || '' : tripForDate(tx.date)?.id || '', tripTouched = isEdit;
   const tripsOpen = () => state.trips.filter(x => x.status !== 'done' || x.id === tripId);
+  // Călătoria e un pas doar la cheltuieli și doar dacă ai o călătorie planificată sau în curs.
+  const hasTrip = () => tx.type === 'cheltuiala' && tripsOpen().length > 0;
 
   /* --- rândurile și pașii --- */
   let open = null, flow = !isEdit;
@@ -81,7 +83,7 @@ export function openTxForm(existing, preset = {}) {
   const placeKey = (acc, bucket) => `${acc}|${acc === 'economii' ? bucket || '' : ''}`;
   const order = () => (tx.type === 'transfer'
     ? ['from', 'to', ...(tx.toAccountId === 'investitii' && state.assets.length ? ['asset'] : []), 'date', 'note']
-    : ['cat', 'acc', ...(tx.accountId === 'economii' ? ['bucket'] : []), 'date', 'note']);
+    : ['cat', 'acc', ...(tx.accountId === 'economii' ? ['bucket'] : []), 'date', ...(hasTrip() ? ['trip'] : []), 'note']);
   if (isEdit) order().forEach(k => done.add(k));
   else open = tx.type === 'transfer' ? 'from' : 'cat';
 
@@ -156,6 +158,12 @@ export function openTxForm(existing, preset = {}) {
       pick.addEventListener('change', () => { if (pick.value) setDate(pick.value); });
       return h('div', { class: 'tf-date' }, opts([[t0, dayLabel(t0)], [y, dayLabel(y)]], tx.date, setDate), pick);
     }]);
+    // Călătoria: doar la cheltuieli, dacă ai una planificată sau în curs (aleasă singură după dată, o poți schimba).
+    if (hasTrip()) {
+      const trip = state.trips.find(x => x.id === tripId);
+      out.push(['trip', h('span', { class: 'cat-ic neutral' }, icon('globe', 18)), tr('Călătorie'), trip ? `${trip.icon || '✈️'} ${trip.name}` : tr('Niciuna'),
+        () => opts([['', tr('Niciuna')], ...tripsOpen().map(x => [x.id, `${x.icon || '✈️'} ${x.name}`])], tripId, v => { tripId = v; tripTouched = true; stepDone('trip'); })]);
+    }
     out.push(['note', h('span', { class: 'cat-ic neutral' }, icon('pen', 18)), tr('Notă'), tx.note || tr('Opțional'), () => {
       const inp = textInput(tx.note, { placeholder: tr('ex. Lidl'), maxlength: 140, enterkeyhint: 'done' });
       inp.addEventListener('input', () => { tx.note = inp.value; });
@@ -163,12 +171,6 @@ export function openTxForm(existing, preset = {}) {
       setTimeout(() => inp.focus({ preventScroll: true }), 50);
       return h('div', { class: 'tf-note' }, inp, h('button', { type: 'button', class: 'btn secondary', onclick: () => stepDone('note') }, tr('Gata')));
     }]);
-    // Călătoria: doar la cheltuieli, dacă ai una; nu face parte din pași.
-    if (tx.type === 'cheltuiala' && tripsOpen().length) {
-      const trip = state.trips.find(x => x.id === tripId);
-      out.push(['trip', h('span', { class: 'cat-ic neutral' }, icon('globe', 18)), tr('Călătorie'), trip ? `${trip.icon || '✈️'} ${trip.name}` : tr('Niciuna'),
-        () => opts([['', tr('Niciuna')], ...tripsOpen().map(x => [x.id, `${x.icon || '✈️'} ${x.name}`])], tripId, v => { tripId = v; tripTouched = true; stepDone('trip'); })]);
-    }
     return out;
   }
   function setDate(v) {
@@ -211,7 +213,7 @@ export function openTxForm(existing, preset = {}) {
         type: 'button', class: 'tf-row' + (isOpen ? ' open' : '') + (todo ? ' todo' : '') + (done.has(k) ? ' done' : ''), 'aria-expanded': String(isOpen),
         onclick: () => { flow = false; open = isOpen ? null : k; paint(); },
       }, ic, h('span', { class: 'tf-row-m' }, h('small', {}, label), h('b', {}, value)),
-        h('span', { class: 'tf-chev' }, done.has(k) && !isOpen && k !== 'trip' ? '✓' : icon('chevR', 18)));
+        h('span', { class: 'tf-chev' }, done.has(k) && !isOpen ? '✓' : icon('chevR', 18)));
       return isOpen ? [row, h('div', { class: 'tf-exp' }, body())] : [row];
     }));
     paintHint();

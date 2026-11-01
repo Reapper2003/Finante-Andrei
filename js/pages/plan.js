@@ -4,7 +4,7 @@
 
 import { state, save, modOn } from '../store.js';
 import { currentMonth, addMonths } from '../dates.js';
-import { moneyShort, parseAmount, forInput, CURRENCIES } from '../fmt.js';
+import { money, moneyShort, parseAmount, forInput, CURRENCIES } from '../fmt.js';
 import { round2, convert, accountBalance, voucherBalance, voucherCat, subTotals, subMonthly, debtTotals, debtRemaining, efStats, goalStats, dailyAllowance, bucketIn, bucketOut, bucketCurrency, brokerOfAsset } from '../calc.js';
 import { h, icon, btn, amountInput, textInput, segmented, openSheet } from '../ui.js';
 import { t as tr } from '../i18n.js';
@@ -19,7 +19,10 @@ function calc() {
   if (!st.calc) st.calc = {};
   const c = st.calc;
   // completează doar ce lipsește, pe același obiect (altfel modificările s-ar face pe o copie)
-  for (const [k, v] of Object.entries({ inc: '', plus: '', bon: '', save: 20, on: null, amt: null, extras: {} })) if (!(k in c)) c[k] = v;
+  for (const [k, v] of Object.entries({ inc: '', bon: '', save: 20, on: null, amt: null, extras: {} })) if (!(k in c)) c[k] = v;
+  // „Altă sumă” poate avea mai multe rânduri: [{ id, amt, cur }]; vechea sumă unică devine primul rând.
+  if (!Array.isArray(c.others)) c.others = c.plusOn && c.plus ? [{ id: 'o1', amt: c.plus, cur: c.plusCur || '' }] : [];
+  delete c.plus; delete c.plusCur; delete c.plusOn;
   return c;
 }
 
@@ -103,8 +106,12 @@ export function planPage() {
   const c = calc();
   const list = destinations();
   const byId = id => list.find(d => d.id === id);
-  // Ce am: suma scrisă + banii în plus (ex. ce mai e în contul Curent), dacă i-ai adăugat.
-  const income = () => round2((parseAmount(c.inc) || 0) + (c.plusOn ? parseAmount(c.plus) || 0 : 0));
+  // Ce am: suma scrisă + altă sumă (ex. ce mai e în contul Curent, sau euro), dacă ai adăugat-o; euro / dolarii se convertesc cu cursul din Setări.
+  const oCur = o => (CURRENCIES[o.cur] ? o.cur : base());
+  const oRaw = o => parseAmount(o.amt) || 0;
+  const oBase = o => round2(convert(oRaw(o), oCur(o), base()));
+  const plusBase = () => round2(c.others.reduce((x, o) => x + oBase(o), 0));
+  const income = () => round2((parseAmount(c.inc) || 0) + plusBase());
   const saveNow = () => round2(income() * c.save / 100);
   // Cheltuielile extra țin de luna planului: luna curentă la „Restul lunii”, luna viitoare la „Luna viitoare”.
   const planMonth = () => (c.period === 'next' ? addMonths(currentMonth(), 1) : currentMonth());
@@ -167,20 +174,67 @@ export function planPage() {
   const periodSeg = segmented([{ value: 'rest', label: tr('Restul lunii') }, { value: 'next', label: tr('Luna viitoare') }], c.period === 'next' ? 'next' : 'rest',
     v => { c.period = v; paintHead(); fit(); save(); paintAll(); refresh(); });
   incInput.addEventListener('input', () => { c.inc = incInput.value; fit(); save(); paintAll(); });
-  // „+ Altă sumă”: bani în plus față de suma scrisă (ex. ce mai e în contul Curent).
-  const plusInput = amountInput('', { placeholder: tr('ex. {n}', { n: '500' }) });
-  plusInput.value = c.plus || '';
-  plusInput.addEventListener('input', () => { c.plus = plusInput.value; fit(); save(); paintAll(); });
+  // „+ Altă sumă”: bani în plus față de suma scrisă (ex. ce mai e în contul Curent, euro, dolari), oricâte rânduri.
   const plusBox = h('div', { class: 'p-plus' }), totalLine = h('p', { class: 'muted p-total' });
-  function paintPlus() {
-    const cur = accountBalance('curent');
-    plusBox.replaceChildren(...(c.plusOn ? [
+  const curLbl = k => (k === 'RON' ? 'lei' : CURRENCIES[k]);
+  const CUR_INFO = { RON: tr('Lei'), EUR: tr('Euro'), USD: tr('Dolari') };
+  const newOther = (amt = '', cur = '') => ({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), amt, cur });
+  // un rând: suma, butonul de monedă (cu lista care cade dedesubt), ×, iar dedesubt echivalentul în lei
+  function otherRow(o) {
+    const input = amountInput('', { placeholder: tr('ex. {n}', { n: '500' }), 'aria-label': tr('Altă sumă') });
+    input.value = o.amt || '';
+    const fx = h('small', { class: 'muted p-plus-fx' });
+    const paintFx = () => {
+      fx.textContent = oCur(o) === base() ? '' : oRaw(o) > 0 ? `≈ ${lei(oBase(o))}` : `1 ${curLbl(oCur(o))} = ${forInput(state.settings.rates[oCur(o)])} lei`;
+      fx.hidden = !fx.textContent;
+    };
+    input.addEventListener('input', () => { o.amt = input.value; paintFx(); fit(); save(); paintAll(); });
+    const curBtn = h('button', { type: 'button', class: 'tf-cur', 'aria-haspopup': 'listbox' });
+    const curMenu = h('div', { class: 'tf-cur-menu', role: 'listbox' });
+    curMenu.hidden = true;
+    const paintCur = () => {
+      curBtn.textContent = `${curLbl(oCur(o))} ▾`;
+      curMenu.replaceChildren(...Object.keys(CURRENCIES).map(k => h('button', {
+        type: 'button', role: 'option', class: k === oCur(o) ? 'on' : '', 'aria-selected': String(k === oCur(o)),
+        onclick: e => { e.stopPropagation(); o.cur = k === base() ? '' : k; curMenu.hidden = true; save(); paintCur(); paintFx(); fit(); paintAll(); },
+      }, h('span', { class: 'tf-sym' }, curLbl(k)),
+        h('span', {}, h('b', {}, CUR_INFO[k]), h('small', {}, k === base() ? `${k} · ${tr('moneda ta')}` : `${k} · 1 ${curLbl(k)} = ${forInput(state.settings.rates[k])} lei`)),
+        h('span', { class: 'tf-ok' }, k === oCur(o) ? '✓' : ''))));
+    };
+    curBtn.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      const was = curMenu.hidden;
+      plusBox.querySelectorAll('.tf-cur-menu').forEach(m => { m.hidden = true; });
+      curMenu.hidden = !was;
+    });
+    paintCur(); paintFx();
+    const row = h('div', { class: 'p-other' },
       h('div', { class: 'p-plus-row' },
-        h('label', { class: 'field' }, h('span', { class: 'field-label' }, tr('Altă sumă')), plusInput),
-        h('button', { type: 'button', class: 'icon-btn', 'aria-label': tr('Scoate suma'), onclick: () => { c.plusOn = false; c.plus = ''; plusInput.value = ''; fit(); save(); paintPlus(); paintAll(); } }, icon('x', 18))),
-      cur > 0 ? h('button', { type: 'button', class: 'p-plus-chip', onclick: () => { c.plus = forInput(round2(cur)); plusInput.value = c.plus; fit(); save(); paintAll(); } },
-        tr('Soldul din Curent: {sum}', { sum: lei(cur) })) : null,
-    ].filter(Boolean) : [h('button', { type: 'button', class: 'p-plus-link', onclick: () => { c.plusOn = true; save(); paintPlus(); plusInput.focus(); } }, `+ ${tr('Altă sumă')}`)]));
+        h('div', { class: 'p-amt-cur' }, input, h('span', { class: 'tf-cur-wrap' }, curBtn, curMenu)),
+        h('button', { type: 'button', class: 'icon-btn', 'aria-label': tr('Scoate suma'), onclick: () => { c.others = c.others.filter(x => x !== o); fit(); save(); paintPlus(); paintAll(); } }, icon('x', 18))),
+      fx);
+    row.input = input;
+    return row;
+  }
+  plusBox.addEventListener('click', e => { if (!e.target.closest('.tf-cur-wrap')) plusBox.querySelectorAll('.tf-cur-menu').forEach(m => { m.hidden = true; }); });
+  function paintPlus(focusLast = false) {
+    const cur = accountBalance('curent');
+    const rows = c.others.map(otherRow);
+    // „Soldul din Curent” se adaugă o singură dată, ca rând în lei
+    const hasCurent = c.others.some(o => o.fromCurent);
+    plusBox.replaceChildren(...[
+      rows.length ? h('span', { class: 'field-label' }, tr('Altă sumă')) : null,
+      ...rows,
+      h('div', { class: 'p-plus-acts' },
+        h('button', { type: 'button', class: 'p-plus-link', onclick: () => { c.others = [...c.others, newOther()]; save(); paintPlus(true); } }, `+ ${tr('Altă sumă')}`),
+        cur > 0 && !hasCurent ? h('button', { type: 'button', class: 'p-plus-link', onclick: () => {
+          const empty = c.others.find(o => !oRaw(o));
+          if (empty) Object.assign(empty, { amt: forInput(round2(cur)), cur: '', fromCurent: true });
+          else c.others = [...c.others, { ...newOther(forInput(round2(cur))), fromCurent: true }];
+          fit(); save(); paintPlus(); paintAll();
+        } }, `+ ${tr('Soldul din Curent: {sum}', { sum: lei(cur) })}`) : null),
+    ].filter(Boolean));
+    if (focusLast && rows.length) rows.at(-1).input.focus();
   }
   paintPlus();
   // „+ Bonuri de masă” (doar cu modulul pornit): suma de pe bonuri pentru perioada planului.
@@ -399,7 +453,7 @@ export function planPage() {
     const has = numbers().inc > 0;
     card2.hidden = card3.hidden = card4.hidden = cardSum.hidden = !has;
     const n = numbers();
-    const hasPlus = c.plusOn && (parseAmount(c.plus) || 0) > 0;
+    const hasPlus = plusBase() > 0;
     totalLine.hidden = !(hasPlus || n.bon > 0);
     totalLine.replaceChildren(...(n.bon > 0
       ? [`${tr('Bani')}: `, h('b', {}, lei(n.inc)), ` · ${tr('Bonuri')}: `, h('b', {}, lei(n.bon))]
@@ -420,7 +474,9 @@ export function planPage() {
       h('span', {}, name, kind ? h('small', {}, ` · ${kind}`) : null), h('span', {}, lei(v))))) : null);
   function paintSum() {
     const n = numbers();
-    const typed = parseAmount(c.inc) || 0, plus = c.plusOn ? parseAmount(c.plus) || 0 : 0;
+    const typed = parseAmount(c.inc) || 0, plus = plusBase();
+    // fiecare altă sumă pe rândul ei; cele în euro / dolari arată și suma în moneda lor
+    const others = c.others.filter(o => oRaw(o) > 0).map(o => [oCur(o) === base() ? tr('Altă sumă') : `${tr('Altă sumă')} (${money(oRaw(o), { cur: oCur(o) })})`, oBase(o)]);
     const saved = chosen().filter(d => amt(d.id) > 0).map(d => [d.group === 'fond' ? tr('Fond de urgență') : d.name, amt(d.id)]);
     if (left() > 0.5) saved.push([tr('neîmpărțit încă'), left()]);
     // ce rămâne de fapt; sub zero înseamnă că nu ajung banii
@@ -428,7 +484,7 @@ export function planPage() {
     cardSum.replaceChildren(...[
       h('h2', { class: 'p-h' }, tr('Rezumat')),
       h('p', { class: 'muted p-sub' }, n.rest ? tr('Restul lunii · {n} zile', { n: n.days }) : tr('Luna viitoare')),
-      sumGroup(tr('Cât am'), n.inc, plus > 0 ? [[tr('Suma scrisă'), typed], [tr('Altă sumă'), plus]] : [], '+'),
+      sumGroup(tr('Cât am'), n.inc, plus > 0 ? [[tr('Suma scrisă'), typed], ...others] : [], '+'),
       sumGroup(tr('Plăți fixe'), n.fixed, fixedItems()),
       sumGroup(tr('Pus deoparte ({p}%)', { p: c.save }), n.saveAmt, saved),
       n.extra > 0 ? sumGroup(tr('Cheltuieli extra'), n.extra, extras().map(e => [e.name, e.amt])) : null,
